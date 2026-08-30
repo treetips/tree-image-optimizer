@@ -1,0 +1,154 @@
+{
+  "appTitle": "Tree Image Optimizer",
+  "preparingTools": "Preparing tools for the first launch.",
+  "preparingDetail": "Extracting the tools required for image processing.\nPlease wait a moment until completion.",
+  "preparingApp": "Preparing the application...",
+  "toolsReady": "Preparation complete",
+  "toolPrepareFailed": "Failed to prepare tools.",
+  "toolPrepareFailedDefault": "An unknown error occurred.",
+  "retry": "Retry",
+  "select": "Select",
+
+  "navConvert": "Convert",
+  "navSettings": "Settings",
+  "navAbout": "About",
+
+  "screenConvert": "Image Conversion",
+  "sectionInput": "Input",
+  "fieldTargetFolder": "Target folder",
+  "infoTargetFolder": "All files in the target folder will be processed.",
+  "fieldTargetFiles": "Target files",
+  "infoTargetFiles": "Narrowing the target files reduces the number of files to process and speeds things up.",
+  "sectionUpscale": "Upscale",
+  "fieldScale": "Scale",
+  "infoScale": "Larger scaling slows processing and increases file size.",
+  "fieldModel": "Model",
+  "infoModel": "realesr-animevideov3-x4 is a model strong with anime.",
+  "sectionCompress": "Compression",
+  "fieldFormat": "Format",
+  "infoFormat": "JPEG XL is strong with anime, fast to compress, and reduces degradation.",
+  "fieldOptimizeType": "Optimization type",
+  "infoOptimizeType": "Compresses with parameters suited to the type such as anime or photo.",
+  "fieldQuality": "Quality",
+  "sectionProcess": "Process",
+  "fieldParallel": "Parallel count",
+  "infoParallel": "Number of files processed simultaneously. The maximum is the number of CPU cores. Raising it too high creates a very heavy load; the recommended value is the initial value (half the number of cores).",
+  "sectionOutput": "Output",
+  "fieldOutputFolder": "Output folder",
+  "infoOutputFolder": "If a file with the same name already exists at the output destination, it will be overwritten and copied.",
+  "runConversion": "Run conversion",
+  "conversionComplete": "Conversion complete",
+  "close": "CLOSE",
+  "result": "Result",
+  "fileName": "File name",
+  "upscale": "Upscale",
+  "compress": "Compress",
+  "output": "Output",
+  "targetFileCount": "Target files",
+  "successCount": "Succeeded",
+  "failureCount": "Failed",
+  "elapsedTime": "Elapsed time",
+  "minuteUnit": "min",
+
+  "screenSettings": "Settings",
+  "sectionVersion": "Version information",
+  "sectionEndAction": "Action on conversion completion",
+  "showOsNotification": "Show OS notification",
+  "infoShowOsNotification": "Shows a notification built into the OS. Displaying notifications requires separate OS-side permission settings.",
+  "playSound": "Play sound",
+  "infoPlaySound": "When checked, sound is played when conversion completes.",
+  "successSound": "Success sound",
+  "infoSuccessSound": "Place audio files under .config/tree-image-optimizer/sounds/success to select your own files.\nSample audio uses \"Sound Effect Lab https://soundeffect-lab.info/\".",
+  "errorSound": "Failure sound",
+  "infoErrorSound": "Place audio files under .config/tree-image-optimizer/sounds/error to select your own files.\nSample audio uses \"Sound Effect Lab https://soundeffect-lab.info/\".",
+  "binary": "Binary",
+  "version": "Version",
+
+  "sectionBasic": "Basic settings",
+  "language": "Language",
+  "languageAuto": "Automatic (follow system)",
+  "languageJapanese": "Japanese",
+  "languageEnglish": "English",
+  "infoLanguage": "Select the display language. When unset, the OS language is used.",
+
+  "screenAbout": "About",
+  "sectionApp": "Application",
+  "versionLabel": "Version",
+  "checkForUpdate": "Check for update",
+  "checking": "Checking...",
+  "latest": "Up to date",
+  "latestMsg": "The app is the latest version.",
+  "updateAvailable": "Update available",
+  "updateAvailableMsg": "v{version} is available.",
+  "@updateAvailableMsg": {
+    "description": "Update available message with version",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadComplete": "Download complete",
+  "downloadCompleteMsg": "Download of v{version} is complete.",
+  "@downloadCompleteMsg": {
+    "description": "Download complete message with version",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateCheckFailed": "Failed to check for update",
+  "install": "Install",
+  "cancel": "Cancel",
+  "confirmInstall": "An update is available",
+  "confirmInstallMsg": "Download and install v{version}?",
+  "@confirmInstallMsg": {
+    "description": "Confirm install message with version",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadFailed": "Download failed",
+  "ok": "OK",
+
+  "statusWaiting": "Waiting",
+  "statusRunning": "Running",
+  "statusSuccess": "Success",
+  "statusFailure": "Failure",
+  "statusWaitingIcon": "⚪ Waiting",
+  "statusRunningIcon": "🟡 Running",
+  "statusSuccessIcon": "🟢 Success",
+  "statusFailureIcon": "🔴 Failure",
+
+  "targetFilterOneDay": "Files updated within 1 day",
+  "targetFilterThreeDays": "Files updated within 3 days",
+  "targetFilterSevenDays": "Files updated within 7 days",
+  "targetFilterThirtyDays": "Files updated within 30 days",
+  "targetFilterAll": "All files",
+
+  "optimizeAnime": "Anime / Illustration",
+  "optimizePhoto": "Photo / Real",
+  "optimizeSpeed": "Speed priority",
+  "optimizeQuality": "Quality priority",
+
+  "formatJpeg": "JPEG",
+  "formatPng": "PNG",
+  "formatJpegXl": "JPEG XL",
+  "formatAv1": "AV1",
+
+  "notifySuccess": "🟢 Conversion completed successfully.",
+  "notifyFailure": "🔴 Conversion failed.",
+
+  "loading": "Loading...",
+  "unknown": "Unknown",
+
+  "updateMenu": "Check for Update",
+
+  "appNameLabel": "Application name",
+  "copyrightLabel": "Copyright",
+  "copyright": "Copyright @2026 treetips555",
+  "githubLabel": "GitHub"
+}

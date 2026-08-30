@@ -1,0 +1,14 @@
+* text=auto eol=lf
+
+*.png binary
+*.webp binary
+*.mp3 binary
+
+# Git LFS: 同梱ツールのバイナリ
+tools/upscal/models/*.bin filter=lfs diff=lfs merge=lfs -text
+tools/upscal/models/*.param filter=lfs diff=lfs merge=lfs -text
+tools/upscal/bin/upscayl-bin filter=lfs diff=lfs merge=lfs -text
+tools/libjxl/bin/macos/cjxl filter=lfs diff=lfs merge=lfs -text
+tools/libjxl/bin/macos/*.dylib filter=lfs diff=lfs merge=lfs -text
+tools/libavif/bin/macos/avifenc filter=lfs diff=lfs merge=lfs -text
+tools/**/.version filter=lfs diff=lfs merge=lfs -text

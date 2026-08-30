@@ -1,0 +1,312 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'バージョンアップの種類'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+permissions:
+  contents: write
+
+env:
+  REPO_URL: https://github.com/treetips/tree-image-optimizer
+
+jobs:
+  release:
+    name: Build & Create Release
+    runs-on: macos-latest
+
+    steps:
+      # ------------------------------------------------------------
+      # Checkout
+      # ------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          lfs: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # tools は Git LFS 管理のため、実体を取得する。
+      - name: Pull Git LFS objects
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git lfs pull
+          echo "tools size after LFS pull:"
+          du -sh tools 2>/dev/null || true
+
+      # ------------------------------------------------------------
+      # Bump version
+      # 次バージョンは「最新のリリースタグ」から算出し、ローカルの pubspec.yaml
+      # だけを書き換える（main への push / PR 作成は行わない）。
+      # リポジトリルール（main への直接 push 禁止・Actions による PR 作成禁止）
+      # を回避するため。タグの push は許可されているためリリースはタグ経由で行う。
+      # ------------------------------------------------------------
+      - name: Bump version in pubspec.yaml
+        id: bump
+        shell: bash
+        run: |
+          set -euo pipefail
+          LATEST_TAG="$(git tag -l 'v*' | sort -V | tail -n1 || true)"
+          if [[ -n "$LATEST_TAG" ]]; then
+            CURRENT="${LATEST_TAG#v}"
+          else
+            CURRENT="$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/+.*//')"
+          fi
+          VER="${CURRENT%%+*}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VER"
+          case "${{ inputs.bump }}" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          BUILD="$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/.*+//')"
+          NEW_BUILD=$((BUILD + 1))
+          FULL_VERSION="${NEW_VERSION}+${NEW_BUILD}"
+          sed -i '' "s/^version: .*/version: ${FULL_VERSION}/" pubspec.yaml
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "full_version=${FULL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Bumped version to ${FULL_VERSION} (bump=${{ inputs.bump }}, base tag=${LATEST_TAG:-none})"
+
+      # ------------------------------------------------------------
+      # Extract version
+      # ------------------------------------------------------------
+      - name: Extract version from pubspec.yaml
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          FULL_VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+
+          if [[ -z "$FULL_VERSION" ]]; then
+            echo "::error::Could not extract version from pubspec.yaml"
+            exit 1
+          fi
+
+          if [[ "$FULL_VERSION" != *"+"* ]]; then
+            echo "::error::Version must be in the form x.y.z+build"
+            exit 1
+          fi
+
+          VERSION="${FULL_VERSION%%+*}"
+          BUILD_NUMBER="${FULL_VERSION##*+}"
+          TAG_NAME="v${VERSION}"
+
+          if [[ -z "$VERSION" || -z "$BUILD_NUMBER" ]]; then
+            echo "::error::Invalid version: $FULL_VERSION"
+            exit 1
+          fi
+
+          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::Build number must be numeric: $BUILD_NUMBER"
+            exit 1
+          fi
+
+          echo "Full version:     $FULL_VERSION"
+          echo "Semantic version: $VERSION"
+          echo "Build number:     $BUILD_NUMBER"
+          echo "Tag name:         $TAG_NAME"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------------------
+      # Pin tools zip SHA-256 into AppConstants
+      # tools はリリース毎に中身が変わる可能性があるため、build 前に
+      # tools ZIP の SHA-256 を計算し、アプリに埋め込む期待ハッシュを
+      # 自動差し替える。リポジトリへの push は行わない（pubspec の
+      # バージョン更新と同様の扱い。タグは未修正のコミットを指す）。
+      # ------------------------------------------------------------
+      - name: Pin tools SHA-256 into AppConstants
+        id: tools_hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p dist-release
+          TOOLS_ZIP="dist-release/tools-v${VERSION}.zip"
+          # tools 直下を ZIP にする（tools/ プレフィックスを保持）
+          (cd . && zip -r -q "$TOOLS_ZIP" tools -x "tools/.DS_Store" "tools/test_dummy.txt")
+          HASH="$(shasum -a 256 "$TOOLS_ZIP" | awk '{print $1}')"
+          echo "tools_sha256=$HASH" >> "$GITHUB_OUTPUT"
+          echo "tools_zip_path=$TOOLS_ZIP" >> "$GITHUB_OUTPUT"
+          echo "Computed tools zip SHA-256: $HASH"
+
+          FILE="lib/core/constants/app_constants.dart"
+          if grep -q "static const String toolsSha256" "$FILE"; then
+            perl -i -0777 -pe "s/static const String toolsSha256\s*=\s*'[^']*'/static const String toolsSha256 = '$HASH'/s" "$FILE"
+            echo "Updated $FILE with new tools SHA-256:"
+            grep "static const String toolsSha256" "$FILE"
+          else
+            echo "::error::toolsSha256 not found in $FILE"
+            exit 1
+          fi
+
+      # ------------------------------------------------------------
+      # Check existing tag
+      # ------------------------------------------------------------
+      - name: Check if tag already exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists in repository."
+            echo "::error::Please increment version in pubspec.yaml before running release workflow."
+            exit 1
+          fi
+
+      # ------------------------------------------------------------
+      # Setup Flutter
+      # ------------------------------------------------------------
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          cache: true
+
+      # ------------------------------------------------------------
+      # Dependencies
+      # ------------------------------------------------------------
+      - name: Install dependencies
+        run: flutter pub get
+
+      # ------------------------------------------------------------
+      # Analyze & Tests
+      # ------------------------------------------------------------
+      - name: Run static analysis
+        run: flutter analyze
+
+      - name: Run unit & widget tests
+        run: flutter test
+
+      # ------------------------------------------------------------
+      # Build macOS release
+      # ------------------------------------------------------------
+      - name: Build macOS release
+        run: flutter build macos --release
+
+      # ------------------------------------------------------------
+      # Re-sign app (ad-hoc)
+      # Developer Program へ未加入でも動作する形。ビルド時に tools を
+      # バンドルへ追加するため、最後に ad-hoc で再署名して署名の整合性を
+      # 担保する。ダウンロード後は Gatekeeper の「開発者を確認できない」
+      # 警告が出るため、ユーザーが手動で許可して起動する形となる。
+      # ------------------------------------------------------------
+      - name: Re-sign app (ad-hoc)
+        run: |
+          set -euo pipefail
+          APP_PATH="build/macos/Build/Products/Release/Tree Image Optimizer.app"
+          echo "Re-signing app (deep, ad-hoc)..."
+          codesign --force --deep --sign - "$APP_PATH"
+          echo "Verifying signature..."
+          codesign --verify --deep --strict "$APP_PATH"
+
+      # ------------------------------------------------------------
+      # Package release assets
+      # ------------------------------------------------------------
+      - name: Package release assets
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD="${{ steps.version.outputs.build_number }}"
+
+          APP_PATH="build/macos/Build/Products/Release/Tree Image Optimizer.app"
+          if [[ ! -d "$APP_PATH" ]]; then
+            echo "::error::App not found at $APP_PATH"
+            exit 1
+          fi
+
+          # ZIP を作成。
+          ZIP_NAME="Tree-Image-Optimizer-v${VERSION}-macos.zip"
+          mkdir -p dist-release
+          ditto -c -k --keepParent "$APP_PATH" "dist-release/$ZIP_NAME"
+          echo "Created: dist-release/$ZIP_NAME"
+
+          # tools 単一 ZIP は build 前のステップで作成済み（ハッシュ自動差し替え用）。
+          TOOLS_ZIP="tools-v${VERSION}.zip"
+          TOOLS_ZIP_PATH="dist-release/$TOOLS_ZIP"
+          if [[ ! -f "$TOOLS_ZIP_PATH" ]]; then
+            echo "::error::tools zip not found: $TOOLS_ZIP_PATH"
+            exit 1
+          fi
+          TOOLS_HASH="${{ steps.tools_hash.outputs.tools_sha256 }}"
+          # 既存の ZIP と一致するハッシュを .sha256 に書き出す（shasum 互換の 2 空白区切り）。
+          (cd dist-release && echo "${TOOLS_HASH}  ${TOOLS_ZIP}" > "${TOOLS_ZIP}.sha256")
+          echo "Reused: $TOOLS_ZIP_PATH ($(du -h "$TOOLS_ZIP_PATH" | cut -f1))"
+
+          # SHA-256 を計算。
+          (cd dist-release && shasum -a 256 "$ZIP_NAME" > SHA256SUMS.txt)
+          SHA256="$(awk '{print $1}' "dist-release/SHA256SUMS.txt")"
+          echo "SHA-256: $SHA256"
+
+          # update-info.json を生成。
+          DOWNLOAD_URL="${{ env.REPO_URL }}/releases/download/v${VERSION}/${ZIP_NAME}"
+          cat > dist-release/update-info.json <<EOF
+          {
+            "version": "${VERSION}",
+            "build": ${BUILD},
+            "url": "${DOWNLOAD_URL}",
+            "sha256": "${SHA256}"
+          }
+          EOF
+          echo "Created: dist-release/update-info.json"
+          cat dist-release/update-info.json
+
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "zip_path=dist-release/$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "tools_zip_name=$TOOLS_ZIP" >> "$GITHUB_OUTPUT"
+          echo "tools_zip_path=dist-release/$TOOLS_ZIP" >> "$GITHUB_OUTPUT"
+          echo "tools_checksum_path=dist-release/${TOOLS_ZIP}.sha256" >> "$GITHUB_OUTPUT"
+          echo "checksum_path=dist-release/SHA256SUMS.txt" >> "$GITHUB_OUTPUT"
+          echo "update_info_path=dist-release/update-info.json" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------------------
+      # Create and push Git tag
+      # ------------------------------------------------------------
+      - name: Create and push Git tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          git fetch origin main --tags
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      # ------------------------------------------------------------
+      # Create GitHub Release
+      # ------------------------------------------------------------
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          TITLE="Tree Image Optimizer v${VERSION}"
+
+          gh release create "$TAG" \
+            "${{ steps.package.outputs.zip_path }}" \
+            "${{ steps.package.outputs.tools_zip_path }}" \
+            "${{ steps.package.outputs.tools_checksum_path }}" \
+            "${{ steps.package.outputs.checksum_path }}" \
+            "${{ steps.package.outputs.update_info_path }}" \
+            --title "$TITLE" \
+            --generate-notes

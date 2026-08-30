@@ -1,0 +1,22 @@
+PODS:
+  - flutter_desktop_notifications (1.1.0):
+    - FlutterMacOS
+  - FlutterMacOS (1.0.0)
+
+DEPENDENCIES:
+  - flutter_desktop_notifications (from `Flutter/ephemeral/.symlinks/plugins/flutter_desktop_notifications/macos`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+
+EXTERNAL SOURCES:
+  flutter_desktop_notifications:
+    :path: Flutter/ephemeral/.symlinks/plugins/flutter_desktop_notifications/macos
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+
+SPEC CHECKSUMS:
+  flutter_desktop_notifications: 0b440178c7ba11aa21afeafd9fd0489b56888588
+  FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
+
+PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
+
+COCOAPODS: 1.17.0
