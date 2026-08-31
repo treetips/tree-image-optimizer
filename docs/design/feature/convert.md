@@ -113,6 +113,7 @@
   - PNG
   - JPEG XL
   - AV1
+  - WebP
 - 初期値は `JPEG XL` です。
 
 #### ℹ️

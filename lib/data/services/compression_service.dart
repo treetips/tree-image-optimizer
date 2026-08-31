@@ -42,8 +42,19 @@ class _AvifParams {
   final List<String> aomOpts;
 }
 
+/// WebP の最適化種別ごとのパラメータ。
+class _WebpParams {
+  const _WebpParams(this.preset, this.method);
+
+  /// プリセット。`default` | `photo` | `picture` | `drawing` | `icon` | `text`
+  final String preset;
+
+  /// 圧縮メソッド (0=fast .. 6=slowest)。
+  final int method;
+}
+
 /// 画像圧縮処理を実行するサービス。
-/// `jpegoptim` / `pngoptim` / `cjxl` / `avifenc` コマンドを利用する。
+/// `jpegoptim` / `pngoptim` / `cjxl` / `avifenc` / `cwebp` コマンドを利用する。
 class CompressionService {
   CompressionService({
     required this.pathService,
@@ -98,6 +109,13 @@ class CompressionService {
     ]),
   };
 
+  static const Map<OptimizeType, _WebpParams> _webpParams = {
+    OptimizeType.anime: _WebpParams('drawing', 4),
+    OptimizeType.photo: _WebpParams('photo', 4),
+    OptimizeType.speed: _WebpParams('default', 0),
+    OptimizeType.quality: _WebpParams('photo', 6),
+  };
+
   /// [input] を [format]・[optimizeType]・[quality] に従って圧縮し、[output] に出力する。
   Future<Result<void>> compress({
     required String input,
@@ -117,6 +135,8 @@ class CompressionService {
           await _compressJpegXl(input, output, optimizeType, quality, threads);
         case OutputFormat.av1:
           await _compressAv1(input, output, optimizeType, quality);
+        case OutputFormat.webp:
+          await _compressWebp(input, output, optimizeType, quality);
       }
       return Result.ok(null);
     } on Object catch (error, stackTrace) {
@@ -305,6 +325,34 @@ class CompressionService {
       '${params.yuv}',
       ...params.aomOpts,
       input,
+      output,
+    ], workingDirectory: binDir.path);
+  }
+
+  Future<void> _compressWebp(
+    String input,
+    String output,
+    OptimizeType optimizeType,
+    int quality,
+  ) async {
+    final binPath = await pathService.cwebpBinPath();
+    final binDir = await pathService.libwebpBinDirectory();
+    final params = _webpParams[optimizeType]!;
+    _log?.logger.info(
+      '圧縮(WebP): input=$input output=$output type=${optimizeType.name} '
+      'quality=$quality preset=${params.preset} method=${params.method} bin=$binPath',
+    );
+
+    await processService.run(binPath, [
+      '-preset',
+      params.preset,
+      '-q',
+      '$quality',
+      '-m',
+      '${params.method}',
+      '-mt',
+      input,
+      '-o',
       output,
     ], workingDirectory: binDir.path);
   }

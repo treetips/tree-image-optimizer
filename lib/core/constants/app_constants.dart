@@ -17,6 +17,9 @@ class AppConstants {
   /// AV1 (libavif) のバージョン。
   static const String av1Version = 'v1.4.2';
 
+  /// WebP (libwebp) のバージョン。
+  static const String webpVersion = '1.6.0';
+
   /// GitHub のリポジトリオーナー。
   static const String githubOwner = 'treetips';
 
@@ -34,7 +37,8 @@ class AppConstants {
   /// 値は GitHub Releases の `tools-v{version}.zip` の実ハッシュと一致させること。
   /// リリースワークフロー（release.yml）で build 前に自動差し替えられるため、
   /// 通常は手動で変更する必要はない。
-  static const String toolsSha256 = '9d00d1268aefcdf2bedd0a63da3cc8c9e0bf81059d3ed072b5512810aab63d6b';
+  static const String toolsSha256 =
+      '9d00d1268aefcdf2bedd0a63da3cc8c9e0bf81059d3ed072b5512810aab63d6b';
 
   /// アップデート情報 JSON の URL。
   ///

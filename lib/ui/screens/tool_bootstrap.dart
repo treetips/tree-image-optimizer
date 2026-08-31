@@ -86,10 +86,7 @@ class _ToolBootstrapState extends ConsumerState<ToolBootstrap> {
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               shadows: [
-                                Shadow(
-                                  color: Colors.black45,
-                                  blurRadius: 2,
-                                ),
+                                Shadow(color: Colors.black45, blurRadius: 2),
                               ],
                             ),
                           ),

@@ -11,4 +11,7 @@ tools/upscal/bin/upscayl-bin filter=lfs diff=lfs merge=lfs -text
 tools/libjxl/bin/macos/cjxl filter=lfs diff=lfs merge=lfs -text
 tools/libjxl/bin/macos/*.dylib filter=lfs diff=lfs merge=lfs -text
 tools/libavif/bin/macos/avifenc filter=lfs diff=lfs merge=lfs -text
+tools/libwebp/bin/macos/cwebp filter=lfs diff=lfs merge=lfs -text
+tools/libwebp/bin/linux/cwebp filter=lfs diff=lfs merge=lfs -text
+tools/libwebp/bin/windows/cwebp.exe filter=lfs diff=lfs merge=lfs -text
 tools/**/.version filter=lfs diff=lfs merge=lfs -text

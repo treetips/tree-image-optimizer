@@ -129,6 +129,20 @@ class PathService {
     return '${bin.path}/$executableName';
   }
 
+  /// libwebp の bin ディレクトリ。
+  Future<Directory> libwebpBinDirectory() async {
+    final tools = await toolsDirectory();
+    final os = _osName();
+    return Directory('${tools.path}/libwebp/bin/$os');
+  }
+
+  /// cwebp の実行ファイルパス。
+  Future<String> cwebpBinPath() async {
+    final bin = await libwebpBinDirectory();
+    final executableName = Platform.isWindows ? 'cwebp.exe' : 'cwebp';
+    return '${bin.path}/$executableName';
+  }
+
   String _osName() {
     if (Platform.isWindows) return 'windows';
     if (Platform.isLinux) return 'linux';

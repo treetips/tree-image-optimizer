@@ -308,6 +308,9 @@ class _VersionTable extends StatelessWidget {
         TableRow(
           children: [_cell('AV1 (libavif)'), _cell(AppConstants.av1Version)],
         ),
+        TableRow(
+          children: [_cell('WebP (libwebp)'), _cell(AppConstants.webpVersion)],
+        ),
       ],
     );
   }
