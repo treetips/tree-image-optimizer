@@ -30,6 +30,7 @@ class ToolInstaller {
     'avifenc',
     'jpegoptim',
     'pngoptim',
+    'cwebp',
   ];
 
   /// Application Support 内の tools ディレクトリ。
@@ -115,6 +116,9 @@ class ToolInstaller {
       File(
         '${dir.path}/libavif/bin/$os/${Platform.isWindows ? 'avifenc.exe' : 'avifenc'}',
       ),
+      File(
+        '${dir.path}/libwebp/bin/$os/${Platform.isWindows ? 'cwebp.exe' : 'cwebp'}',
+      ),
     ];
     for (final f in required) {
       final exists = f.existsSync();
@@ -188,6 +192,11 @@ class ToolInstaller {
         binary:
             'libavif/bin/$os/${Platform.isWindows ? 'avifenc.exe' : 'avifenc'}',
       ),
+      _ToolCheck(
+        name: 'libwebp',
+        folder: 'libwebp',
+        binary: 'libwebp/bin/$os/${Platform.isWindows ? 'cwebp.exe' : 'cwebp'}',
+      ),
     ];
 
     // 欠損しているフォルダを収集し、単一 ZIP のダウンロードは1回だけ行う
@@ -225,14 +234,17 @@ class ToolInstaller {
     }
 
     // 欠損がある場合は単一 ZIP をダウンロードして展開（ローカルに tools があればそちらを優先）
-    if (missingFolders.isNotEmpty) {
+    // libwebp は Google Storage から取得するため分離して処理する
+    final libwebpMissing = missingFolders.contains('libwebp');
+    final nonWebpMissing = missingFolders.where((f) => f != 'libwebp').toList();
+    if (nonWebpMissing.isNotEmpty) {
       _log(
-        'missing folders: $missingFolders, attempting to restore',
+        'missing folders: $nonWebpMissing, attempting to restore',
         name: 'ToolInstaller',
       );
       // ローカルに tools があればそこからコピー（開発環境）
       bool restoredFromLocal = false;
-      for (final folder in missingFolders) {
+      for (final folder in nonWebpMissing) {
         for (final candidate in _sourceCandidates()) {
           final src = Directory('${candidate.path}/$folder');
           if (await src.exists()) {
@@ -255,10 +267,38 @@ class ToolInstaller {
         await _downloadAndExtractToolsZip(onProgress);
       } else {
         // ローカルから1つでも復元できた場合は残りもローカルから
-        for (final folder in missingFolders) {
+        for (final folder in nonWebpMissing) {
           final dest = Directory('${toolsDir.path}/$folder');
           if (await dest.exists()) continue;
           await _copyToolFolder(folder, onProgress);
+        }
+      }
+    }
+    if (libwebpMissing) {
+      _log('missing libwebp, attempting to restore', name: 'ToolInstaller');
+      bool restored = false;
+      for (final candidate in _sourceCandidates()) {
+        final src = Directory('${candidate.path}/libwebp');
+        if (await src.exists()) {
+          _log('copy libwebp from candidate $candidate', name: 'ToolInstaller');
+          final dest = Directory('${toolsDir.path}/libwebp');
+          await dest.create(recursive: true);
+          await _copyDirectory(src, dest, onProgress);
+          restored = true;
+          break;
+        }
+      }
+      if (!restored) {
+        // ローカルに無ければ Google Storage からダウンロード
+        await _downloadAndExtractLibwebp(onProgress);
+      } else {
+        // ローカルから復元できたが、バイナリが存在しない場合は追加で試す
+        final os = _osName();
+        final binFile = File(
+          '${toolsDir.path}/libwebp/bin/$os/${Platform.isWindows ? 'cwebp.exe' : 'cwebp'}',
+        );
+        if (!binFile.existsSync()) {
+          await _downloadAndExtractLibwebp(onProgress);
         }
       }
     }
@@ -426,6 +466,146 @@ class ToolInstaller {
     }
   }
 
+  /// libwebp のアーカイブ URL を現在 OS/Arch から決定する。
+  Future<String> _libwebpArchiveUrl() async {
+    final version = AppConstants.webpVersion;
+    if (Platform.isWindows) {
+      return 'https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-$version-windows-x64.zip';
+    }
+    if (Platform.isLinux) {
+      var arch = 'x86-64';
+      try {
+        final result = await Process.run('uname', ['-m']);
+        final out = (result.stdout as String).trim().toLowerCase();
+        if (out.contains('aarch64') || out.contains('arm64')) {
+          arch = 'aarch64';
+        }
+      } catch (_) {}
+      if (arch == 'aarch64') {
+        return 'https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-$version-linux-aarch64.tar.gz';
+      }
+      return 'https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-$version-linux-x86-64.tar.gz';
+    }
+    // macOS
+    var arch = 'arm64';
+    try {
+      final result = await Process.run('uname', ['-m']);
+      final out = (result.stdout as String).trim().toLowerCase();
+      if (out.contains('x86_64')) {
+        arch = 'x86-64';
+      } else if (out.contains('arm64') || out.contains('aarch64')) {
+        arch = 'arm64';
+      }
+    } catch (_) {}
+    if (arch == 'x86-64') {
+      return 'https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-$version-mac-x86-64.tar.gz';
+    }
+    return 'https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-$version-mac-arm64.tar.gz';
+  }
+
+  /// Google Storage から libwebp をダウンロードして `tools/libwebp` に展開する。
+  Future<void> _downloadAndExtractLibwebp(InstallProgress? onProgress) async {
+    final url = await _libwebpArchiveUrl();
+    _log('downloading libwebp from $url', name: 'ToolInstaller');
+    final toolsDir = await toolsDirectory();
+    final parent = toolsDir.parent;
+    await parent.create(recursive: true);
+    final isZip = url.endsWith('.zip');
+    final tmpName =
+        'libwebp-${AppConstants.webpVersion}.${isZip ? 'zip.tmp' : 'tar.gz.tmp'}';
+    final destName =
+        'libwebp-${AppConstants.webpVersion}.${isZip ? 'zip' : 'tar.gz'}';
+    final tmpFile = File('${parent.path}/$tmpName');
+    final destFile = File('${parent.path}/$destName');
+
+    try {
+      final client = http.Client();
+      final request = http.Request('GET', Uri.parse(url));
+      final response = await client.send(request);
+      _log(
+        'libwebp download response: status=${response.statusCode}',
+        name: 'ToolInstaller',
+      );
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to download libwebp: ${response.statusCode} $url',
+        );
+      }
+      final total =
+          response.contentLength ??
+          int.tryParse(response.headers['content-length'] ?? '') ??
+          0;
+      var received = 0;
+      final sink = tmpFile.openWrite();
+      await for (final chunk in response.stream) {
+        received += chunk.length;
+        sink.add(chunk);
+        onProgress?.call(received, total);
+      }
+      await sink.close();
+      client.close();
+      await tmpFile.rename(destFile.path);
+      _log('downloaded libwebp to ${destFile.path}', name: 'ToolInstaller');
+
+      final os = _osName();
+      final binDir = Directory('${toolsDir.path}/libwebp/bin/$os');
+      await binDir.create(recursive: true);
+
+      final executableName = Platform.isWindows ? 'cwebp.exe' : 'cwebp';
+      final targetPath = '${binDir.path}/$executableName';
+
+      if (isZip) {
+        final bytes = await destFile.readAsBytes();
+        final archive = ZipDecoder().decodeBytes(bytes);
+        File? cwebpFile;
+        for (final file in archive) {
+          if (file.isFile && file.name.endsWith('/bin/$executableName')) {
+            cwebpFile = File(targetPath);
+            await cwebpFile.parent.create(recursive: true);
+            await cwebpFile.writeAsBytes(file.content as List<int>);
+            break;
+          }
+        }
+        if (cwebpFile == null || !await cwebpFile.exists()) {
+          throw Exception('cwebp not found in libwebp zip: $url');
+        }
+      } else {
+        final bytes = await destFile.readAsBytes();
+        final gzBytes = GZipDecoder().decodeBytes(bytes);
+        final archive = TarDecoder().decodeBytes(gzBytes);
+        File? cwebpFile;
+        for (final file in archive) {
+          // archive file names are like libwebp-1.6.0-mac-arm64/bin/cwebp
+          if (file.isFile && file.name.endsWith('/bin/$executableName')) {
+            cwebpFile = File(targetPath);
+            await cwebpFile.parent.create(recursive: true);
+            await cwebpFile.writeAsBytes(file.content as List<int>);
+            break;
+          }
+        }
+        if (cwebpFile == null || !await cwebpFile.exists()) {
+          throw Exception('cwebp not found in libwebp tar.gz: $url');
+        }
+      }
+
+      if (Platform.isMacOS || Platform.isLinux) {
+        await Process.run('chmod', ['+x', targetPath]);
+      }
+      _log('extracted libwebp cwebp to $targetPath', name: 'ToolInstaller');
+      try {
+        await destFile.delete();
+      } catch (_) {}
+    } on Object catch (e, st) {
+      _log(
+        'failed to download libwebp: $e',
+        name: 'ToolInstaller',
+        error: e,
+        stackTrace: st,
+      );
+      rethrow;
+    }
+  }
+
   Future<String> _currentVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
@@ -512,6 +692,12 @@ class ToolInstaller {
     }
 
     // 3. GitHub Releases の単一 ZIP からダウンロード（Release 環境）
+    // libwebp は Google Storage から取得
+    if (relativeFolder == 'libwebp' || relativeFolder.startsWith('libwebp/')) {
+      _log('try download libwebp for $relativeFolder', name: 'ToolInstaller');
+      await _downloadAndExtractLibwebp(onProgress);
+      return;
+    }
     _log(
       'try download single tools zip for $relativeFolder',
       name: 'ToolInstaller',

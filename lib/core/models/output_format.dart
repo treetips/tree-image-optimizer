@@ -5,7 +5,8 @@ enum OutputFormat {
   jpeg,
   png,
   jpegXl,
-  av1;
+  av1,
+  webp;
 
   const OutputFormat();
 
@@ -15,6 +16,7 @@ enum OutputFormat {
     OutputFormat.png => l10n.formatPng,
     OutputFormat.jpegXl => l10n.formatJpegXl,
     OutputFormat.av1 => l10n.formatAv1,
+    OutputFormat.webp => l10n.formatWebp,
   };
 
   /// 出力ファイルの拡張子。
@@ -23,5 +25,6 @@ enum OutputFormat {
     OutputFormat.png => '.png',
     OutputFormat.jpegXl => '.jxl',
     OutputFormat.av1 => '.avif',
+    OutputFormat.webp => '.webp',
   };
 }

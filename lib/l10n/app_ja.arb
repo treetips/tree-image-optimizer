@@ -115,6 +115,7 @@
   "formatPng": "PNG",
   "formatJpegXl": "JPEG XL",
   "formatAv1": "AV1",
+  "formatWebp": "WebP",
 
   "notifySuccess": "🟢 変換処理が成功しました。",
   "notifyFailure": "🔴 変換処理が失敗しました。",

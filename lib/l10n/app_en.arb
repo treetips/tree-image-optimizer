@@ -138,6 +138,7 @@
   "formatPng": "PNG",
   "formatJpegXl": "JPEG XL",
   "formatAv1": "AV1",
+  "formatWebp": "WebP",
 
   "notifySuccess": "🟢 Conversion completed successfully.",
   "notifyFailure": "🔴 Conversion failed.",
