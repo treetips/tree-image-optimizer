@@ -85,9 +85,7 @@ flutter:
     - assets/sounds/success/
     - assets/sounds/error/
     - assets/images/icon-tree-01.png
-    - assets/images/wallpaper1.jpg
-    - assets/images/wallpaper2.jpg
-    - assets/images/wallpaper3.jpg
+    - assets/images/wallpaper/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
