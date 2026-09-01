@@ -55,6 +55,7 @@ dependencies:
   image: ^4.5.4
   liquid_glass_easy: ^4.1.1
   url_launcher: ^6.3.2
+  flutter_color_picker_plus: ^2.2.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -85,9 +86,7 @@ flutter:
     - assets/sounds/success/
     - assets/sounds/error/
     - assets/images/icon-tree-01.png
-    - assets/images/wallpaper1.jpg
-    - assets/images/wallpaper2.jpg
-    - assets/images/wallpaper3.jpg
+    - assets/images/wallpaper/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

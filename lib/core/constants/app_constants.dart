@@ -48,13 +48,13 @@ class AppConstants {
 
   /// 壁紙アセットのパス。
   ///
-  /// `assets/images/` 配下の壁紙画像を指定する。変更時は `pubspec.yaml` の
+  /// `assets/images/wallpaper/` 配下の壁紙画像を指定する。変更時は `pubspec.yaml` の
   /// `flutter.assets` も合わせて更新すること。
-  static const String wallpaperAsset = 'assets/images/wallpaper3.jpg';
+  static const String wallpaperAsset = 'assets/images/wallpaper/wallpaper1.jpg';
 
   /// 壁紙の不透明度 (0.0: 透明 〜 1.0: 不透明)。
   ///
   /// `HomeShell` の背景画像に適用される。値を下げると壁紙が薄くなり、
   /// Liquid Glass の視認性が上がる。
-  static const double wallpaperOpacity = 1.0;
+  static const double wallpaperOpacity = 0.4;
 }

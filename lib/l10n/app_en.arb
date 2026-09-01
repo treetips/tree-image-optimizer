@@ -70,6 +70,12 @@
   "languageJapanese": "Japanese",
   "languageEnglish": "English",
   "infoLanguage": "Select the display language. When unset, the OS language is used.",
+  "wallpaper": "Wallpaper",
+  "infoWallpaper": "Place image files under .config/tree-image-optimizer/wallpaper to select your own wallpaper.",
+  "wallpaperOpacity": "Wallpaper opacity",
+  "infoWallpaperOpacity": "Adjust the wallpaper opacity.",
+  "wallpaperBackgroundColor": "Background color",
+  "infoWallpaperBackgroundColor": "The wallpaper maintains its aspect ratio, so margins may appear. The margin color is the background color.",
 
   "screenAbout": "About",
   "sectionApp": "Application",
