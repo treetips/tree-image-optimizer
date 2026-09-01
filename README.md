@@ -2,6 +2,8 @@
 
 画像を一括で最適化するツールです。
 
+<img width="800" height="632" alt="CleanShot 2026-09-01 at 23 20 05" src="https://github.com/user-attachments/assets/22d358e7-9fd7-400e-a5b8-e26607701705" />
+
 ## どんな最適化を行うのか
 
 1. アップスケール（超改造技術で1〜4倍の画像サイズに拡大）
