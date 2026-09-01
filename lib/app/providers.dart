@@ -9,6 +9,7 @@ import '../data/services/path_service.dart';
 import '../data/services/process_service.dart';
 import '../data/services/sound_service.dart';
 import '../data/services/tool_installer.dart';
+import '../data/services/wallpaper_service.dart';
 import '../data/services/upscale_service.dart';
 import '../logic/usecases/compress_usecase.dart';
 import '../logic/usecases/get_target_files_usecase.dart';
@@ -49,6 +50,13 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
 
 final soundServiceProvider = Provider<SoundService>((ref) {
   return SoundService(
+    logService: ref.watch(logServiceProvider),
+    pathService: ref.watch(pathServiceProvider),
+  );
+});
+
+final wallpaperServiceProvider = Provider<WallpaperService>((ref) {
+  return WallpaperService(
     logService: ref.watch(logServiceProvider),
     pathService: ref.watch(pathServiceProvider),
   );
@@ -132,6 +140,7 @@ final settingsViewModelProvider =
       return SettingsViewModel(
         settingsRepository: ref.watch(settingsRepositoryProvider),
         soundService: ref.watch(soundServiceProvider),
+        wallpaperService: ref.watch(wallpaperServiceProvider),
       );
     });
 

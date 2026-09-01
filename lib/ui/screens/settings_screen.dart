@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/providers.dart';
 import '../../core/models/sound_option.dart';
+import '../../core/models/wallpaper_option.dart';
 import '../widgets/section.dart';
 import 'package:tree_image_optimizer/l10n/generated/app_localizations.dart';
 
@@ -98,11 +99,33 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             SectionCard(
               title: l10n.sectionBasic,
-              child: _languageRow(
-                context: context,
-                value: state.language,
-                info: l10n.infoLanguage,
-                onChanged: (v) => viewModel.setLanguage(v ?? ''),
+              child: Column(
+                children: [
+                  _languageRow(
+                    context: context,
+                    value: state.language,
+                    info: l10n.infoLanguage,
+                    onChanged: (v) => viewModel.setLanguage(v ?? ''),
+                  ),
+                  const SizedBox(height: 16),
+                  _wallpaperRow(
+                    context: context,
+                    label: l10n.wallpaper,
+                    info: l10n.infoWallpaper,
+                    value: state.wallpaper,
+                    options: state.wallpapers,
+                    onChanged: (v) {
+                      if (v != null) viewModel.setWallpaper(v);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _wallpaperOpacityRow(
+                    context: context,
+                    label: l10n.wallpaperOpacity,
+                    value: state.wallpaperOpacity,
+                    onChanged: (v) => viewModel.setWallpaperOpacity(v),
+                  ),
+                ],
               ),
             ),
           ],
@@ -189,6 +212,67 @@ class SettingsScreen extends ConsumerWidget {
         ),
         const SizedBox(width: 8),
         InfoTooltip(text: info),
+      ],
+    );
+  }
+
+  Widget _wallpaperRow({
+    required BuildContext context,
+    required String label,
+    required String info,
+    required String value,
+    required List<WallpaperOption> options,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Row(
+      children: [
+        SizedBox(width: 110, child: Text(label)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            initialValue: options.any((o) => o.source == value) ? value : null,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: [
+              for (final option in options)
+                DropdownMenuItem(
+                  value: option.source,
+                  child: Text(option.label),
+                ),
+            ],
+            onChanged: onChanged,
+          ),
+        ),
+        const SizedBox(width: 8),
+        InfoTooltip(text: info),
+      ],
+    );
+  }
+
+  Widget _wallpaperOpacityRow({
+    required BuildContext context,
+    required String label,
+    required double value,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Row(
+      children: [
+        SizedBox(width: 110, child: Text(label)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Slider(
+            value: value.clamp(0.0, 1.0),
+            min: 0.0,
+            max: 1.0,
+            divisions: 10,
+            label: value.toStringAsFixed(1),
+            onChanged: onChanged,
+          ),
+        ),
+        SizedBox(width: 40, child: Text(value.toStringAsFixed(1))),
       ],
     );
   }

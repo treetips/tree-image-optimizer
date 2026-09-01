@@ -70,6 +70,10 @@
   "languageJapanese": "Japanese",
   "languageEnglish": "English",
   "infoLanguage": "Select the display language. When unset, the OS language is used.",
+  "wallpaper": "Wallpaper",
+  "infoWallpaper": "Place image files under .config/tree-image-optimizer/wallpaper to select your own wallpaper.",
+  "wallpaperOpacity": "Wallpaper opacity",
+  "infoWallpaperOpacity": "Adjust wallpaper opacity from 0.0 (transparent) to 1.0 (opaque).",
 
   "screenAbout": "About",
   "sectionApp": "Application",

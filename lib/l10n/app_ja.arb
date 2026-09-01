@@ -71,6 +71,10 @@
   "languageJapanese": "日本語",
   "languageEnglish": "英語",
   "infoLanguage": "表示言語を選択します。未設定の場合はOSの言語設定に従います。",
+  "wallpaper": "背景画像",
+  "infoWallpaper": ".config/tree-image-optimizer/wallpaper 配下に背景画像ファイルを配置すると、自分が用意したファイルを選択することができます。",
+  "wallpaperOpacity": "背景画像の透明度",
+  "infoWallpaperOpacity": "背景画像の透明度を 0.0（透明）から 1.0（不透明）の範囲で調整します。",
 
   "screenAbout": "About",
   "sectionApp": "アプリケーション",

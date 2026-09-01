@@ -215,6 +215,18 @@ class SettingsRepository {
       defaults.language,
       () => needsRewrite = true,
     );
+    final wallpaper = _stringValue(
+      json['wallpaper'],
+      defaults.wallpaper,
+      (v) => needsRewrite = true,
+    );
+    final wallpaperOpacity = _doubleValue(
+      json['wallpaperOpacity'],
+      0.0,
+      1.0,
+      defaults.wallpaperOpacity,
+      () => needsRewrite = true,
+    );
 
     final settings = SettingsScreenSettings(
       showOsNotification: showOsNotification,
@@ -222,6 +234,8 @@ class SettingsRepository {
       successSound: successSound,
       errorSound: errorSound,
       language: language,
+      wallpaper: wallpaper,
+      wallpaperOpacity: wallpaperOpacity,
     );
 
     return _ResolvedSettings(settings, needsRewrite);
@@ -284,6 +298,30 @@ class SettingsRepository {
     if (value is String && value.isNotEmpty) return value;
     onCorrected(fallback);
     return fallback;
+  }
+
+  double _doubleValue(
+    Object? value,
+    double min,
+    double max,
+    double fallback,
+    void Function() onCorrected,
+  ) {
+    double? parsed;
+    if (value is double) {
+      parsed = value;
+    } else if (value is int) {
+      parsed = value.toDouble();
+    } else if (value is String) {
+      parsed = double.tryParse(value);
+    }
+    if (parsed == null) {
+      onCorrected();
+      return fallback;
+    }
+    final clamped = parsed.clamp(min, max).toDouble();
+    if (clamped != parsed) onCorrected();
+    return clamped;
   }
 }
 
