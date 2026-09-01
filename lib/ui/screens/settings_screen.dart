@@ -1,3 +1,4 @@
+import 'package:flutter_color_picker_plus/flutter_color_picker_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -348,87 +349,35 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<Color?> _showColorPicker(BuildContext context, Color initial) async {
-    const presets = [
-      Color(0xFFFFFFFF), // 白
-      Color(0xFF000000), // 黒
-      Color(0xFF808080), // グレー
-      Color(0xFFD3D3D3), // ライトグレー
-      Color(0xFF1A1A2E), // ダーク
-      Color(0xFF2196F3), // 青
-      Color(0xFFF44336), // 赤
-      Color(0xFF4CAF50), // 緑
-      Color(0xFFFFEB3B), // 黄
-      Color(0xFFFF9800), // オレンジ
-      Color(0xFF9C27B0), // 紫
-      Color(0xFF00BCD4), // シアン
-    ];
-    Color selected = initial;
+    Color pickerColor = initial;
     return showDialog<Color>(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('背景色を選択'),
-              content: SizedBox(
-                width: 300,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: selected,
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    GridView.count(
-                      crossAxisCount: 6,
-                      shrinkWrap: true,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      children: [
-                        for (final c in presets)
-                          GestureDetector(
-                            onTap: () => setState(() => selected = c),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: c,
-                                border: Border.all(
-                                  color: selected == c
-                                      ? Colors.blue
-                                      : Colors.grey,
-                                  width: selected == c ? 3 : 1,
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _colorToHex(selected),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('キャンセル'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(selected),
-                  child: const Text('決定'),
-                ),
-              ],
-            );
-          },
+        return AlertDialog(
+          title: const Text('背景色を選択'),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: pickerColor,
+              onColorChanged: (c) => pickerColor = c,
+              // 高機能な HSV / RGB ピッカーを使用
+              paletteType: PaletteType.hsvWithHue,
+              enableAlpha: false,
+              displayThumbColor: true,
+              hexInputBar: true,
+              portraitOnly: false,
+              pickerAreaHeightPercent: 0.7,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('キャンセル'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(pickerColor),
+              child: const Text('決定'),
+            ),
+          ],
         );
       },
     );

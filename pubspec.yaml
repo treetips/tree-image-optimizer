@@ -55,6 +55,7 @@ dependencies:
   image: ^4.5.4
   liquid_glass_easy: ^4.1.1
   url_launcher: ^6.3.2
+  flutter_color_picker_plus: ^2.2.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
