@@ -359,13 +359,14 @@ class SettingsScreen extends ConsumerWidget {
             child: ColorPicker(
               pickerColor: pickerColor,
               onColorChanged: (c) => pickerColor = c,
-              // 高機能な HSV / RGB ピッカーを使用
               paletteType: PaletteType.hsvWithHue,
               enableAlpha: false,
               displayThumbColor: true,
-              hexInputBar: true,
-              portraitOnly: false,
+              hexInputBar: false,
+              labelTypes: const [],
+              portraitOnly: true,
               pickerAreaHeightPercent: 0.7,
+              colorPickerWidth: 300,
             ),
           ),
           actions: [
