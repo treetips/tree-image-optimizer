@@ -28,11 +28,14 @@ class _HomeShellState extends State<HomeShell> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: LiquidGlassView(
-        backgroundWidget: Image.asset(
-          AppConstants.wallpaperAsset,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) =>
-              const ColoredBox(color: Color(0xFF1A1A2E)),
+        backgroundWidget: Opacity(
+          opacity: AppConstants.wallpaperOpacity,
+          child: Image.asset(
+            AppConstants.wallpaperAsset,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                const ColoredBox(color: Color(0xFF1A1A2E)),
+          ),
         ),
         realTimeCapture: false,
         child: Stack(
