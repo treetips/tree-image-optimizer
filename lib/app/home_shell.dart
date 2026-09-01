@@ -35,11 +35,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ? settings.wallpaper
         : AppConstants.wallpaperAsset;
     final wallpaperOpacity = settings.wallpaperOpacity;
+    final backgroundColor =
+        _parseColor(settings.wallpaperBackgroundColor) ??
+        const Color(0xFFFFFFFF);
     return Scaffold(
       body: LiquidGlassView(
-        backgroundWidget: Opacity(
-          opacity: wallpaperOpacity,
-          child: _buildWallpaper(wallpaper),
+        backgroundWidget: Container(
+          color: backgroundColor,
+          child: Opacity(
+            opacity: wallpaperOpacity,
+            child: _buildWallpaper(wallpaper),
+          ),
         ),
         realTimeCapture: false,
         child: Stack(
@@ -85,11 +91,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   }
 
   Widget _buildWallpaper(String source) {
-    // アセットの場合は Image.asset、ファイルパスの場合は Image.file
+    // アスペクト比を保ったままアプリケーション内に収まるように contain を使用
     if (source.startsWith('assets/')) {
       return Image.asset(
         source,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
         errorBuilder: (context, error, stackTrace) =>
             const ColoredBox(color: Color(0xFF1A1A2E)),
       );
@@ -99,17 +106,29 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     if (!file.existsSync()) {
       return Image.asset(
         AppConstants.wallpaperAsset,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
         errorBuilder: (context, error, stackTrace) =>
             const ColoredBox(color: Color(0xFF1A1A2E)),
       );
     }
     return Image.file(
       file,
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
+      alignment: Alignment.center,
       errorBuilder: (context, error, stackTrace) =>
           const ColoredBox(color: Color(0xFF1A1A2E)),
     );
+  }
+
+  Color? _parseColor(String hex) {
+    var h = hex.trim();
+    if (h.startsWith('#')) h = h.substring(1);
+    if (h.length == 6) h = 'FF$h';
+    if (h.length != 8) return null;
+    final v = int.tryParse(h, radix: 16);
+    if (v == null) return null;
+    return Color(v);
   }
 }
 

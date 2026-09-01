@@ -227,6 +227,11 @@ class SettingsRepository {
       defaults.wallpaperOpacity,
       () => needsRewrite = true,
     );
+    final wallpaperBackgroundColor = _colorValue(
+      json['wallpaperBackgroundColor'],
+      defaults.wallpaperBackgroundColor,
+      () => needsRewrite = true,
+    );
 
     final settings = SettingsScreenSettings(
       showOsNotification: showOsNotification,
@@ -236,6 +241,7 @@ class SettingsRepository {
       language: language,
       wallpaper: wallpaper,
       wallpaperOpacity: wallpaperOpacity,
+      wallpaperBackgroundColor: wallpaperBackgroundColor,
     );
 
     return _ResolvedSettings(settings, needsRewrite);
@@ -322,6 +328,23 @@ class SettingsRepository {
     final clamped = parsed.clamp(min, max).toDouble();
     if (clamped != parsed) onCorrected();
     return clamped;
+  }
+
+  String _colorValue(
+    Object? value,
+    String fallback,
+    void Function() onCorrected,
+  ) {
+    if (value is String && _isValidColor(value)) return value;
+    onCorrected();
+    return fallback;
+  }
+
+  bool _isValidColor(String hex) {
+    var h = hex.trim();
+    if (h.startsWith('#')) h = h.substring(1);
+    if (h.length != 6 && h.length != 8) return false;
+    return int.tryParse(h, radix: 16) != null;
   }
 }
 

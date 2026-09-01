@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -25,6 +27,7 @@ class SettingsState {
     this.language = '',
     this.wallpaper = 'assets/images/wallpaper/wallpaper1.jpg',
     this.wallpaperOpacity = 1.0,
+    this.wallpaperBackgroundColor = '#FFFFFF',
     this.successSounds = const [],
     this.errorSounds = const [],
     this.wallpapers = const [],
@@ -61,6 +64,7 @@ class SettingsState {
 
   final String wallpaper;
   final double wallpaperOpacity;
+  final String wallpaperBackgroundColor;
 
   final List<SoundOption> successSounds;
   final List<SoundOption> errorSounds;
@@ -74,6 +78,7 @@ class SettingsState {
     String? language,
     String? wallpaper,
     double? wallpaperOpacity,
+    String? wallpaperBackgroundColor,
     List<SoundOption>? successSounds,
     List<SoundOption>? errorSounds,
     List<WallpaperOption>? wallpapers,
@@ -93,6 +98,8 @@ class SettingsState {
       language: language ?? this.language,
       wallpaper: wallpaper ?? this.wallpaper,
       wallpaperOpacity: wallpaperOpacity ?? this.wallpaperOpacity,
+      wallpaperBackgroundColor:
+          wallpaperBackgroundColor ?? this.wallpaperBackgroundColor,
       successSounds: successSounds ?? this.successSounds,
       errorSounds: errorSounds ?? this.errorSounds,
       wallpapers: wallpapers ?? this.wallpapers,
@@ -129,6 +136,7 @@ class SettingsViewModel extends StateNotifier<SettingsState> {
         language: settings.language,
         wallpaper: settings.wallpaper,
         wallpaperOpacity: settings.wallpaperOpacity,
+        wallpaperBackgroundColor: settings.wallpaperBackgroundColor,
       );
     }
 
@@ -184,6 +192,7 @@ class SettingsViewModel extends StateNotifier<SettingsState> {
         language: s.language,
         wallpaper: s.wallpaper,
         wallpaperOpacity: s.wallpaperOpacity,
+        wallpaperBackgroundColor: s.wallpaperBackgroundColor,
       ),
     );
   }
@@ -236,5 +245,21 @@ class SettingsViewModel extends StateNotifier<SettingsState> {
   void setWallpaperOpacity(double value) {
     state = state.copyWith(wallpaperOpacity: value.clamp(0.0, 1.0));
     _save();
+  }
+
+  void setWallpaperBackgroundColor(String value) {
+    state = state.copyWith(wallpaperBackgroundColor: value);
+    _save();
+  }
+
+  Color parseWallpaperBackgroundColor() {
+    final hex = state.wallpaperBackgroundColor;
+    var h = hex.trim();
+    if (h.startsWith('#')) h = h.substring(1);
+    if (h.length == 6) h = 'FF$h';
+    if (h.length != 8) return const Color(0xFFFFFFFF);
+    final v = int.tryParse(h, radix: 16);
+    if (v == null) return const Color(0xFFFFFFFF);
+    return Color(v);
   }
 }

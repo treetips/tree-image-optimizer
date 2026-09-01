@@ -73,7 +73,9 @@
   "wallpaper": "Wallpaper",
   "infoWallpaper": "Place image files under .config/tree-image-optimizer/wallpaper to select your own wallpaper.",
   "wallpaperOpacity": "Wallpaper opacity",
-  "infoWallpaperOpacity": "Adjust wallpaper opacity from 0.0 (transparent) to 1.0 (opaque).",
+  "infoWallpaperOpacity": "Adjust the wallpaper opacity.",
+  "wallpaperBackgroundColor": "Background color",
+  "infoWallpaperBackgroundColor": "The wallpaper maintains its aspect ratio, so margins may appear. The margin color is the background color.",
 
   "screenAbout": "About",
   "sectionApp": "Application",

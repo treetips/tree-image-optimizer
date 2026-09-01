@@ -125,6 +125,14 @@ class SettingsScreen extends ConsumerWidget {
                     value: state.wallpaperOpacity,
                     onChanged: (v) => viewModel.setWallpaperOpacity(v),
                   ),
+                  const SizedBox(height: 16),
+                  _wallpaperBackgroundColorRow(
+                    context: context,
+                    label: l10n.wallpaperBackgroundColor,
+                    info: l10n.infoWallpaperBackgroundColor,
+                    value: state.wallpaperBackgroundColor,
+                    onChanged: (v) => viewModel.setWallpaperBackgroundColor(v),
+                  ),
                 ],
               ),
             ),
@@ -274,6 +282,155 @@ class SettingsScreen extends ConsumerWidget {
         ),
         SizedBox(width: 40, child: Text(value.toStringAsFixed(1))),
       ],
+    );
+  }
+
+  Widget _wallpaperBackgroundColorRow({
+    required BuildContext context,
+    required String label,
+    required String info,
+    required String value,
+    required ValueChanged<String> onChanged,
+  }) {
+    final color = _parseColor(value) ?? const Color(0xFFFFFFFF);
+    return Row(
+      children: [
+        SizedBox(width: 110, child: Text(label)),
+        const SizedBox(width: 8),
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: color,
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
+        const SizedBox(width: 8),
+        ElevatedButton(
+          onPressed: () async {
+            final picked = await _showColorPicker(context, color);
+            if (picked != null) {
+              onChanged(_colorToHex(picked));
+            }
+          },
+          child: const Text('選択'),
+        ),
+        const SizedBox(width: 8),
+        InfoTooltip(text: info),
+      ],
+    );
+  }
+
+  Color? _parseColor(String hex) {
+    var h = hex.trim();
+    if (h.startsWith('#')) h = h.substring(1);
+    if (h.length == 6) h = 'FF$h';
+    if (h.length != 8) return null;
+    final v = int.tryParse(h, radix: 16);
+    if (v == null) return null;
+    return Color(v);
+  }
+
+  String _colorToHex(Color color) {
+    final a = (color.a * 255).round();
+    final r = (color.r * 255).round();
+    final g = (color.g * 255).round();
+    final b = (color.b * 255).round();
+    if (a == 255) {
+      return '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}'
+          .toUpperCase();
+    }
+    return '#${a.toRadixString(16).padLeft(2, '0')}${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}'
+        .toUpperCase();
+  }
+
+  Future<Color?> _showColorPicker(BuildContext context, Color initial) async {
+    const presets = [
+      Color(0xFFFFFFFF), // 白
+      Color(0xFF000000), // 黒
+      Color(0xFF808080), // グレー
+      Color(0xFFD3D3D3), // ライトグレー
+      Color(0xFF1A1A2E), // ダーク
+      Color(0xFF2196F3), // 青
+      Color(0xFFF44336), // 赤
+      Color(0xFF4CAF50), // 緑
+      Color(0xFFFFEB3B), // 黄
+      Color(0xFFFF9800), // オレンジ
+      Color(0xFF9C27B0), // 紫
+      Color(0xFF00BCD4), // シアン
+    ];
+    Color selected = initial;
+    return showDialog<Color>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('背景色を選択'),
+              content: SizedBox(
+                width: 300,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: selected,
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.count(
+                      crossAxisCount: 6,
+                      shrinkWrap: true,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      children: [
+                        for (final c in presets)
+                          GestureDetector(
+                            onTap: () => setState(() => selected = c),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: c,
+                                border: Border.all(
+                                  color: selected == c
+                                      ? Colors.blue
+                                      : Colors.grey,
+                                  width: selected == c ? 3 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _colorToHex(selected),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('キャンセル'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(selected),
+                  child: const Text('決定'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

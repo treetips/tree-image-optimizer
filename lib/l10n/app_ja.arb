@@ -74,7 +74,9 @@
   "wallpaper": "背景画像",
   "infoWallpaper": ".config/tree-image-optimizer/wallpaper 配下に背景画像ファイルを配置すると、自分が用意したファイルを選択することができます。",
   "wallpaperOpacity": "背景画像の透明度",
-  "infoWallpaperOpacity": "背景画像の透明度を 0.0（透明）から 1.0（不透明）の範囲で調整します。",
+  "infoWallpaperOpacity": "背景画像の透明度を調節することができます。",
+  "wallpaperBackgroundColor": "背景色",
+  "infoWallpaperBackgroundColor": "背景画像は縦横比を維持するため、余白できることがあります。その余白部分の色が背景色になります。",
 
   "screenAbout": "About",
   "sectionApp": "アプリケーション",
