@@ -37,11 +37,10 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ScreenTitle(title: l10n.screenAbout),
             SectionCard(
               title: l10n.sectionApp,
               child: Column(

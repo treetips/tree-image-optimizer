@@ -21,12 +21,10 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ScreenTitle(title: l10n.screenSettings),
-            const SizedBox(height: 24),
             SectionCard(
               title: l10n.sectionEndAction,
               child: Column(
