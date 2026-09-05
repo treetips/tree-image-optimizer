@@ -164,7 +164,6 @@ class _FormViewState extends ConsumerState<_FormView> {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ScreenTitle(title: l10n.screenConvert),
         SectionCard(
           title: l10n.sectionInput,
           child: Column(
@@ -348,7 +347,7 @@ class _FormViewState extends ConsumerState<_FormView> {
           Positioned.fill(
             child: SingleChildScrollView(
               controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: content,
             ),
           ),
@@ -367,7 +366,7 @@ class _FormViewState extends ConsumerState<_FormView> {
           child: ClipRect(
             child: SingleChildScrollView(
               controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 72),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 72),
               child: content,
             ),
           ),

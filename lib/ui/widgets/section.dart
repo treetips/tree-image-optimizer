@@ -5,24 +5,6 @@ import 'glass_card.dart';
 
 export 'glass_card.dart' show GlassCard;
 
-/// 各画面の上部に表示する画面タイトル。
-class ScreenTitle extends StatelessWidget {
-  const ScreenTitle({super.key, required this.title});
-
-  /// 画面のタイトル。
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Center(
-        child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
-      ),
-    );
-  }
-}
-
 /// タイトルと中央揃えを持つセクションカード。
 ///
 /// [GlassCard] を使い、Liquid Glass エフェクトを適用する。
