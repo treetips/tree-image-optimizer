@@ -60,10 +60,11 @@ GitHub上で管理するソースコードから、検証済みのmacOSアプリ
 
 ### 管理元
 
-アプリケーションのバージョンはXcodeプロジェクト（`TreeImageOptimizer/TreeImageOptimizer.xcodeproj/project.pbxproj`）の `MARKETING_VERSION` と `CURRENT_PROJECT_VERSION` を唯一の管理元とする。
+アプリケーションのバージョンは `TreeImageOptimizer/TreeImageOptimizer/Info.plist` の `CFBundleShortVersionString` と `CFBundleVersion` を唯一の管理元とする。
 
-- `MARKETING_VERSION`（例: `0.1.0`）: ユーザーへ表示するセマンティックバージョン（Major.Minor.Patch）。`CFBundleShortVersionString` に対応する。
-- `CURRENT_PROJECT_VERSION`（例: `1`）: macOS Bundleのビルド番号。`CFBundleVersion` に対応する。
+- `CFBundleShortVersionString`（例: `0.1.0`）: ユーザーへ表示するセマンティックバージョン（Major.Minor.Patch）。
+- `CFBundleVersion`（例: `1`）: macOS Bundleのビルド番号。
+- `project.pbxproj` の `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`（および `INFOPLIST_KEY_*`）は `GENERATE_INFOPLIST_FILE=NO` のためビルド結果に反映されない。整合のため同じ値を保つこと。
 
 About画面のバージョン表示は `Bundle.main` から取得する（`AppInfo.bundleVersion`、`UpdateCheckController.currentVersion()`）。ソースコード内にアプリバージョンを重複定義しない。
 
@@ -82,7 +83,7 @@ Stable版（正式版）になるまでは `0.x.y` を使用する。
 | `0.2.0 (3)` | 開発版の機能追加 |
 | `1.0.0 (4)` | 正式版の初回リリース |
 
-> **重要: ビルド番号（`CURRENT_PROJECT_VERSION` / `CFBundleVersion`）はリリースごとに必ずインクリメントする。**
+> **重要: ビルド番号（`CFBundleVersion`）はリリースごとに必ずインクリメントする。**
 >
 > 自前アップデート（`UpdateService.isNewerThan`）はセマンティックバージョンを先に比較し、同点の場合にビルド番号を比較する。
 > そのため、セマンティックバージョンを上げてもビルド番号が同じだと、同バージョン内での更新が検出されない。
@@ -94,13 +95,13 @@ Stable版（正式版）になるまでは `0.x.y` を使用する。
 
 ### タグとの対応
 
-`MARKETING_VERSION` が `0.1.0`、ビルド番号が `1` の場合、自動生成されるGitタグは `v0.1.0` とする。
+`CFBundleShortVersionString` が `0.1.0`、ビルド番号が `1` の場合、自動生成されるGitタグは `v0.1.0` とする。
 
 ```text
-MARKETING_VERSION: 0.1.0
-Git tag:           v0.1.0
-Bundle version:    0.1.0
-Bundle build:      1
+CFBundleShortVersionString: 0.1.0
+Git tag:                    v0.1.0
+Bundle version:             0.1.0
+Bundle build:               1
 ```
 
 ---
@@ -110,7 +111,7 @@ Bundle build:      1
 ### ステップ1: 開発とバージョン更新（PR作成）
 
 1. `feature/*` または `fix/*` ブランチで機能実装・修正を行う。
-2. 今回のリリース内容に合わせてXcodeプロジェクトの `MARKETING_VERSION` と `CURRENT_PROJECT_VERSION` を更新する（例: `0.1.0 (1)` → `0.1.1 (2)`）。
+2. 今回のリリース内容に合わせて `Info.plist` の `CFBundleShortVersionString` と `CFBundleVersion` を更新する（例: `0.1.0 (1)` → `0.1.1 (2)`。整合のため `project.pbxproj` 側の対応値も合わせる）。
 3. PRを作成し、CI（`.github/workflows/ci.yml`）が通過したことを確認して `main` へマージする。
 
 ### ステップ2: GitHub Actionsでワンクリックリリース
@@ -119,7 +120,7 @@ Bundle build:      1
 2. 左メニューから **「Release」** ワークフローを選択する。
 3. 右上の **[Run workflow]** ボタンをクリックする（`main` ブランチのまま実行）。
     4. ワークフローが自動的に以下を完了する:
-   - Xcodeプロジェクトからバージョンとビルド番号を読み取る
+   - 最新リリースタグから次バージョン・ビルド番号を算出し、`Info.plist` に書き込む
    - 既存タグとの重複を検証
    - ビルド・テストを実行
    - 配布用 `.zip` と SHA-256 チェックサム、`update-info.json`（`version` / `build` / `url` / `sha256`）を生成
@@ -140,13 +141,15 @@ Bundle build:      1
 
 ### 2. Release ワークフロー (`.github/workflows/release.yml`)
 
-- **トリガー**: `workflow_dispatch`（手動実行）
+- **トリガー**: `workflow_dispatch`（手動実行、`bump`: major/minor/patch の選択あり — 既定は patch）
 - **処理内容**:
-  - Xcodeプロジェクトから `MARKETING_VERSION` と `CURRENT_PROJECT_VERSION` を抽出
+  - 最新リリースタグから次バージョンを算出し、`Info.plist` に書き込む（`main` への push は行わない）
   - タグ存在チェック（同名タグが既に存在する場合は多重リリース防止のためエラー終了）
   - `.xcode-version` 指定のXcodeを選択
+  - Git LFS オブジェクトの取得（`tools/` 実体）
   - ビルドとテストの実行（`xcodebuild test`）
   - macOS Releaseビルド
+  - アドホック再署名と検証（`codesign`）
   - 手動インストール用 `.app` の `.zip` アーカイブ化および SHA-256 チェックサム生成
   - 自前アップデート用の `update-info.json`（`version` / `build` / `url` / `sha256`）を生成
   - Gitタグ（`vX.Y.Z`）の自動作成とリモートへのpush

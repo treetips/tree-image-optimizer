@@ -1,0 +1,245 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'バージョンアップの種類'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+permissions:
+  contents: write
+
+env:
+  REPO_URL: https://github.com/treetips/tree-image-optimizer
+
+jobs:
+  release:
+    name: Build & Create Release
+    runs-on: macos-latest
+
+    steps:
+      # ------------------------------------------------------------
+      # Checkout
+      # ------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          lfs: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # tools は Git LFS 管理のため、実体を取得する。
+      - name: Pull Git LFS objects
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git lfs pull
+          echo "tools size after LFS pull:"
+          du -sh tools 2>/dev/null || true
+
+      # ------------------------------------------------------------
+      # Bump version in Info.plist
+      # 次バージョンは「最新のリリースタグ」から算出し、Info.plist
+      # だけを書き換える（main への push / PR 作成は行わない）。
+      # アプリが表示・比較するバージョンは静的な Info.plist の
+      # CFBundleShortVersionString / CFBundleVersion が正本のため
+      # （GENERATE_INFOPLIST_FILE=NO のため INFOPLIST_KEY_* は無視される）。
+      # リポジトリルール（main への直接 push 禁止）を回避するため。
+      # タグの push は許可されているためリリースはタグ経由で行う。
+      # ------------------------------------------------------------
+      - name: Bump version in Info.plist
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLIST="TreeImageOptimizer/TreeImageOptimizer/Info.plist"
+          LATEST_TAG="$(git tag -l 'v*' | sort -V | tail -n1 || true)"
+          if [[ -n "$LATEST_TAG" ]]; then
+            CURRENT="${LATEST_TAG#v}"
+          else
+            CURRENT="$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$PLIST")"
+          fi
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          case "${{ inputs.bump }}" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          REPO_BUILD="$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$PLIST")"
+          NEW_BUILD=$((REPO_BUILD + 1))
+          TAG_NAME="v${NEW_VERSION}"
+
+          if ! [[ "$NEW_BUILD" =~ ^[0-9]+$ ]]; then
+            echo "::error::Build number must be numeric: $NEW_BUILD"
+            exit 1
+          fi
+
+          /usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $NEW_VERSION" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set CFBundleVersion $NEW_BUILD" "$PLIST"
+
+          echo "Base tag:         ${LATEST_TAG:-none}"
+          echo "Semantic version: $NEW_VERSION"
+          echo "Build number:     $NEW_BUILD"
+          echo "Tag name:         $TAG_NAME"
+
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_number=$NEW_BUILD" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------------------
+      # Check existing tag
+      # ------------------------------------------------------------
+      - name: Check if tag already exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists in repository."
+            echo "::error::Please choose another bump type before running release workflow."
+            exit 1
+          fi
+
+      # ------------------------------------------------------------
+      # Select Xcode version
+      # `.xcode-version` に固定したXcodeを選択する（CIと同一）。
+      # ------------------------------------------------------------
+      - name: Select Xcode version
+        run: |
+          VERSION="$(cat .xcode-version)"
+          echo "Required Xcode version: $VERSION"
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "/Applications/Xcode_${VERSION}.app/Contents/Developer"
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      # ------------------------------------------------------------
+      # Tests
+      # ------------------------------------------------------------
+      - name: Run SwiftUI tests
+        run: >
+          xcodebuild
+          -project TreeImageOptimizer/TreeImageOptimizer.xcodeproj
+          -scheme TreeImageOptimizer
+          -configuration Debug
+          test
+
+      # ------------------------------------------------------------
+      # Build macOS release
+      # バージョンは直前のステップで Info.plist に書き込み済み。
+      # ------------------------------------------------------------
+      - name: Build macOS release
+        run: >
+          xcodebuild
+          -project TreeImageOptimizer/TreeImageOptimizer.xcodeproj
+          -scheme TreeImageOptimizer
+          -configuration Release
+          -derivedDataPath "$GITHUB_WORKSPACE/build-release"
+          build
+
+      # ------------------------------------------------------------
+      # Re-sign app (ad-hoc)
+      # Developer Program へ未加入でも動作する形。最後に ad-hoc で
+      # 再署名して署名の整合性を担保する。ダウンロード後は Gatekeeper の
+      # 「開発者を確認できない」警告が出るため、ユーザーが手動で許可して
+      # 起動する形となる。
+      # ------------------------------------------------------------
+      - name: Re-sign app (ad-hoc)
+        run: |
+          set -euo pipefail
+          APP_PATH="$GITHUB_WORKSPACE/build-release/Build/Products/Release/TreeImageOptimizer.app"
+          echo "Re-signing app (deep, ad-hoc)..."
+          codesign --force --deep --sign - "$APP_PATH"
+          echo "Verifying signature..."
+          codesign --verify --deep --strict "$APP_PATH"
+
+      # ------------------------------------------------------------
+      # Package release assets
+      # 自前アップデート（UpdateService）が読むのは .app の zip と
+      # update-info.json のみ。単一 tools ZIP 配布基盤は未実装のため、
+      # tools の zip 化・ハッシュ埋め込みは行わない（migrate.md §9参照）。
+      # ------------------------------------------------------------
+      - name: Package release assets
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD="${{ steps.version.outputs.build_number }}"
+
+          APP_PATH="$GITHUB_WORKSPACE/build-release/Build/Products/Release/TreeImageOptimizer.app"
+          if [[ ! -d "$APP_PATH" ]]; then
+            echo "::error::App not found at $APP_PATH"
+            exit 1
+          fi
+
+          # ZIP を作成。
+          ZIP_NAME="Tree-Image-Optimizer-v${VERSION}-macos.zip"
+          mkdir -p dist-release
+          ditto -c -k --keepParent "$APP_PATH" "dist-release/$ZIP_NAME"
+          echo "Created: dist-release/$ZIP_NAME"
+
+          # SHA-256 を計算。
+          (cd dist-release && shasum -a 256 "$ZIP_NAME" > SHA256SUMS.txt)
+          SHA256="$(awk '{print $1}' "dist-release/SHA256SUMS.txt")"
+          echo "SHA-256: $SHA256"
+
+          # update-info.json を生成。
+          DOWNLOAD_URL="${{ env.REPO_URL }}/releases/download/v${VERSION}/${ZIP_NAME}"
+          cat > dist-release/update-info.json <<EOF
+          {
+            "version": "${VERSION}",
+            "build": ${BUILD},
+            "url": "${DOWNLOAD_URL}",
+            "sha256": "${SHA256}"
+          }
+          EOF
+          echo "Created: dist-release/update-info.json"
+          cat dist-release/update-info.json
+
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "zip_path=dist-release/$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "checksum_path=dist-release/SHA256SUMS.txt" >> "$GITHUB_OUTPUT"
+          echo "update_info_path=dist-release/update-info.json" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------------------
+      # Create and push Git tag
+      # ------------------------------------------------------------
+      - name: Create and push Git tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          git fetch origin main --tags
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      # ------------------------------------------------------------
+      # Create GitHub Release
+      # ------------------------------------------------------------
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          TITLE="Tree Image Optimizer v${VERSION}"
+
+          gh release create "$TAG" \
+            "${{ steps.package.outputs.zip_path }}" \
+            "${{ steps.package.outputs.checksum_path }}" \
+            "${{ steps.package.outputs.update_info_path }}" \
+            --title "$TITLE" \
+            --generate-notes
