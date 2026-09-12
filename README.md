@@ -1,8 +1,8 @@
 # 画像最適化ツール
 
-画像を一括で最適化するツールです。
+画像ファイルを `一括に並列に最適化` するか、1ファイルを簡単に最適化するツールです。
 
-<img width="800" height="632" alt="CleanShot 2026-09-01 at 23 20 05" src="https://github.com/user-attachments/assets/22d358e7-9fd7-400e-a5b8-e26607701705" />
+![一括画像変換画面](./docs/images/app-batch-convert01.png)
 
 ## どんな最適化を行うのか
 
