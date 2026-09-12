@@ -1,0 +1,52 @@
+name: SwiftUI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'TreeImageOptimizer/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'TreeImageOptimizer/**'
+      - '.xcode-version'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  verify:
+    name: Build & Test
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # `.xcode-version` に固定したXcodeを選択する。
+      - name: Select Xcode version
+        run: |
+          VERSION="$(cat .xcode-version)"
+          echo "Required Xcode version: $VERSION"
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "/Applications/Xcode_${VERSION}.app/Contents/Developer"
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build SwiftUI application
+        run: >
+          xcodebuild
+          -project TreeImageOptimizer/TreeImageOptimizer.xcodeproj
+          -scheme TreeImageOptimizer
+          -configuration Debug
+          build
+
+      - name: Run SwiftUI tests
+        run: >
+          xcodebuild
+          -project TreeImageOptimizer/TreeImageOptimizer.xcodeproj
+          -scheme TreeImageOptimizer
+          -configuration Debug
+          test

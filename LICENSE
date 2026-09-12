@@ -1,0 +1,40 @@
+Copyright (c) 2026 treetips. All Rights Reserved.
+
+Tree Image Optimizer - End User License Agreement (EULA)
+
+IMPORTANT: PLEASE READ THIS LICENSE AGREEMENT CAREFULLY BEFORE USING THIS SOFTWARE.
+
+1. Grant of License
+Subject to the terms of this Agreement, the Author ("treetips") grants you a personal, non-exclusive, non-transferable, and non-sublicensable license to install and use this software solely for its intended purpose of optimizing images on your local devices.
+
+2. Restrictions
+You expressly agree NOT to:
+(a) Modify, adapt, translate, reverse engineer, decompile, disassemble, or create derivative works based on this software, in whole or in part.
+(b) Distribute, redistribute, publish, transmit, sublicense, rent, lease, sell, resell, or otherwise make available this software, in source code or binary form, to any third party.
+(c) Remove, alter, or obscure any copyright, trademark, or other proprietary notices contained in or on the software.
+(d) Use the software in any manner that violates applicable local, national, or international laws.
+
+3. Reservation of Rights
+All rights, title, and interest in and to this software, including all intellectual property rights therein, are and will remain the exclusive property of the Author ("treetips"). This Agreement does not grant you any rights to trademarks, service marks, or other proprietary names or marks.
+
+4. Third-Party Components
+This software bundles or utilizes certain third-party libraries and tools, each governed by its respective license (refer to bundled tool licenses in the `tools/` directory where applicable). Nothing in this Agreement restricts or overrides rights granted to you under those separate third-party open-source licenses solely regarding those specific third-party components.
+
+5. Disclaimer of Warranty
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+【利用規約（日本語要約）】
+
+本ソフトウェア「Tree Image Optimizer」の著作権は treetips に帰属します。
+
+利用者は本ソフトウェアをダウンロードし、端末上で画像最適化の目的で使用（実行）することのみが許可されます。
+
+以下の行為は固く禁止されています：
+1. 本ソフトウェア（ソースコードおよびバイナリ）の全部または一部の改変・翻案・派生物の作成
+2. リバースエンジニアリング、逆コンパイル、逆アセンブル
+3. 第三者への再配布、転載、販売、転売、貸与、再許諾
+4. 著作権表示の削除または変更
+
+本ソフトウェアは現状有志（AS IS）で提供され、著作者はいかなる保証も行わず、利用によって生じたいかなる損害についても責任を負いません。

@@ -1,0 +1,659 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E10000000000000000000001 /* TreeImageOptimizerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000001 /* TreeImageOptimizerApp.swift */; };
+		E10000000000000000000002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* RootView.swift */; };
+		E10000000000000000000010 /* ToolBootstrapModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* ToolBootstrapModel.swift */; };
+		E10000000000000000000011 /* SidebarNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* SidebarNavigation.swift */; };
+		E10000000000000000000012 /* EasyConvertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* EasyConvertView.swift */; };
+		E10000000000000000000013 /* EasyConvertViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* EasyConvertViewModel.swift */; };
+		E40000000000000000000010 /* EasyConvertTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000010 /* EasyConvertTests.swift */; };
+		E10000000000000000000003 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* Models.swift */; };
+		E10000000000000000000004 /* ConvertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* ConvertView.swift */; };
+		E10000000000000000000005 /* ConvertViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000005 /* ConvertViewModel.swift */; };
+		E10000000000000000000006 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000006 /* SettingsView.swift */; };
+		E10000000000000000000007 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000007 /* SettingsViewModel.swift */; };
+		E10000000000000000000008 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000008 /* AboutView.swift */; };
+		E10000000000000000000009 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* Localizable.xcstrings */; };
+		E30000000000000000000001 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* AppError.swift */; };
+		E30000000000000000000015 /* GlassCTAButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000015 /* GlassCTAButton.swift */; };
+		E30000000000000000000016 /* UpdateCheckController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000016 /* UpdateCheckController.swift */; };
+		E30000000000000000000017 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000017 /* L10n.swift */; };
+		E30000000000000000000018 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000018 /* AppTheme.swift */; };
+		E30000000000000000000019 /* HelpPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000019 /* HelpPopover.swift */; };
+		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
+		E40000000000000000000009 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000009 /* AppThemeTests.swift */; };
+		E40000000000000000000008 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* Localizable.xcstrings */; };
+		E30000000000000000000002 /* AppInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000002 /* AppInfo.swift */; };
+		E30000000000000000000003 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000003 /* AppPaths.swift */; };
+		E30000000000000000000004 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000004 /* SettingsStore.swift */; };
+		E30000000000000000000005 /* ProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000005 /* ProcessRunner.swift */; };
+		E30000000000000000000006 /* ToolInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000006 /* ToolInstaller.swift */; };
+		E30000000000000000000007 /* TargetFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000007 /* TargetFiles.swift */; };
+		E30000000000000000000008 /* UpscaleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000008 /* UpscaleService.swift */; };
+		E30000000000000000000009 /* CompressionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000009 /* CompressionService.swift */; };
+		E30000000000000000000010 /* ConvertOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000010 /* ConvertOrchestrator.swift */; };
+		E30000000000000000000011 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000011 /* SoundService.swift */; };
+		E30000000000000000000012 /* WallpaperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000012 /* WallpaperService.swift */; };
+		E30000000000000000000013 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000013 /* NotificationService.swift */; };
+		E30000000000000000000014 /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000014 /* UpdateService.swift */; };
+		E40000000000000000000001 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000001 /* AppPathsTests.swift */; };
+		E40000000000000000000002 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* SettingsStoreTests.swift */; };
+		E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000003 /* ProcessRunnerTests.swift */; };
+		E40000000000000000000004 /* ToolInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* ToolInstallerTests.swift */; };
+		E40000000000000000000005 /* ConvertPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000005 /* ConvertPipelineTests.swift */; };
+		E40000000000000000000006 /* MediaServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000006 /* MediaServicesTests.swift */; };
+		E50000000000000000000001 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000001 /* assets */; };
+		E50000000000000000000002 /* TreeImageOptimizer.icns in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* TreeImageOptimizer.icns */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		D10000000000000000000001 /* TreeImageOptimizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TreeImageOptimizer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F10000000000000000000001 /* TreeImageOptimizerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeImageOptimizerApp.swift; sourceTree = "<group>"; };
+		F10000000000000000000002 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		F10000000000000000000010 /* ToolBootstrapModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolBootstrapModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000011 /* SidebarNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarNavigation.swift; sourceTree = "<group>"; };
+		F10000000000000000000012 /* EasyConvertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertView.swift; sourceTree = "<group>"; };
+		F10000000000000000000013 /* EasyConvertViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertViewModel.swift; sourceTree = "<group>"; };
+		F40000000000000000000010 /* EasyConvertTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertTests.swift; sourceTree = "<group>"; };
+		F10000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		F10000000000000000000004 /* ConvertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertView.swift; sourceTree = "<group>"; };
+		F10000000000000000000005 /* ConvertViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertViewModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F10000000000000000000007 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000008 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		F10000000000000000000009 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		F50000000000000000000002 /* TreeImageOptimizer.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = TreeImageOptimizer.icns; sourceTree = "<group>"; };
+		F50000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D40000000000000000000001 /* TreeImageOptimizerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TreeImageOptimizerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F30000000000000000000001 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
+		F30000000000000000000002 /* AppInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfo.swift; sourceTree = "<group>"; };
+		F30000000000000000000015 /* GlassCTAButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCTAButton.swift; sourceTree = "<group>"; };
+		F30000000000000000000016 /* UpdateCheckController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheckController.swift; sourceTree = "<group>"; };
+		F30000000000000000000017 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		F30000000000000000000018 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		F30000000000000000000019 /* HelpPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpPopover.swift; sourceTree = "<group>"; };
+		F40000000000000000000007 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
+		F30000000000000000000003 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
+		F30000000000000000000004 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		F30000000000000000000005 /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
+		F30000000000000000000006 /* ToolInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolInstaller.swift; sourceTree = "<group>"; };
+		F30000000000000000000007 /* TargetFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetFiles.swift; sourceTree = "<group>"; };
+		F30000000000000000000008 /* UpscaleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpscaleService.swift; sourceTree = "<group>"; };
+		F30000000000000000000009 /* CompressionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompressionService.swift; sourceTree = "<group>"; };
+		F30000000000000000000010 /* ConvertOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertOrchestrator.swift; sourceTree = "<group>"; };
+		F30000000000000000000011 /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
+		F30000000000000000000012 /* WallpaperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperService.swift; sourceTree = "<group>"; };
+		F30000000000000000000013 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		F30000000000000000000014 /* UpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateService.swift; sourceTree = "<group>"; };
+		F40000000000000000000001 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000002 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000003 /* ProcessRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunnerTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000004 /* ToolInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolInstallerTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000005 /* ConvertPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPipelineTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000006 /* MediaServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServicesTests.swift; sourceTree = "<group>"; };
+		F50000000000000000000001 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B40000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000002 /* main */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000004 /* TreeImageOptimizer */,
+				A40000000000000000000001 /* TreeImageOptimizerTests */,
+				F50000000000000000000001 /* assets */,
+				A10000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000001 /* TreeImageOptimizer.app */,
+				D40000000000000000000001 /* TreeImageOptimizerTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000004 /* TreeImageOptimizer */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000005 /* App */,
+				A10000000000000000000006 /* Core */,
+				A10000000000000000000007 /* Features */,
+				A30000000000000000000001 /* Services */,
+				A1000000000000000000000B /* Resources */,
+				F50000000000000000000003 /* Info.plist */,
+			);
+			path = TreeImageOptimizer;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000001 /* TreeImageOptimizerTests */ = {
+			isa = PBXGroup;
+			children = (
+				F40000000000000000000001 /* AppPathsTests.swift */,
+				F40000000000000000000002 /* SettingsStoreTests.swift */,
+				F40000000000000000000003 /* ProcessRunnerTests.swift */,
+				F40000000000000000000004 /* ToolInstallerTests.swift */,
+				F40000000000000000000005 /* ConvertPipelineTests.swift */,
+				F40000000000000000000006 /* MediaServicesTests.swift */,
+				F40000000000000000000007 /* L10nTests.swift */,
+				F40000000000000000000009 /* AppThemeTests.swift */,
+				F40000000000000000000010 /* EasyConvertTests.swift */,
+			);
+			path = TreeImageOptimizerTests;
+			sourceTree = "<group>";
+		};
+		A30000000000000000000001 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				F30000000000000000000003 /* AppPaths.swift */,
+				F30000000000000000000004 /* SettingsStore.swift */,
+				F30000000000000000000005 /* ProcessRunner.swift */,
+				F30000000000000000000006 /* ToolInstaller.swift */,
+				F30000000000000000000007 /* TargetFiles.swift */,
+				F30000000000000000000008 /* UpscaleService.swift */,
+				F30000000000000000000009 /* CompressionService.swift */,
+				F30000000000000000000010 /* ConvertOrchestrator.swift */,
+				F30000000000000000000011 /* SoundService.swift */,
+				F30000000000000000000012 /* WallpaperService.swift */,
+				F30000000000000000000013 /* NotificationService.swift */,
+				F30000000000000000000014 /* UpdateService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000005 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000001 /* TreeImageOptimizerApp.swift */,
+				F10000000000000000000002 /* RootView.swift */,
+				F10000000000000000000010 /* ToolBootstrapModel.swift */,
+				F10000000000000000000011 /* SidebarNavigation.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000006 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000003 /* Models.swift */,
+				F30000000000000000000001 /* AppError.swift */,
+				F30000000000000000000002 /* AppInfo.swift */,
+				F30000000000000000000015 /* GlassCTAButton.swift */,
+				F30000000000000000000016 /* UpdateCheckController.swift */,
+				F30000000000000000000017 /* L10n.swift */,
+				F30000000000000000000018 /* AppTheme.swift */,
+				F30000000000000000000019 /* HelpPopover.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000007 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000008 /* Convert */,
+				A1000000000000000000000C /* EasyConvert */,
+				A10000000000000000000009 /* Settings */,
+				A1000000000000000000000A /* About */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000008 /* Convert */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000004 /* ConvertView.swift */,
+				F10000000000000000000005 /* ConvertViewModel.swift */,
+			);
+			path = Convert;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000C /* EasyConvert */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000012 /* EasyConvertView.swift */,
+				F10000000000000000000013 /* EasyConvertViewModel.swift */,
+			);
+			path = EasyConvert;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000009 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000006 /* SettingsView.swift */,
+				F10000000000000000000007 /* SettingsViewModel.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000A /* About */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000008 /* AboutView.swift */,
+			);
+			path = About;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000009 /* Localizable.xcstrings */,
+				F50000000000000000000002 /* TreeImageOptimizer.icns */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B40000000000000000000001 /* TreeImageOptimizerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C40000000000000000000004 /* Build configuration list for PBXNativeTarget "TreeImageOptimizerTests" */;
+			buildPhases = (
+				B40000000000000000000003 /* Frameworks */,
+				B40000000000000000000002 /* Sources */,
+				B40000000000000000000004 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B40000000000000000000005 /* PBXTargetDependency */,
+			);
+			name = TreeImageOptimizerTests;
+			packageProductDependencies = (
+			);
+			productName = TreeImageOptimizerTests;
+			productReference = D40000000000000000000001 /* TreeImageOptimizerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B10000000000000000000001 /* TreeImageOptimizer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C10000000000000000000004 /* Build configuration list for PBXNativeTarget "TreeImageOptimizer" */;
+			buildPhases = (
+				B10000000000000000000003 /* Frameworks */,
+				B10000000000000000000002 /* Sources */,
+				B10000000000000000000004 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TreeImageOptimizer;
+			packageProductDependencies = (
+			);
+			productName = TreeImageOptimizer;
+			productReference = D10000000000000000000001 /* TreeImageOptimizer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2600;
+			};
+			buildConfigurationList = C10000000000000000000001 /* Build configuration list for PBXProject "TreeImageOptimizer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = ja;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				ja,
+			);
+			mainGroup = A10000000000000000000002 /* main */;
+			productRefGroup = A10000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B10000000000000000000001 /* TreeImageOptimizer */,
+				B40000000000000000000001 /* TreeImageOptimizerTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B40000000000000000000004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E40000000000000000000008 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000000000000000000004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E10000000000000000000009 /* Localizable.xcstrings in Resources */,
+				E50000000000000000000001 /* assets in Resources */,
+				E50000000000000000000002 /* TreeImageOptimizer.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B40000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E40000000000000000000001 /* AppPathsTests.swift in Sources */,
+				E40000000000000000000002 /* SettingsStoreTests.swift in Sources */,
+				E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */,
+				E40000000000000000000004 /* ToolInstallerTests.swift in Sources */,
+				E40000000000000000000005 /* ConvertPipelineTests.swift in Sources */,
+				E40000000000000000000006 /* MediaServicesTests.swift in Sources */,
+				E40000000000000000000007 /* L10nTests.swift in Sources */,
+				E40000000000000000000009 /* AppThemeTests.swift in Sources */,
+				E40000000000000000000010 /* EasyConvertTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E10000000000000000000001 /* TreeImageOptimizerApp.swift in Sources */,
+				E10000000000000000000002 /* RootView.swift in Sources */,
+				E10000000000000000000010 /* ToolBootstrapModel.swift in Sources */,
+				E10000000000000000000011 /* SidebarNavigation.swift in Sources */,
+				E10000000000000000000012 /* EasyConvertView.swift in Sources */,
+				E10000000000000000000013 /* EasyConvertViewModel.swift in Sources */,
+				E10000000000000000000003 /* Models.swift in Sources */,
+				E10000000000000000000004 /* ConvertView.swift in Sources */,
+				E10000000000000000000005 /* ConvertViewModel.swift in Sources */,
+				E10000000000000000000006 /* SettingsView.swift in Sources */,
+				E10000000000000000000007 /* SettingsViewModel.swift in Sources */,
+				E10000000000000000000008 /* AboutView.swift in Sources */,
+				E30000000000000000000001 /* AppError.swift in Sources */,
+				E30000000000000000000002 /* AppInfo.swift in Sources */,
+				E30000000000000000000003 /* AppPaths.swift in Sources */,
+				E30000000000000000000004 /* SettingsStore.swift in Sources */,
+				E30000000000000000000005 /* ProcessRunner.swift in Sources */,
+				E30000000000000000000006 /* ToolInstaller.swift in Sources */,
+				E30000000000000000000007 /* TargetFiles.swift in Sources */,
+				E30000000000000000000008 /* UpscaleService.swift in Sources */,
+				E30000000000000000000009 /* CompressionService.swift in Sources */,
+				E30000000000000000000010 /* ConvertOrchestrator.swift in Sources */,
+				E30000000000000000000011 /* SoundService.swift in Sources */,
+				E30000000000000000000012 /* WallpaperService.swift in Sources */,
+				E30000000000000000000013 /* NotificationService.swift in Sources */,
+				E30000000000000000000014 /* UpdateService.swift in Sources */,
+				E30000000000000000000015 /* GlassCTAButton.swift in Sources */,
+				E30000000000000000000016 /* UpdateCheckController.swift in Sources */,
+				E30000000000000000000017 /* L10n.swift in Sources */,
+				E30000000000000000000018 /* AppTheme.swift in Sources */,
+				E30000000000000000000019 /* HelpPopover.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		B40000000000000000000006 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B10000000000000000000001;
+			remoteInfo = TreeImageOptimizer;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		B40000000000000000000005 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B10000000000000000000001 /* TreeImageOptimizer */;
+			targetProxy = B40000000000000000000006 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		C10000000000000000000002 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					DEBUG,
+					"$(inherited)",
+				);
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C10000000000000000000003 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		C10000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TreeImageOptimizer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Tree Image Optimizer";
+				INFOPLIST_KEY_CFBundleIconFile = TreeImageOptimizer;
+				INFOPLIST_KEY_CFBundleName = "Tree Image Optimizer";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright @2026 treetips555";
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.1.0;
+				INFOPLIST_KEY_CFBundleVersion = 1;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				INSTALL_PATH = "$(LOCAL_APPS_DIR)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.treetips.TreeImageOptimizer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		C10000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TreeImageOptimizer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Tree Image Optimizer";
+				INFOPLIST_KEY_CFBundleIconFile = TreeImageOptimizer;
+				INFOPLIST_KEY_CFBundleName = "Tree Image Optimizer";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright @2026 treetips555";
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.1.0;
+				INFOPLIST_KEY_CFBundleVersion = 1;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				INSTALL_PATH = "$(LOCAL_APPS_DIR)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.treetips.TreeImageOptimizer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		C40000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.treetips.TreeImageOptimizer.tests;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					DEBUG,
+					"$(inherited)",
+				);
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TreeImageOptimizer.app/Contents/MacOS/TreeImageOptimizer";
+			};
+			name = Debug;
+		};
+		C40000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.treetips.TreeImageOptimizer.tests;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TreeImageOptimizer.app/Contents/MacOS/TreeImageOptimizer";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C10000000000000000000001 /* Build configuration list for PBXProject "TreeImageOptimizer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C10000000000000000000002 /* Debug */,
+				C10000000000000000000003 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C10000000000000000000004 /* Build configuration list for PBXNativeTarget "TreeImageOptimizer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C10000000000000000000005 /* Debug */,
+				C10000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C40000000000000000000004 /* Build configuration list for PBXNativeTarget "TreeImageOptimizerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C40000000000000000000005 /* Debug */,
+				C40000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = A10000000000000000000001 /* Project object */;
+}
