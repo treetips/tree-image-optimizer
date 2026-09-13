@@ -58,6 +58,9 @@ struct EasyConvertView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                // 一括画面と上部余白を合わせるためのスペーサー。
+                Color.clear
+                    .frame(height: 1)
                 GroupBox {
 
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
