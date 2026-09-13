@@ -7,6 +7,7 @@ import SwiftUI
 struct ConvertView: View {
     @State private var viewModel: ConvertViewModel
     private let jobStore: ConvertJobStore
+    @State private var hoveredFileRowID: UUID?
     @Environment(\.locale) private var locale
 
     init(jobStore: ConvertJobStore) {
@@ -244,11 +245,17 @@ struct ConvertView: View {
                                         URL(fileURLWithPath: row.sourcePath)
                                     ])
                                 } label: {
-                                    Text(row.fileName).appFont(.body)
+                                    Text(row.fileName)
+                                        .appFont(.body)
+                                        .foregroundStyle(
+                                            hoveredFileRowID == row.id ? Color.accentColor : Color.primary
+                                        )
+                                        .underline(hoveredFileRowID == row.id)
                                 }
                                 .buttonStyle(.plain)
                                 .help(t("c.help.fileName"))
                                 .onHover { hovering in
+                                    hoveredFileRowID = hovering ? row.id : nil
                                     if hovering {
                                         NSCursor.pointingHand.push()
                                     } else {
