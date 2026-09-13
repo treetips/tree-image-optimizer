@@ -86,6 +86,31 @@ struct UpdateService: Sendable {
         return results.sorted { $0.path < $1.path }.first
     }
 
+    /// インストール先。`/Applications/<展開名.app>` に固定する。
+    static func installDestination(for preparedApp: URL) -> URL {
+        URL(fileURLWithPath: "/Applications", isDirectory: true)
+            .appendingPathComponent(preparedApp.lastPathComponent, isDirectory: false)
+    }
+
+    /// 展開済みの `.app` をインストール先に反映する。
+    /// 既存の同名アプリがあればゴミ箱に移動してからコピーする。
+    /// - Returns: インストール先の `.app` パス。
+    @discardableResult
+    func applyUpdate(preparedApp: URL, destination: URL) throws -> URL {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: preparedApp.path) else {
+            throw AppError.fileNotFound(preparedApp.path)
+        }
+        if fm.fileExists(atPath: destination.path) {
+            try fm.trashItem(at: destination, resultingItemURL: nil)
+        } else {
+            try fm.createDirectory(
+                at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        }
+        try fm.copyItem(at: preparedApp, to: destination)
+        return destination
+    }
+
     private func collectAppBundles(under directory: URL, depth: Int, maxDepth: Int, into results: inout [URL]) {
         guard depth <= maxDepth else { return }
         guard let contents = try? FileManager.default.contentsOfDirectory(
