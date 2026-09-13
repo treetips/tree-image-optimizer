@@ -251,6 +251,9 @@ struct ConvertView: View {
                                             hoveredFileRowID == row.id ? Color.accentColor : Color.primary
                                         )
                                         .underline(hoveredFileRowID == row.id)
+                                        // Tableは外部状態の変化でセルを再描画しないため、
+                                        // ホバー有無を同一性に含めて更新を強制する。
+                                        .id(hoveredFileRowID == row.id)
                                 }
                                 .buttonStyle(.plain)
                                 .contentShape(Rectangle())
