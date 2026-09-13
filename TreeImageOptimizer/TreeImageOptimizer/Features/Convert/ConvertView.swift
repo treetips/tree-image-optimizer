@@ -7,6 +7,7 @@ import SwiftUI
 struct ConvertView: View {
     @State private var viewModel: ConvertViewModel
     private let jobStore: ConvertJobStore
+    @State private var hoveredFileRowID: UUID?
     @Environment(\.locale) private var locale
 
     init(jobStore: ConvertJobStore) {
@@ -237,23 +238,68 @@ struct ConvertView: View {
                                 .appFont(.headline)
                         }
                         Table(viewModel.filteredRows(for: jobStore.rows)) {
-                            TableColumn(t("c.col.fileName")) { row in
-                                Text(row.fileName).appFont(.body)
+                            TableColumn(t("c.col.fileName")) {
+                                row in
+                                Button {
+                                    NSWorkspace.shared.activateFileViewerSelecting([
+                                        URL(fileURLWithPath: row.sourcePath)
+                                    ])
+                                } label: {
+                                    Text(row.fileName)
+                                        .appFont(.body)
+                                        .foregroundStyle(
+                                            hoveredFileRowID == row.id ? Color.accentColor : Color.primary
+                                        )
+                                        .underline(hoveredFileRowID == row.id)
+                                        // Tableは外部状態の変化でセルを再描画しないため、
+                                        // ホバー有無を同一性に含めて更新を強制する。
+                                        .id(hoveredFileRowID == row.id)
+                                }
+                                .buttonStyle(.plain)
+                                .contentShape(Rectangle())
+                                .help(t("c.help.fileName"))
+                                // セルの作り直し時にも exit が飛ぶため、ここでは状態を消さない。
+                                // 消去は表全体の exit でのみ行う。
+                                .onHover { hovering in
+                                    if hovering {
+                                        hoveredFileRowID = row.id
+                                        NSCursor.pointingHand.push()
+                                    } else {
+                                        NSCursor.pop()
+                                    }
+                                }
                             }
                             TableColumn(t("c.col.upscale")) { row in
                                 Text(row.upscale.label(language: lang)).appFont(.body)
                             }
-                            .width(min: 48, ideal: 68, max: 110)
+                            .width(min: 40, ideal: 62, max: 90)
                             TableColumn(t("c.col.compress")) { row in
                                 Text(row.compress.label(language: lang)).appFont(.body)
                             }
-                            .width(min: 48, ideal: 68, max: 110)
+                            .width(min: 40, ideal: 62, max: 90)
                             TableColumn(t("c.col.output")) { row in
                                 Text(row.output.label(language: lang)).appFont(.body)
                             }
-                            .width(min: 48, ideal: 68, max: 110)
+                            .width(min: 40, ideal: 62, max: 90)
                         }
                         .frame(minHeight: 360)
+                        // ポインターが表全体から外れたときだけホバーを消す。
+                        .onHover { hovering in
+                            if !hovering {
+                                hoveredFileRowID = nil
+                            }
+                        }
+                        // ファイル名ヘッダーの右にℹ️を重ねる。
+                        // TableColumnにヘッダービュー指定APIがないため、
+                        // 見出しと同文言の非表示テキストで位置合わせする。
+                        .overlay(alignment: .topLeading) {
+                            HStack(spacing: 4) {
+                                Text(t("c.col.fileName")).appFont(.body).hidden()
+                                HelpPopover(text: t("c.help.fileName"))
+                            }
+                            .padding(.leading, 12)
+                            .padding(.top, 2)
+                        }
                     }
                     .padding(.vertical, 4)
                 } label: {

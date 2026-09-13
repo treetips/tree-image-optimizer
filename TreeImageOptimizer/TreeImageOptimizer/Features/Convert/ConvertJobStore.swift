@@ -75,8 +75,8 @@ final class ConvertJobStore {
         }
         rows = files.map {
             FileRow(
-                fileName: $0.lastPathComponent, upscale: .waiting, compress: .waiting,
-                output: .waiting)
+                fileName: $0.lastPathComponent, sourcePath: $0.path, upscale: .waiting,
+                compress: .waiting, output: .waiting)
         }
         let (success, failure) = await orchestrator.run(
             files: files, config: config, outputDirectory: outputDirectory, paths: paths
