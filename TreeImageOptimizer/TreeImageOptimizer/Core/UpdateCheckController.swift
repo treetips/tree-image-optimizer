@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// アップデート確認の共通コントローラ。
@@ -7,6 +8,7 @@ import Foundation
 @MainActor
 final class UpdateCheckController {
     var isChecking = false
+    var isInstalling = false
     var message = ""
     var latestDialog = false
     var availableInfo: UpdateInfo?
@@ -73,18 +75,43 @@ final class UpdateCheckController {
         }
     }
 
+    /// ダウンロード・検証・展開のうえ、`/Applications` に反映する。
+    /// 実行中のアプリ自身の更新なら新バージョンを開いて終了する。
+    /// それ以外（開発ビルド等）はFinderで開いて終わる。
     func install(_ info: UpdateInfo) {
-        isChecking = true
+        guard !isInstalling else { return }
+        isInstalling = true
         Task {
             let lang = language()
             do {
-                let appURL = try await updateService.downloadAndPrepare(info: info)
-                message = String(format: L10n.string("a.downloadDoneMsg", language: lang), appURL.path)
+                let prepared = try await updateService.downloadAndPrepare(info: info)
+                let destination = UpdateService.installDestination(for: prepared)
+                try updateService.applyUpdate(preparedApp: prepared, destination: destination)
+                if isRunningFrom(destination) {
+                    relaunch(appURL: destination)
+                    return
+                }
+                message = String(format: L10n.string("a.downloadDoneMsg", language: lang), destination.path)
+                revealInFinder(destination)
             } catch {
                 message = "\(L10n.string("a.downloadFailed", language: lang)): \(error.localizedDescription)"
                 errorDialog = error.localizedDescription
             }
-            isChecking = false
+            isInstalling = false
         }
+    }
+
+    /// 実行中のバンドルがインストール先と同一か。
+    private func isRunningFrom(_ destination: URL) -> Bool {
+        Bundle.main.bundleURL.standardizedFileURL.path == destination.standardizedFileURL.path
+    }
+
+    private func relaunch(appURL: URL) {
+        NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
+        NSApplication.shared.terminate(nil)
+    }
+
+    private func revealInFinder(_ url: URL) {
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 }

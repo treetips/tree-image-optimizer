@@ -78,4 +78,39 @@ struct MediaServicesTests {
         #expect(!info.isNewerThan(currentVersion: "0.2.0", currentBuild: 1))
         #expect(!info.isNewerThan(currentVersion: "0.1.0", currentBuild: 3))
     }
+
+    @Test("インストール先は/Applications配下")
+    func installDestination() {
+        let prepared = URL(fileURLWithPath: "/tmp/TreeImageOptimizer.app", isDirectory: false)
+        #expect(
+            UpdateService.installDestination(for: prepared).path == "/Applications/TreeImageOptimizer.app")
+    }
+
+    @Test("適用は展開済みアプリを複写する")
+    func applyUpdateCopies() throws {
+        let fm = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let prepared = base.appendingPathComponent("TreeImageOptimizer.app", isDirectory: false)
+        try fm.createDirectory(at: prepared.appendingPathComponent("Contents", isDirectory: true), withIntermediateDirectories: true)
+        touch(prepared.appendingPathComponent("Contents/Info.plist"))
+        let destination = base.appendingPathComponent("Applications", isDirectory: true)
+            .appendingPathComponent("TreeImageOptimizer.app", isDirectory: false)
+        let service = UpdateService()
+        let installed = try service.applyUpdate(preparedApp: prepared, destination: destination)
+        #expect(installed == destination)
+        #expect(fm.fileExists(atPath: destination.appendingPathComponent("Contents/Info.plist").path))
+    }
+
+    @Test("適用は存在しない展開元で失敗する")
+    func applyUpdateFailsWithoutSource() {
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let service = UpdateService()
+        #expect(throws: AppError.self) {
+            try service.applyUpdate(
+                preparedApp: base.appendingPathComponent("Missing.app", isDirectory: false),
+                destination: base.appendingPathComponent("Dest.app", isDirectory: false))
+        }
+    }
 }
