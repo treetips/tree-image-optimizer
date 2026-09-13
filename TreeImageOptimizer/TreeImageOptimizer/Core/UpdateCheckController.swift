@@ -87,11 +87,11 @@ final class UpdateCheckController {
                 let prepared = try await updateService.downloadAndPrepare(info: info)
                 let destination = UpdateService.installDestination(for: prepared)
                 try updateService.applyUpdate(preparedApp: prepared, destination: destination)
-                if isRunningFrom(destination) {
-                    relaunch(appURL: destination)
-                    return
-                }
-                message = String(format: L10n.string("a.downloadDoneMsg", language: lang), destination.path)
+                // 実行中のアプリ自身なら新バージョンを開いて終了する。
+                // 起動要求に失敗したらFinderで開いて終わる。
+                if isRunningFrom(destination), relaunch(appURL: destination) { return }
+                message = String(
+                    format: L10n.string("a.downloadDoneMsg", language: lang), destination.path)
                 revealInFinder(destination)
             } catch {
                 message = "\(L10n.string("a.downloadFailed", language: lang)): \(error.localizedDescription)"
@@ -106,9 +106,22 @@ final class UpdateCheckController {
         Bundle.main.bundleURL.standardizedFileURL.path == destination.standardizedFileURL.path
     }
 
-    private func relaunch(appURL: URL) {
-        NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
-        NSApplication.shared.terminate(nil)
+    /// 新バージョンを別プロセスで開いて旧プロセスを終了する。
+    /// 同一bundle IDのため新インスタンス生成を明示しないと、実行中の旧プロセスが
+    /// 前面化されて終了時に「すでに閉じられています」ダイアログが出る。
+    /// - Returns: 起動要求に成功したらtrue。
+    @discardableResult
+    private func relaunch(appURL: URL) -> Bool {
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = true
+        guard NSWorkspace.shared.openApplication(at: appURL, configuration: configuration) != nil else {
+            return false
+        }
+        // 新インスタンスの起動を待ってから終了する。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            NSApplication.shared.terminate(nil)
+        }
+        return true
     }
 
     private func revealInFinder(_ url: URL) {
