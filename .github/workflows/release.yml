@@ -46,8 +46,12 @@ jobs:
 
       # ------------------------------------------------------------
       # Bump version in Info.plist
-      # 次バージョンは「最新のリリースタグ」から算出し、Info.plist
-      # だけを書き換える（main への push / PR 作成は行わない）。
+      # セマンティックバージョンは「最新のリリースタグ」＋実行時の bump
+      # 指定（major/minor/patch）から算出する。
+      # ビルド番号は「最新のリリースの update-info.json の build」＋1
+      # から算出する（初回などで取得できない場合のみ Info.plist＋1）。
+      # ローカルの手動更新は不要。Info.plist だけを書き換え、
+      # main への push / PR 作成は行わない。
       # アプリが表示・比較するバージョンは静的な Info.plist の
       # CFBundleShortVersionString / CFBundleVersion が正本のため
       # （GENERATE_INFOPLIST_FILE=NO のため INFOPLIST_KEY_* は無視される）。
@@ -73,8 +77,14 @@ jobs:
             patch) PATCH=$((PATCH + 1)) ;;
           esac
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          REPO_BUILD="$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$PLIST")"
-          NEW_BUILD=$((REPO_BUILD + 1))
+          PREV_BUILD="$(curl -sL "${{ env.REPO_URL }}/releases/latest/download/update-info.json" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin).get("build", 0))' 2>/dev/null || echo 0)"
+          if [[ "$PREV_BUILD" =~ ^[0-9]+$ ]] && [[ "$PREV_BUILD" -gt 0 ]]; then
+            NEW_BUILD=$((PREV_BUILD + 1))
+          else
+            REPO_BUILD="$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$PLIST")"
+            NEW_BUILD=$((REPO_BUILD + 1))
+          fi
           TAG_NAME="v${NEW_VERSION}"
 
           if ! [[ "$NEW_BUILD" =~ ^[0-9]+$ ]]; then

@@ -504,7 +504,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -514,8 +514,8 @@
 				INFOPLIST_KEY_CFBundleName = "Tree Image Optimizer";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright @2026 treetips555";
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.3.0;
-				INFOPLIST_KEY_CFBundleVersion = 3;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.1.0;
+				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INSTALL_PATH = "$(LOCAL_APPS_DIR)";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -523,7 +523,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.treetips.TreeImageOptimizer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -539,7 +539,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -549,8 +549,8 @@
 				INFOPLIST_KEY_CFBundleName = "Tree Image Optimizer";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright @2026 treetips555";
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.3.0;
-				INFOPLIST_KEY_CFBundleVersion = 3;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.1.0;
+				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INSTALL_PATH = "$(LOCAL_APPS_DIR)";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -558,7 +558,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.treetips.TreeImageOptimizer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

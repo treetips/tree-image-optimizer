@@ -17,15 +17,18 @@ GitHub上で管理するソースコードから、検証済みのmacOSアプリ
 ## 全体フロー概要
 
 ```text
-1. [手動] feature/* または fix/* で開発・Xcodeプロジェクトのバージョン更新
+1. [手動] feature/* または fix/* で開発（バージョンの手動更新は不要）
    ↓ PR作成
 2. [自動] GitHub Actions CI（build / test）が通過
    ↓ レビュー・マージ
 3. [手動] main ブランチへマージ
    ↓
-4. [手動] GitHub Web画面の Actions タブから「Release」の [Run workflow] をクリック（入力不要）
+4. [手動] GitHub Web画面の Actions タブから「Release」の [Run workflow] をクリックし、
+   bump（major/minor/patch）を選択する
    ↓
 5. [自動] GitHub Actions Releaseワークフローが全自動実行
+   ├─ 最新リリースタグ＋bump指定からバージョン（例: 0.3.0）を自動算出
+   ├─ 最新リリースの update-info.json の build＋1 をビルド番号（例: 3）として自動算出
    ├─ Xcodeプロジェクトからバージョン（例: 0.1.0）とビルド番号（例: 1）を自動取得
    ├─ タグの二重作成チェック
    ├─ xcodebuild build & xcodebuild test
@@ -60,7 +63,7 @@ GitHub上で管理するソースコードから、検証済みのmacOSアプリ
 
 ### 管理元
 
-アプリケーションのバージョンは `TreeImageOptimizer/TreeImageOptimizer/Info.plist` の `CFBundleShortVersionString` と `CFBundleVersion` を唯一の管理元とする。
+アプリケーションのバージョンは `TreeImageOptimizer/TreeImageOptimizer/Info.plist` の `CFBundleShortVersionString` と `CFBundleVersion` を唯一の管理元とする。**ローカルでの手動更新は不要。** Releaseワークフローが最新リリースタグ＋bump指定からバージョンを、最新リリースの `update-info.json` の build＋1 からビルド番号を自動算出して書き込む（初回など取得できない場合のみ `Info.plist` の値＋1にフォールバックする）。
 
 - `CFBundleShortVersionString`（例: `0.1.0`）: ユーザーへ表示するセマンティックバージョン（Major.Minor.Patch）。
 - `CFBundleVersion`（例: `1`）: macOS Bundleのビルド番号。
@@ -108,19 +111,19 @@ Bundle build:               1
 
 ## リリースの具体的手順
 
-### ステップ1: 開発とバージョン更新（PR作成）
+### ステップ1: 開発（PR作成）
 
-1. `feature/*` または `fix/*` ブランチで機能実装・修正を行う。
-2. 今回のリリース内容に合わせて `Info.plist` の `CFBundleShortVersionString` と `CFBundleVersion` を更新する（例: `0.1.0 (1)` → `0.1.1 (2)`。整合のため `project.pbxproj` 側の対応値も合わせる）。
-3. PRを作成し、CI（`.github/workflows/ci.yml`）が通過したことを確認して `main` へマージする。
+1. `feature/*` または `fix/*` ブランチで機能実装・修正を行う。バージョンの手動更新は不要。
+2. PRを作成し、CI（`.github/workflows/ci.yml`）が通過したことを確認して `main` へマージする。
 
 ### ステップ2: GitHub Actionsでワンクリックリリース
 
 1. GitHubリポジトリの **「Actions」** タブを開く。
 2. 左メニューから **「Release」** ワークフローを選択する。
-3. 右上の **[Run workflow]** ボタンをクリックする（`main` ブランチのまま実行）。
+3. 右上の **[Run workflow]** ボタンをクリックし、bump（major/minor/patch）を選択する（例: `0.2.0` → `0.3.0` なら `minor`）。
     4. ワークフローが自動的に以下を完了する:
-   - 最新リリースタグから次バージョン・ビルド番号を算出し、`Info.plist` に書き込む
+   - 最新リリースタグ＋bump指定から次バージョンを算出し、`Info.plist` に書き込む
+   - 最新リリースの `update-info.json` の build＋1 をビルド番号として算出し、`Info.plist` に書き込む
    - 既存タグとの重複を検証
    - ビルド・テストを実行
    - 配布用 `.zip` と SHA-256 チェックサム、`update-info.json`（`version` / `build` / `url` / `sha256`）を生成
@@ -143,7 +146,7 @@ Bundle build:               1
 
 - **トリガー**: `workflow_dispatch`（手動実行、`bump`: major/minor/patch の選択あり — 既定は patch）
 - **処理内容**:
-  - 最新リリースタグから次バージョンを算出し、`Info.plist` に書き込む（`main` への push は行わない）
+  - 最新リリースタグ＋bump指定から次バージョンを算出し、`Info.plist` に書き込む（`main` への push は行わない）
   - タグ存在チェック（同名タグが既に存在する場合は多重リリース防止のためエラー終了）
   - `.xcode-version` 指定のXcodeを選択
   - Git LFS オブジェクトの取得（`tools/` 実体）
@@ -196,7 +199,7 @@ Releaseには以下が自動的に含まれる:
 
 1. 公開済みのRelease成果物を直接上書き・差し替えない。
 2. 重大な不具合がある場合は、GitHub上で対象Releaseを一時的にDraftにするか削除する。
-3. バグ修正を行い、Patchバージョンとビルド番号（例: `0.1.1 (2)` → `0.1.2 (3)`）を上げたPRを `main` にマージする。
+3. バグ修正を行い、PRを `main` にマージする（バージョンの手動更新は不要）。
 4. 再度 [Run workflow] を実行して新バージョンのReleaseを公開する。
 
 ---
