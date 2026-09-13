@@ -237,23 +237,50 @@ struct ConvertView: View {
                                 .appFont(.headline)
                         }
                         Table(viewModel.filteredRows(for: jobStore.rows)) {
-                            TableColumn(t("c.col.fileName")) { row in
-                                Text(row.fileName).appFont(.body)
+                            TableColumn(t("c.col.fileName")) {
+                                row in
+                                Button {
+                                    NSWorkspace.shared.activateFileViewerSelecting([
+                                        URL(fileURLWithPath: row.sourcePath)
+                                    ])
+                                } label: {
+                                    Text(row.fileName).appFont(.body)
+                                }
+                                .buttonStyle(.plain)
+                                .help(t("c.help.fileName"))
+                                .onHover { hovering in
+                                    if hovering {
+                                        NSCursor.pointingHand.push()
+                                    } else {
+                                        NSCursor.pop()
+                                    }
+                                }
                             }
                             TableColumn(t("c.col.upscale")) { row in
                                 Text(row.upscale.label(language: lang)).appFont(.body)
                             }
-                            .width(min: 48, ideal: 68, max: 110)
+                            .width(min: 40, ideal: 62, max: 90)
                             TableColumn(t("c.col.compress")) { row in
                                 Text(row.compress.label(language: lang)).appFont(.body)
                             }
-                            .width(min: 48, ideal: 68, max: 110)
+                            .width(min: 40, ideal: 62, max: 90)
                             TableColumn(t("c.col.output")) { row in
                                 Text(row.output.label(language: lang)).appFont(.body)
                             }
-                            .width(min: 48, ideal: 68, max: 110)
+                            .width(min: 40, ideal: 62, max: 90)
                         }
                         .frame(minHeight: 360)
+                        // ファイル名ヘッダーの右にℹ️を重ねる。
+                        // TableColumnにヘッダービュー指定APIがないため、
+                        // 見出しと同文言の非表示テキストで位置合わせする。
+                        .overlay(alignment: .topLeading) {
+                            HStack(spacing: 4) {
+                                Text(t("c.col.fileName")).appFont(.body).hidden()
+                                HelpPopover(text: t("c.help.fileName"))
+                            }
+                            .padding(.leading, 12)
+                            .padding(.top, 2)
+                        }
                     }
                     .padding(.vertical, 4)
                 } label: {

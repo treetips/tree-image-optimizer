@@ -96,6 +96,8 @@ enum ProcessStatus: String, Hashable, CaseIterable {
 struct FileRow: Identifiable {
     let id = UUID()
     var fileName: String
+    /// 変換対象ファイルのフルパス。Finder表示に使う。
+    var sourcePath: String = ""
     var upscale: ProcessStatus
     var compress: ProcessStatus
     var output: ProcessStatus
