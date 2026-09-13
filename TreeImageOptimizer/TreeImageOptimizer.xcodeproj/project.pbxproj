@@ -13,10 +13,12 @@
 		E10000000000000000000011 /* SidebarNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* SidebarNavigation.swift */; };
 		E10000000000000000000012 /* EasyConvertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* EasyConvertView.swift */; };
 		E10000000000000000000013 /* EasyConvertViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* EasyConvertViewModel.swift */; };
+		E10000000000000000000015 /* EasyConvertJobStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000015 /* EasyConvertJobStore.swift */; };
 		E40000000000000000000010 /* EasyConvertTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000010 /* EasyConvertTests.swift */; };
 		E10000000000000000000003 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* Models.swift */; };
 		E10000000000000000000004 /* ConvertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* ConvertView.swift */; };
 		E10000000000000000000005 /* ConvertViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000005 /* ConvertViewModel.swift */; };
+		E10000000000000000000014 /* ConvertJobStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000014 /* ConvertJobStore.swift */; };
 		E10000000000000000000006 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000006 /* SettingsView.swift */; };
 		E10000000000000000000007 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000007 /* SettingsViewModel.swift */; };
 		E10000000000000000000008 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000008 /* AboutView.swift */; };
@@ -61,10 +63,12 @@
 		F10000000000000000000011 /* SidebarNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarNavigation.swift; sourceTree = "<group>"; };
 		F10000000000000000000012 /* EasyConvertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertView.swift; sourceTree = "<group>"; };
 		F10000000000000000000013 /* EasyConvertViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertViewModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000015 /* EasyConvertJobStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertJobStore.swift; sourceTree = "<group>"; };
 		F40000000000000000000010 /* EasyConvertTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertTests.swift; sourceTree = "<group>"; };
 		F10000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		F10000000000000000000004 /* ConvertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertView.swift; sourceTree = "<group>"; };
 		F10000000000000000000005 /* ConvertViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertViewModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000014 /* ConvertJobStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertJobStore.swift; sourceTree = "<group>"; };
 		F10000000000000000000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		F10000000000000000000007 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		F10000000000000000000008 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
@@ -229,6 +233,7 @@
 			children = (
 				F10000000000000000000004 /* ConvertView.swift */,
 				F10000000000000000000005 /* ConvertViewModel.swift */,
+				F10000000000000000000014 /* ConvertJobStore.swift */,
 			);
 			path = Convert;
 			sourceTree = "<group>";
@@ -238,6 +243,7 @@
 			children = (
 				F10000000000000000000012 /* EasyConvertView.swift */,
 				F10000000000000000000013 /* EasyConvertViewModel.swift */,
+				F10000000000000000000015 /* EasyConvertJobStore.swift */,
 			);
 			path = EasyConvert;
 			sourceTree = "<group>";
@@ -386,9 +392,11 @@
 				E10000000000000000000011 /* SidebarNavigation.swift in Sources */,
 				E10000000000000000000012 /* EasyConvertView.swift in Sources */,
 				E10000000000000000000013 /* EasyConvertViewModel.swift in Sources */,
+				E10000000000000000000015 /* EasyConvertJobStore.swift in Sources */,
 				E10000000000000000000003 /* Models.swift in Sources */,
 				E10000000000000000000004 /* ConvertView.swift in Sources */,
 				E10000000000000000000005 /* ConvertViewModel.swift in Sources */,
+				E10000000000000000000014 /* ConvertJobStore.swift in Sources */,
 				E10000000000000000000006 /* SettingsView.swift in Sources */,
 				E10000000000000000000007 /* SettingsViewModel.swift in Sources */,
 				E10000000000000000000008 /* AboutView.swift in Sources */,

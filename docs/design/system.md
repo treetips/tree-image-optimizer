@@ -9,14 +9,17 @@
 
 - Apple推奨のObservationベースの構成を採用します。依存関係は `View` -> `Model` -> `Service` の一方向です（パスはいずれも `TreeImageOptimizer/TreeImageOptimizer/` 配下）。
   - View（`App/`、`Features/<機能>/*View.swift`）: SwiftUIの宣言的UI。表示に必要な最小限のローカル状態（`@State`）のみを持ち、業務状態は持たずModelの公開状態を表示と操作に結びつけるだけにします。
-  - Model（`Features/<機能>/*ViewModel.swift`、`Core/UpdateCheckController.swift`）: `@Observable` + `@MainActor` のクラス。画面ごとの状態と操作を持ち、Serviceを呼び出します。
+  - Model（`Features/<機能>/*ViewModel.swift`、`Features/Convert/ConvertJobStore.swift`、`Features/EasyConvert/EasyConvertJobStore.swift`、`Core/UpdateCheckController.swift`）: `@Observable` + `@MainActor` のクラス。画面ごとの状態と操作を持ち、Serviceを呼び出します。
+    - 画面固有のフォーム状態（フォルダパス・変換設定・表示フィルタ）は各 `ViewModel` が持ちます。
+    - 画面遷移を跨いで存続すべき実行状態（`isRunning`・進捗・結果表）は共有の `ConvertJobStore` / `EasyConvertJobStore` が持ちます。実処理はServiceである `ConvertOrchestrator` に委譲し、各 `ViewModel` はファイル列挙と設定スナップショット作成に専念します。
+    - `EasyConvertViewModel` は実行状態の読み取り専用プロキシ（`isRunning`・進捗・結果など）を公開し、既存テストとの互換性を保ちます。
   - Service（`Services/`）: 永続化・外部プロセス・Appleフレームワークの薄いラッパー。`Sendable` なstruct/class（状態を持たないenumを含む）で実装し、UIの判断ロジックを持ちません。
   - Core（`Core/`）: 機能横断の共有物。データ定義（`Models.swift`）、エラー型（`AppError.swift`）、テーマ・共通View、言語解決（`L10n.swift`）を置きます。
 
 | 層       | 配置                                                                                                 | 例                               |
 |:--------|:---------------------------------------------------------------------------------------------------|:--------------------------------|
 | View    | `App/RootView.swift`、`Features/Convert/ConvertView.swift`                                          | `NavigationSplitView`、各画面のレイアウト |
-| Model   | `Features/Convert/ConvertViewModel.swift`、`Features/Settings/SettingsViewModel.swift`              | 画面状態・検証・保存・実行指示                 |
+| Model   | `Features/Convert/ConvertViewModel.swift`、`Features/Convert/ConvertJobStore.swift`、`Features/EasyConvert/EasyConvertJobStore.swift`、`Features/Settings/SettingsViewModel.swift` | 画面状態・検証・保存・実行指示・共有ジョブ状態        |
 | Service | `Services/ConvertOrchestrator.swift`、`Services/SettingsStore.swift`、`Services/ProcessRunner.swift` | 並列変換・設定の読み書き・プロセス実行             |
 | Core    | `Core/Models.swift`、`Core/AppError.swift`、`Core/L10n.swift`                                        | データ型・エラー・文言解決                   |
 
@@ -25,7 +28,10 @@
 ## 状態管理
 
 - [Observationフレームワーク](https://developer.apple.com/documentation/observation)（`@Observable`、`@State`、`@Environment`）で管理します。Single Source of Truthを保ち、状態は使う場所に最も近い層で所有します。
-- 共有状態（設定・アップデート確認）は `TreeImageOptimizerApp` で生成し、下位Viewへ渡します。画面固有の状態は各Viewの `@State` で持ちます。
+- 共有状態（設定・アップデート確認・一括変換ジョブ・かんたん変換ジョブ）は `TreeImageOptimizerApp` で生成し、下位Viewへ渡します。画面固有の状態は各Viewの `@State` で持ちます。
+- 一括変換・かんたん変換の実行状態は各 `View` の `@State` で新規生成しません。`RootView` が共有の `ConvertJobStore` / `EasyConvertJobStore` を保持し、各画面とサイドナビに同一インスタンスを渡します。`NavigationSplitView` のdetail切替で画面が再生成されても `isRunning`・進捗・結果が維持され、ガードレールなしで画面遷移しても孤児タスクになりません。
+- サイドナビは各ジョブの `isRunning` を購読し、実行中はメニューのアイコンをテーマカラーのローディング表示（`ProgressView` のスピナーはmacOSで着色できないためSF Symbolsの回転で自前表示）に切り替え、ラベルの下端の最背面に細いリニアバーを重ねて表示します（`.background` のためレイアウトに参加せず、行の高さは変わらないので下の項目はズレません）。一括変換は進捗連動の確定バー＋右端のテーマカラー進捗%、かんたん変換は不確定アニメーションバーのみ（1ファイルのため%なし、いずれも標準SwiftUIのみで実装）です。行は縦パディングで行高を確保し、内容は中央揃えになります。画面に戻った際は実行中のまま表示します。一括変換の実行ボタンは `jobStore.isRunning` に連動して `変換中...` のまま非活性にします。処理が終了すれば元のアイコンに戻し、進捗%を非表示にします。
+- かんたん変換の入力エリア（ドロップ・クリック選択）はジョブ実行中は無効化し、終了で自動的に有効に戻します。SwiftUIの `.disabled` だけでは `NSView` のドラッグ受け付けまで止まらないため、`FileDropNSView` に `isEnabled` を持たせてAppKitレベルでも受け付けを拒否します。
 - Swift 6言語モードを採用します。UI状態は `@MainActor` で隔離し、Serviceは `Sendable` にして、非同期処理は `async/await` と `Task` による構造化並行処理で記述します。
 
 ## Linter・Formatter
