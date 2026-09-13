@@ -253,10 +253,13 @@ struct ConvertView: View {
                                         .underline(hoveredFileRowID == row.id)
                                 }
                                 .buttonStyle(.plain)
+                                .contentShape(Rectangle())
                                 .help(t("c.help.fileName"))
+                                // セルの作り直し時にも exit が飛ぶため、ここでは状態を消さない。
+                                // 消去は表全体の exit でのみ行う。
                                 .onHover { hovering in
-                                    hoveredFileRowID = hovering ? row.id : nil
                                     if hovering {
+                                        hoveredFileRowID = row.id
                                         NSCursor.pointingHand.push()
                                     } else {
                                         NSCursor.pop()
@@ -277,6 +280,12 @@ struct ConvertView: View {
                             .width(min: 40, ideal: 62, max: 90)
                         }
                         .frame(minHeight: 360)
+                        // ポインターが表全体から外れたときだけホバーを消す。
+                        .onHover { hovering in
+                            if !hovering {
+                                hoveredFileRowID = nil
+                            }
+                        }
                         // ファイル名ヘッダーの右にℹ️を重ねる。
                         // TableColumnにヘッダービュー指定APIがないため、
                         // 見出しと同文言の非表示テキストで位置合わせする。
