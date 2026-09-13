@@ -6,6 +6,8 @@ struct TreeImageOptimizerApp: App {
     @State private var updateCheck = UpdateCheckController()
     @State private var settings = SettingsViewModel()
     @State private var navigation = SidebarNavigation()
+    @State private var convertJobStore = ConvertJobStore()
+    @State private var easyConvertJobStore = EasyConvertJobStore()
 
     init() {
         // 完了通知を使えるよう起動時に許可を求める。拒否時は通知なしになる。
@@ -14,7 +16,9 @@ struct TreeImageOptimizerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(navigation: navigation, settings: settings, updateCheck: updateCheck)
+            RootView(
+                navigation: navigation, settings: settings, updateCheck: updateCheck,
+                convertJobStore: convertJobStore, easyConvertJobStore: easyConvertJobStore)
                 .frame(minWidth: 800, minHeight: 600)
         }
         .windowStyle(.automatic)

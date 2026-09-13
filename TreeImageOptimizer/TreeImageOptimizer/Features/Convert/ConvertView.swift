@@ -2,9 +2,17 @@ import AppKit
 import SwiftUI
 
 /// 一括画像変換画面。
+/// 実行状態は共有の `ConvertJobStore` を参照するため、サイドナビ切替で
+/// Viewが再生成されても進捗・結果が維持される。
 struct ConvertView: View {
-    @State private var viewModel = ConvertViewModel()
+    @State private var viewModel: ConvertViewModel
+    private let jobStore: ConvertJobStore
     @Environment(\.locale) private var locale
+
+    init(jobStore: ConvertJobStore) {
+        self.jobStore = jobStore
+        _viewModel = State(initialValue: ConvertViewModel(jobStore: jobStore))
+    }
 
     private var lang: String { locale.language.languageCode?.identifier ?? "" }
     private func t(_ key: String) -> String { L10n.string(key, language: lang) }
@@ -191,7 +199,7 @@ struct ConvertView: View {
                 }
 
                 GlassCTAButton(
-                    title: viewModel.isRunning ? t("c.running") : t("c.run"),
+                    title: jobStore.isRunning ? t("c.running") : t("c.run"),
                     disabled: !viewModel.canRun
                 ) {
                     viewModel.runConversion()
@@ -223,12 +231,12 @@ struct ConvertView: View {
                         }
                         .toggleStyle(.checkbox)
                         HStack {
-                            ProgressView(value: viewModel.progressPercent, total: 100)
-                            Text("\(Int(viewModel.progressPercent))%")
+                            ProgressView(value: jobStore.progressPercent, total: 100)
+                            Text("\(Int(jobStore.progressPercent))%")
                                 .frame(width: 64, alignment: .trailing)
                                 .appFont(.headline)
                         }
-                        Table(viewModel.filteredRows) {
+                        Table(viewModel.filteredRows(for: jobStore.rows)) {
                             TableColumn(t("c.col.fileName")) { row in
                                 Text(row.fileName).appFont(.body)
                             }
@@ -263,10 +271,10 @@ struct ConvertView: View {
                 // フッターとトップへ戻るボタンを独立した2つのガラスでフローティング表示する。
                 HStack(alignment: .bottom, spacing: 12) {
                     HStack(spacing: 16) {
-                        FooterStat(icon: "photo.stack", text: "\(t("c.footer.target")): \(viewModel.rows.count)")
-                        FooterStat(icon: "checkmark.circle", iconColor: .green, text: "\(t("c.footer.success")): \(viewModel.successCount)")
-                        FooterStat(icon: "xmark.circle", iconColor: .red, text: "\(t("c.footer.failure")): \(viewModel.failureCount)")
-                        FooterStat(icon: "clock", text: String(format: t("c.elapsed"), viewModel.elapsedMinutes))
+                        FooterStat(icon: "photo.stack", text: "\(t("c.footer.target")): \(jobStore.rows.count)")
+                        FooterStat(icon: "checkmark.circle", iconColor: .green, text: "\(t("c.footer.success")): \(jobStore.successCount)")
+                        FooterStat(icon: "xmark.circle", iconColor: .red, text: "\(t("c.footer.failure")): \(jobStore.failureCount)")
+                        FooterStat(icon: "clock", text: String(format: t("c.elapsed"), jobStore.elapsedMinutes))
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 6)

@@ -15,16 +15,22 @@ struct RootView: View {
     @State private var navigation: SidebarNavigation
     @State private var settings: SettingsViewModel
     @State private var updateCheck: UpdateCheckController
+    @State private var convertJobStore: ConvertJobStore
+    @State private var easyConvertJobStore: EasyConvertJobStore
     @State private var bootstrap = ToolBootstrapModel()
 
     init(
         navigation: SidebarNavigation = SidebarNavigation(),
         settings: SettingsViewModel = SettingsViewModel(),
-        updateCheck: UpdateCheckController = UpdateCheckController()
+        updateCheck: UpdateCheckController = UpdateCheckController(),
+        convertJobStore: ConvertJobStore = ConvertJobStore(),
+        easyConvertJobStore: EasyConvertJobStore = EasyConvertJobStore()
     ) {
         _navigation = State(initialValue: navigation)
         _settings = State(initialValue: settings)
         _updateCheck = State(initialValue: updateCheck)
+        _convertJobStore = State(initialValue: convertJobStore)
+        _easyConvertJobStore = State(initialValue: easyConvertJobStore)
     }
 
     var body: some View {
@@ -33,11 +39,41 @@ struct RootView: View {
             VStack(alignment: .leading, spacing: 0) {
                 List(SidebarSelection.allCases, selection: $navigation.selection) { item in
                     NavigationLink(value: item) {
-                        Label {
-                            Text(item.title(language: settings.language))
-                                .font(AppTheme.font(.body, scale: fontScale))
-                        } icon: {
-                            Image(systemName: item.systemImage)
+                        HStack(spacing: 6) {
+                            Label {
+                                Text(item.title(language: settings.language))
+                                    .font(AppTheme.font(.body, scale: fontScale))
+                            } icon: {
+                                // 実行中はアイコンをローディング表示に切り替える。
+                                // 終了すれば `isRunning` が戻り元のアイコンに戻る。
+                                if isItemRunning(item) {
+                                    SidebarLoadingIcon()
+                                } else {
+                                    Image(systemName: item.systemImage)
+                                }
+                            }
+                            // 一括変換の実行中は右端に進捗%を表示する。
+                            // 終了すれば非表示になる。かんたん変換は1ファイルのため%は出さない。
+                            if item == .convert, convertJobStore.isRunning {
+                                Spacer()
+                                Text(convertProgressLabel)
+                                    .font(AppTheme.font(.caption, scale: fontScale))
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        // 実行中は行の下端の最背面に細いリニアバーを表示する。
+                        // 背景配置のためレイアウトに参加せず行の高さは変わらない。
+                        // 一括変換は進捗連動の確定バー、かんたん変換は不確定バー。
+                        .background(alignment: .bottom) {
+                            VStack(spacing: 0) {
+                                Spacer(minLength: 0)
+                                if item == .convert, convertJobStore.isRunning {
+                                    DeterminateLinearBar(progress: convertJobStore.progressPercent)
+                                } else if item == .easyConvert, easyConvertJobStore.isRunning {
+                                    IndeterminateLinearBar()
+                                }
+                            }
                         }
                     }
                 }
@@ -82,9 +118,9 @@ struct RootView: View {
                 backgroundImage
                 switch navigation.selection {
                 case .convert:
-                    ConvertView()
+                    ConvertView(jobStore: convertJobStore)
                 case .easyConvert:
-                    EasyConvertView()
+                    EasyConvertView(jobStore: easyConvertJobStore)
                 case .settings:
                     SettingsView(viewModel: settings)
                 case .about:
@@ -243,6 +279,20 @@ struct RootView: View {
         AppTheme.fontScale(for: settings.fontSize)
     }
 
+    /// サイドナビの一括変換メニュー右端に表示する進捗%。
+    private var convertProgressLabel: String {
+        "\(Int(convertJobStore.progressPercent))%"
+    }
+
+    /// 実行中のメニューはアイコンをローディング表示に切り替える。
+    private func isItemRunning(_ item: SidebarSelection) -> Bool {
+        switch item {
+        case .convert: return convertJobStore.isRunning
+        case .easyConvert: return easyConvertJobStore.isRunning
+        case .settings, .about: return false
+        }
+    }
+
 
 
     /// 診断用に文字の大きさ解決結果を記録する。
@@ -301,6 +351,71 @@ struct RootView: View {
         let g = Double((v >> 8) & 0xFF) / 255
         let b = Double(v & 0xFF) / 255
         return Color(red: r, green: g, blue: b, opacity: a)
+    }
+}
+
+/// 実行中メニュー用のローディングアイコン。テーマカラーで回転表示する。
+/// `ProgressView` のスピナーはmacOSで着色が効かないため、SF Symbolsで自前表示する。
+private struct SidebarLoadingIcon: View {
+    @State private var spinning = false
+
+    var body: some View {
+        Image(systemName: "arrow.triangle.2.circlepath")
+            .foregroundStyle(Color.accentColor)
+            .rotationEffect(.degrees(spinning ? 360 : 0))
+            .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: spinning)
+            .onAppear { spinning = true }
+    }
+}
+
+/// 進捗連動の細いリニアバー。標準の `ProgressView` より細くするため自前表示する。
+private struct DeterminateLinearBar: View {
+    var progress: Double
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Color.accentColor.opacity(0.25))
+                    .frame(height: 3)
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Color.accentColor)
+                    .frame(width: barWidth(total: geometry.size.width), height: 3)
+            }
+        }
+        .frame(height: 3)
+    }
+
+    private func barWidth(total: CGFloat) -> CGFloat {
+        total * min(max(progress, 0), 100) / 100
+    }
+}
+
+/// MUIのLinear indeterminate風のバー。標準SwiftUIのみで実装する。
+/// 進捗%がない場合（かんたん変換の1ファイル処理など）に使う。
+private struct IndeterminateLinearBar: View {
+    @State private var move = false
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let barWidth = max(width * 0.35, 24)
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Color.accentColor.opacity(0.25))
+                    .frame(height: 3)
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Color.accentColor)
+                    .frame(width: barWidth, height: 3)
+                    .offset(x: move ? width - barWidth : 0)
+                    .animation(
+                        .easeInOut(duration: 1).repeatForever(autoreverses: true),
+                        value: move
+                    )
+                    .onAppear { move = true }
+            }
+        }
+        .frame(height: 3)
     }
 }
 

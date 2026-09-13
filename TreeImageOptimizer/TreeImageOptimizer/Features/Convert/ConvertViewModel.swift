@@ -1,7 +1,8 @@
-import AVFoundation
 import Foundation
 
-/// 変換画面の状態と処理。設定の永続化・モデル一覧・変換実行を配線する。
+/// 一括変換画面のフォーム状態と操作。設定の永続化・モデル一覧・実行指示を配線する。
+/// 実行状態（進捗・結果）は共有の `ConvertJobStore` が持ち、このViewModelは持たない。
+/// 画面遷移でViewModelが再生成されても、ジョブの進行は維持される。
 @Observable
 @MainActor
 final class ConvertViewModel {
@@ -36,21 +37,16 @@ final class ConvertViewModel {
         didSet { saveConvert() }
     }
     var maxParallel: Double = Double(max(1, ProcessInfo.processInfo.processorCount))
-    var isRunning: Bool = false
-    var progressPercent: Double = 0
-    var successCount: Int = 0
-    var failureCount: Int = 0
-    var elapsedMinutes: Double = 0
-    var rows: [FileRow] = []
-    private var completedCount: Int = 0
     var showWaiting: Bool = true
     var showRunning: Bool = true
     var showSuccess: Bool = true
     var showFailure: Bool = true
-    var resultMessage: String = ""
+
+    /// 共有の実行状態。アプリ層で生成し、`ConvertView` 経由で注入する。
+    let jobStore: ConvertJobStore
 
     /// 絞り込み後の表示行。いずれか1つでもチェックした状態を含む行を表示する。
-    var filteredRows: [FileRow] {
+    func filteredRows(for rows: [FileRow]) -> [FileRow] {
         rows.filter { row in
             let statuses = [row.upscale, row.compress, row.output]
             if showWaiting, statuses.contains(.waiting) { return true }
@@ -61,9 +57,9 @@ final class ConvertViewModel {
         }
     }
 
-    /// 実行ボタンの活性条件。
+    /// 実行ボタンの活性条件。ジョブ実行中は非活性になる。
     var canRun: Bool {
-        !isRunning
+        !jobStore.isRunning
             && !inputFolderPath.isEmpty
             && !outputFolderPath.isEmpty
             && !inputFolderHasError
@@ -72,22 +68,15 @@ final class ConvertViewModel {
 
     private let paths: AppPaths
     private let store: SettingsStore
-    private let orchestrator: ConvertOrchestrator
-    private let notificationService = NotificationService()
-    private var soundService: SoundService
-    private var audioPlayer: AVAudioPlayer?
-    private var runTask: Task<Void, Never>?
 
     init(
         paths: AppPaths = AppPaths(),
         store: SettingsStore? = nil,
-        orchestrator: ConvertOrchestrator = ConvertOrchestrator(),
-        soundService: SoundService? = nil
+        jobStore: ConvertJobStore? = nil
     ) {
         self.paths = paths
         self.store = store ?? SettingsStore(paths: paths)
-        self.orchestrator = orchestrator
-        self.soundService = soundService ?? SoundService(paths: paths)
+        self.jobStore = jobStore ?? ConvertJobStore(paths: paths, store: self.store)
         maxParallel = Double(max(1, ProcessInfo.processInfo.processorCount))
         loadPersisted()
         models = TargetFiles.listModels(in: paths.upscalModelsURL)
@@ -136,38 +125,10 @@ final class ConvertViewModel {
         return FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && isDir.boolValue
     }
 
-    /// 変換を実行する。ファイル単位で並列に処理し、進捗を更新する。
+    /// 変換を実行する。対象列挙と設定スナップショット作成までを行い、
+    /// 実処理と進捗管理は共有の `jobStore` に委譲する。
     func runConversion() {
         guard canRun else { return }
-        runTask?.cancel()
-        runTask = Task {
-            await execute()
-        }
-    }
-
-    private func execute() async {
-        isRunning = true
-        progressPercent = 0
-        successCount = 0
-        failureCount = 0
-        elapsedMinutes = 0
-        rows = []
-        completedCount = 0
-        resultMessage = ""
-        let started = Date()
-        // 実行時間をリアルタイム表示するための更新ループ。
-        let elapsedTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                guard !Task.isCancelled else { return }
-                self.elapsedMinutes = Date().timeIntervalSince(started) / 60.0
-            }
-        }
-        defer {
-            elapsedTask.cancel()
-            isRunning = false
-            elapsedMinutes = Date().timeIntervalSince(started) / 60.0
-        }
         let inputURL = URL(fileURLWithPath: inputFolderPath, isDirectory: true)
         let outputURL = URL(fileURLWithPath: outputFolderPath, isDirectory: true)
         let files: [URL]
@@ -176,7 +137,6 @@ final class ConvertViewModel {
         } catch {
             return
         }
-        rows = files.map { FileRow(fileName: $0.lastPathComponent, upscale: .waiting, compress: .waiting, output: .waiting) }
         let config = ConvertConfig(
             scale: Int(scale),
             model: selectedModel,
@@ -185,82 +145,6 @@ final class ConvertViewModel {
             quality: Int(quality),
             parallelCount: Int(parallelCount)
         )
-        let (success, failure) = await orchestrator.run(
-            files: files, config: config, outputDirectory: outputURL, paths: paths
-        ) { [weak self] outcome in
-            guard let self else { return }
-            await MainActor.run {
-                self.apply(outcome)
-            }
-        }
-        successCount = success
-        failureCount = failure
-        progressPercent = 100
-        let allSuccess = failure == 0 && success > 0
-        let language = (try? store.load(maxParallel: Int(maxParallel)).settings.language) ?? ""
-        if allSuccess {
-            resultMessage = String(format: L10n.string("c.done.success", language: language), success)
-        } else {
-            resultMessage = String(format: L10n.string("c.done.mixed", language: language), success, failure)
-        }
-        await finishNotification(allSuccess: allSuccess, language: language)
-    }
-
-    private func apply(_ outcome: FileOutcome) {
-        guard rows.indices.contains(outcome.index) else { return }
-        if outcome.started {
-            switch outcome.stage {
-            case .upscale:
-                rows[outcome.index].upscale = .running
-            case .compress:
-                rows[outcome.index].compress = .running
-            case .output:
-                rows[outcome.index].output = .running
-            }
-            return
-        }
-        switch outcome.stage {
-        case .upscale:
-            rows[outcome.index].upscale = outcome.succeeded ? .success : .failure
-        case .compress:
-            rows[outcome.index].compress = outcome.succeeded ? .success : .failure
-        case .output:
-            rows[outcome.index].output = outcome.succeeded ? .success : .failure
-        }
-        // 件数は完了都度リアルタイムに集計する。
-        if outcome.fileDone {
-            completedCount += 1
-            if outcome.succeeded {
-                successCount += 1
-            } else {
-                failureCount += 1
-            }
-        }
-        if !rows.isEmpty {
-            progressPercent = Double(completedCount) / Double(rows.count) * 100
-        }
-    }
-
-    private func finishNotification(allSuccess: Bool, language: String) async {
-        let settings: ScreenSettings
-        do {
-            settings = try store.load(maxParallel: Int(maxParallel)).settings
-        } catch {
-            return
-        }
-        if settings.showOsNotification {
-            let body = L10n.string(allSuccess ? "notify.success" : "notify.failure", language: language)
-            await notificationService.notify(body: body)
-        }
-        if settings.playSound {
-            let name = allSuccess ? settings.successSound : settings.errorSound
-            let options = soundService.listSounds(success: allSuccess)
-            let resolved = soundService.resolveSelected(name, options: options)
-            if let option = options.first(where: { $0.name == resolved }),
-               let player = soundService.makePlayer(for: option) {
-                audioPlayer = player
-                player.play()
-            }
-        }
+        jobStore.start(files: files, config: config, outputDirectory: outputURL)
     }
 }

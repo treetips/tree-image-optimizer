@@ -2,10 +2,18 @@ import AppKit
 import SwiftUI
 
 /// かんたん画像変換画面。ドロップした画像を即座に変換する。
+/// 実行状態は共有の `EasyConvertJobStore` を参照するため、サイドナビ切替で
+/// Viewが再生成されても進捗・結果が維持される。
 struct EasyConvertView: View {
-    @State private var viewModel = EasyConvertViewModel()
+    @State private var viewModel: EasyConvertViewModel
+    private let jobStore: EasyConvertJobStore
     @State private var isDropTargeted = false
     @Environment(\.locale) private var locale
+
+    init(jobStore: EasyConvertJobStore) {
+        self.jobStore = jobStore
+        _viewModel = State(initialValue: EasyConvertViewModel(jobStore: jobStore))
+    }
 
     private var lang: String { locale.language.languageCode?.identifier ?? "" }
     private func t(_ key: String) -> String { L10n.string(key, language: lang) }
@@ -34,11 +42,17 @@ struct EasyConvertView: View {
     /// 直近の変換結果に応じたエリアの枠色。成功=緑、失敗=赤、未実行=グレー。
     private var dropBorderColor: Color {
         if isDropTargeted { return .accentColor }
-        switch viewModel.lastRunSucceeded {
+        switch jobStore.lastRunSucceeded {
         case true: return .green
         case false: return .red
         case nil: return .secondary.opacity(0.4)
         }
+    }
+
+    /// 入力エリアの有効条件。実行中と出力フォルダの検証エラー時は受け付けない。
+    /// 終了すれば `isRunning` が戻り自動的に有効になる。
+    private var inputEnabled: Bool {
+        !jobStore.isRunning && !viewModel.outputFolderHasError
     }
 
     var body: some View {
@@ -149,13 +163,14 @@ struct EasyConvertView: View {
 
                 GroupBox {
                     FileDropView(
+                        isEnabled: inputEnabled,
                         onDropURLs: { viewModel.acceptFileURLs($0) },
                         onHighlightChanged: { isDropTargeted = $0 }
                     ) {
                         VStack(spacing: 8) {
-                            if viewModel.isRunning {
-                                ProgressView(value: viewModel.progressPercent, total: 100)
-                                Text("\(Int(viewModel.progressPercent))%")
+                            if jobStore.isRunning {
+                                ProgressView(value: jobStore.progressPercent, total: 100)
+                                Text("\(Int(jobStore.progressPercent))%")
                                     .appFont(.headline)
                             } else {
                                 Text(t("e.dropHint"))
@@ -169,8 +184,8 @@ struct EasyConvertView: View {
                                         .foregroundStyle(.orange)
                                 }
                             }
-                            if !viewModel.resultMessage.isEmpty {
-                                Text(viewModel.resultMessage)
+                            if !jobStore.resultMessage.isEmpty {
+                                Text(jobStore.resultMessage)
                                     .appFont(.body)
                             }
                         }
@@ -181,12 +196,14 @@ struct EasyConvertView: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(
                                 dropBorderColor,
-                                lineWidth: isDropTargeted || viewModel.lastRunSucceeded != nil ? 2 : 1
+                                lineWidth: isDropTargeted || jobStore.lastRunSucceeded != nil ? 2 : 1
                             )
                     )
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        pickFiles()
+                        if inputEnabled {
+                            pickFiles()
+                        }
                     }
                     .onHover { hovering in
                         if hovering {
@@ -195,7 +212,7 @@ struct EasyConvertView: View {
                             NSCursor.pop()
                         }
                     }
-                    .disabled(viewModel.isRunning || viewModel.outputFolderHasError)
+                    .disabled(!inputEnabled)
                 } label: {
                     Text(t("c.group.input")).appFont(.headline)
                 }
@@ -208,13 +225,17 @@ struct EasyConvertView: View {
 }
 
 /// ドロップ受け付けのAppKitラッパー。ペーストボードからファイルURLを直接読む。
+/// `isEnabled` がfalseの間はAppKitレベルでも受け付けない。
+/// SwiftUIの `.disabled` だけでは `NSView` のドラッグ受け付けまで止まらないため。
 struct FileDropView<Content: View>: NSViewRepresentable {
+    var isEnabled: Bool = true
     var onDropURLs: ([URL]) -> Void
     var onHighlightChanged: (Bool) -> Void
     @ViewBuilder var content: () -> Content
 
     func makeNSView(context: Context) -> FileDropNSView {
         let view = FileDropNSView()
+        view.isEnabled = isEnabled
         view.onDropURLs = onDropURLs
         view.onHighlightChanged = onHighlightChanged
         let hosting = NSHostingView(rootView: content())
@@ -230,6 +251,7 @@ struct FileDropView<Content: View>: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: FileDropNSView, context: Context) {
+        nsView.isEnabled = isEnabled
         nsView.onDropURLs = onDropURLs
         nsView.onHighlightChanged = onHighlightChanged
         if let hosting = nsView.subviews.first as? NSHostingView<Content> {
@@ -239,6 +261,7 @@ struct FileDropView<Content: View>: NSViewRepresentable {
 }
 
 final class FileDropNSView: NSView {
+    var isEnabled: Bool = true
     var onDropURLs: ([URL]) -> Void = { _ in }
     var onHighlightChanged: (Bool) -> Void = { _ in }
 
@@ -252,6 +275,7 @@ final class FileDropNSView: NSView {
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard isEnabled else { return [] }
         guard let types = sender.draggingPasteboard.types, types.contains(.fileURL) else { return [] }
         easyLogger.info("drag entered")
         onHighlightChanged(true)
@@ -263,6 +287,7 @@ final class FileDropNSView: NSView {
     }
 
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        guard isEnabled else { return false }
         let urls = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] ?? []
         easyLogger.info("drop performed: urls=\(urls.count, privacy: .public)")
         onHighlightChanged(false)
