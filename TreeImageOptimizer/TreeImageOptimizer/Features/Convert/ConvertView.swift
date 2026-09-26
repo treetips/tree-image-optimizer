@@ -90,6 +90,7 @@ struct ConvertView: View {
                             Text(t("c.label.scale")).appFont(.headline)
                             HStack {
                                 Slider(value: $viewModel.scale, in: 1 ... 4, step: 1)
+                                    .tint(SliderLoadLevel.scaleLevel(for: viewModel.scale).tint)
                                 Text("\(Int(viewModel.scale))").appFont(.body).frame(width: 30)
                                 Spacer()
                                 HelpPopover(text: t("c.help.scale"))
@@ -150,6 +151,7 @@ struct ConvertView: View {
                             Text(t("c.label.quality")).appFont(.headline)
                             HStack {
                                 Slider(value: $viewModel.quality, in: 1 ... 100, step: 1)
+                                    .tint(SliderLoadLevel.qualityLevel(for: viewModel.quality).tint)
                                 Text("\(Int(viewModel.quality))").appFont(.body).frame(width: 40)
                                 Spacer()
                                 HelpPopover(text: t("c.help.format"))
@@ -166,6 +168,12 @@ struct ConvertView: View {
                     HStack {
                         Text(t("c.label.parallel")).appFont(.headline)
                         Slider(value: $viewModel.parallelCount, in: 1 ... viewModel.maxParallel, step: 1)
+                            .tint(
+                                SliderLoadLevel.parallelLevel(
+                                    parallel: viewModel.parallelCount,
+                                    maxParallel: viewModel.maxParallel
+                                ).tint
+                            )
                         Text("\(Int(viewModel.parallelCount))").appFont(.body).frame(width: 30)
                         HelpPopover(text: t("c.help.parallel"))
                     }
