@@ -68,6 +68,7 @@ struct EasyConvertView: View {
                             Text(t("c.label.scale")).appFont(.headline)
                             HStack {
                                 Slider(value: $viewModel.scale, in: 1 ... 4, step: 1)
+                                    .tint(SliderLoadLevel.scaleLevel(for: viewModel.scale).tint)
                                 Text("\(Int(viewModel.scale))").appFont(.body).frame(width: 30)
                                 Spacer()
                                 HelpPopover(text: t("c.help.scale"))
@@ -128,6 +129,7 @@ struct EasyConvertView: View {
                             Text(t("c.label.quality")).appFont(.headline)
                             HStack {
                                 Slider(value: $viewModel.quality, in: 1 ... 100, step: 1)
+                                    .tint(SliderLoadLevel.qualityLevel(for: viewModel.quality).tint)
                                 Text("\(Int(viewModel.quality))").appFont(.body).frame(width: 40)
                                 Spacer()
                                 HelpPopover(text: t("c.help.format"))
