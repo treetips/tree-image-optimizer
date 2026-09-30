@@ -73,7 +73,7 @@ struct AboutView: View {
                             title: installButtonTitle,
                             disabled: controller.isChecking || controller.isInstalling
                         ) {
-                            controller.checkForUpdate()
+                            controller.checkForUpdate(language: lang)
                         }
                         if !controller.message.isEmpty {
                             Text(controller.message)

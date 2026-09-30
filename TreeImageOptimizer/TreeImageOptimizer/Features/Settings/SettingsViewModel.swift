@@ -140,17 +140,20 @@ final class SettingsViewModel {
         fontSize = s.fontSize
         wallpaperOpacity = s.wallpaperOpacity
         wallpaperBackgroundColorHex = s.wallpaperBackgroundColor
-        successSounds = soundService.listSounds(success: true).map {
+        // 一覧取得はディスク列挙を伴うため1回にまとめて使い回す。起動時の重複I/Oを避ける。
+        let successOptions = soundService.listSounds(success: true)
+        let errorOptions = soundService.listSounds(success: false)
+        successSounds = successOptions.map {
             SoundOption(name: $0.name, isBundled: $0.isBundled)
         }
-        errorSounds = soundService.listSounds(success: false).map {
+        errorSounds = errorOptions.map {
             SoundOption(name: $0.name, isBundled: $0.isBundled)
         }
         successSound = soundService.resolveSelected(
-            s.successSound, options: soundService.listSounds(success: true)
+            s.successSound, options: successOptions
         )
         errorSound = soundService.resolveSelected(
-            s.errorSound, options: soundService.listSounds(success: false)
+            s.errorSound, options: errorOptions
         )
         // プルダウン先頭に「背景無し」を追加する。
         wallpapers = [WallpaperOption(name: WallpaperSelection.noneName, isBundled: false)]

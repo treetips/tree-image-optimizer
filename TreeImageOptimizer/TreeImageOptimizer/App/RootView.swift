@@ -83,7 +83,7 @@ struct RootView: View {
                 if updateCheck.updateAvailableInfo != nil {
                     Divider()
                     Button {
-                        updateCheck.checkForUpdate()
+                        updateCheck.checkForUpdate(language: settings.language)
                     } label: {
                         Label {
                             Text(L10n.string("nav.updateAvailable", language: settings.language))
@@ -187,7 +187,7 @@ struct RootView: View {
             }
             if let info = updateCheck.availableInfo {
                 Button {
-                    updateCheck.install(info)
+                    updateCheck.install(info, language: settings.language)
                 } label: {
                     Text(L10n.string("a.install", language: settings.language))
                         .font(AppTheme.font(.body, scale: fontScale))
