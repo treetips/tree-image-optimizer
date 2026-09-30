@@ -48,12 +48,13 @@ final class UpdateCheckController {
         }
     }
 
-    func checkForUpdate() {
+    func checkForUpdate(language: String? = nil) {
         guard !isChecking else { return }
         isChecking = true
         message = ""
         Task {
-            let lang = language()
+            // 呼び出し元が保持済みの言語を渡す。nil時のみ設定ファイルを読み直す。
+            let lang = language ?? self.language()
             let bundle = Bundle.main
             let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
             let build = Int(bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1") ?? 1
@@ -78,11 +79,12 @@ final class UpdateCheckController {
     /// ダウンロード・検証・展開のうえ、`/Applications` に反映する。
     /// 実行中のアプリ自身の更新なら新バージョンを開いて終了する。
     /// それ以外（開発ビルド等）はFinderで開いて終わる。
-    func install(_ info: UpdateInfo) {
+    func install(_ info: UpdateInfo, language: String? = nil) {
         guard !isInstalling else { return }
         isInstalling = true
         Task {
-            let lang = language()
+            // 呼び出し元が保持済みの言語を渡す。nil時のみ設定ファイルを読み直す。
+            let lang = language ?? self.language()
             do {
                 let prepared = try await updateService.downloadAndPrepare(info: info)
                 let destination = UpdateService.installDestination(for: prepared)

@@ -25,7 +25,7 @@ struct TreeImageOptimizerApp: App {
         .commands {
             CommandGroup(after: .appInfo) {
                 Button(L10n.string("menu.checkForUpdates", language: settings.language)) {
-                    updateCheck.checkForUpdate()
+                    updateCheck.checkForUpdate(language: settings.language)
                 }
                 .disabled(updateCheck.isChecking)
                 Button(L10n.string("menu.settings", language: settings.language)) {
