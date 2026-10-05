@@ -18,8 +18,8 @@ struct GlassCTAButton: View {
                 // plainスタイルは描画部のみヒットするため、枠全体を受け付ける。
                 .contentShape(Rectangle())
                 .glassEffect(
-                    .regular.tint(Color.accentColor.opacity(0.5)).interactive(),
-                    in: RoundedRectangle(cornerRadius: 14)
+                    .regular.tint(Color.accentColor.opacity(GlassStyle.ctaTintOpacity)).interactive(),
+                    in: RoundedRectangle(cornerRadius: GlassStyle.ctaCornerRadius)
                 )
         }
         .buttonStyle(.plain)

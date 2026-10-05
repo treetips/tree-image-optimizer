@@ -61,7 +61,7 @@ struct EasyConvertView: View {
                 // 一括画面と上部余白を合わせるためのスペーサー。
                 Color.clear
                     .frame(height: 1)
-                GroupBox {
+                GlassCard {
 
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                         GridRow {
@@ -93,7 +93,7 @@ struct EasyConvertView: View {
                     Text(t("c.group.upscale")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
 
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                         GridRow {
@@ -141,7 +141,7 @@ struct EasyConvertView: View {
                     Text(t("c.group.compress")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
 
                     HStack {
                         Text(t("c.label.outputFolder")).appFont(.headline)
@@ -166,7 +166,7 @@ struct EasyConvertView: View {
                     Text(t("c.group.output")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
                     FileDropView(
                         isEnabled: inputEnabled,
                         onDropURLs: { viewModel.acceptFileURLs($0) },
@@ -250,7 +250,7 @@ struct FileDropView<Content: View>: NSViewRepresentable {
             hosting.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             hosting.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             hosting.topAnchor.constraint(equalTo: view.topAnchor),
-            hosting.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            hosting.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         return view
     }

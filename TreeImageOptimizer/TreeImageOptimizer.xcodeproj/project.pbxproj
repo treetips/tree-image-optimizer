@@ -30,9 +30,11 @@
 		E30000000000000000000018 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000018 /* AppTheme.swift */; };
 		E30000000000000000000019 /* HelpPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000019 /* HelpPopover.swift */; };
 		E30000000000000000000020 /* SliderLoadLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000020 /* SliderLoadLevel.swift */; };
+		E30000000000000000000021 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000021 /* GlassCard.swift */; };
 		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
 		E40000000000000000000009 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000009 /* AppThemeTests.swift */; };
 		E40000000000000000000011 /* SliderLoadLevelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000011 /* SliderLoadLevelTests.swift */; };
+		E40000000000000000000012 /* GlassCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000012 /* GlassCardTests.swift */; };
 		E40000000000000000000008 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* Localizable.xcstrings */; };
 		E30000000000000000000002 /* AppInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000002 /* AppInfo.swift */; };
 		E30000000000000000000003 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000003 /* AppPaths.swift */; };
@@ -86,9 +88,11 @@
 		F30000000000000000000018 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		F30000000000000000000019 /* HelpPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpPopover.swift; sourceTree = "<group>"; };
 		F30000000000000000000020 /* SliderLoadLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderLoadLevel.swift; sourceTree = "<group>"; };
+		F30000000000000000000021 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
 		F40000000000000000000007 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000011 /* SliderLoadLevelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderLoadLevelTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000012 /* GlassCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCardTests.swift; sourceTree = "<group>"; };
 		F30000000000000000000003 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		F30000000000000000000004 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		F30000000000000000000005 /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
@@ -173,6 +177,7 @@
 				F40000000000000000000009 /* AppThemeTests.swift */,
 				F40000000000000000000011 /* SliderLoadLevelTests.swift */,
 				F40000000000000000000010 /* EasyConvertTests.swift */,
+				F40000000000000000000012 /* GlassCardTests.swift */,
 			);
 			path = TreeImageOptimizerTests;
 			sourceTree = "<group>";
@@ -219,6 +224,7 @@
 				F30000000000000000000018 /* AppTheme.swift */,
 				F30000000000000000000019 /* HelpPopover.swift */,
 				F30000000000000000000020 /* SliderLoadLevel.swift */,
+				F30000000000000000000021 /* GlassCard.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -386,6 +392,7 @@
 				E40000000000000000000009 /* AppThemeTests.swift in Sources */,
 				E40000000000000000000011 /* SliderLoadLevelTests.swift in Sources */,
 				E40000000000000000000010 /* EasyConvertTests.swift in Sources */,
+				E40000000000000000000012 /* GlassCardTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -427,6 +434,7 @@
 				E30000000000000000000018 /* AppTheme.swift in Sources */,
 				E30000000000000000000019 /* HelpPopover.swift in Sources */,
 				E30000000000000000000020 /* SliderLoadLevel.swift in Sources */,
+				E30000000000000000000021 /* GlassCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -30,8 +30,7 @@ struct AboutView: View {
     private var appIcon: some View {
         if let image = AppInfo.appIconImage {
             Image(nsImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
+                .resizable().scaledToFit()
                 .frame(height: 50)
         } else {
             Image(systemName: "tree")
@@ -42,7 +41,7 @@ struct AboutView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                GroupBox {
+                GlassCard {
 
                     VStack(alignment: .leading, spacing: 8) {
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
@@ -86,7 +85,7 @@ struct AboutView: View {
                     Text(t("a.group.app")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
 
                     // Tableは内容量に関わらずスクロールバーを出すため、
                     // 全行が収まるGridで表示する（フェーズ2 UIレビュー反映）。
@@ -120,5 +119,3 @@ private struct ToolVersion: Identifiable {
     var binary: String
     var version: String
 }
-
-
