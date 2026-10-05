@@ -55,7 +55,7 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                GroupBox {
+                GlassCard {
 
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                         GridRow {
@@ -117,7 +117,7 @@ struct SettingsView: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                GroupBox {
+                GlassCard {
 
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                         GridRow {

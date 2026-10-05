@@ -39,7 +39,7 @@ struct ConvertView: View {
                 Color.clear
                     .frame(height: 1)
                     .id("convertTop")
-                GroupBox {
+                GlassCard {
 
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                         GridRow {
@@ -83,7 +83,7 @@ struct ConvertView: View {
                     Text(t("c.group.input")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
 
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                         GridRow {
@@ -115,7 +115,7 @@ struct ConvertView: View {
                     Text(t("c.group.upscale")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
 
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                         GridRow {
@@ -163,7 +163,7 @@ struct ConvertView: View {
                     Text(t("c.group.compress")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
 
                     HStack {
                         Text(t("c.label.parallel")).appFont(.headline)
@@ -182,7 +182,7 @@ struct ConvertView: View {
                     Text(t("c.group.process")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
 
                     HStack {
                             Text(t("c.label.outputFolder")).appFont(.headline)
@@ -221,7 +221,7 @@ struct ConvertView: View {
                     }
                 }
 
-                GroupBox {
+                GlassCard {
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -333,7 +333,10 @@ struct ConvertView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity)
-                    .glassEffect(.regular.tint(Color.accentColor.opacity(0.2)).interactive(), in: RoundedRectangle(cornerRadius: 22))
+                    .glassEffect(
+                        .regular.tint(Color.accentColor.opacity(GlassStyle.footerTintOpacity)).interactive(),
+                        in: RoundedRectangle(cornerRadius: GlassStyle.footerCornerRadius)
+                    )
                     Button {
                         withAnimation {
                             proxy.scrollTo("convertTop", anchor: .top)
@@ -344,7 +347,10 @@ struct ConvertView: View {
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
-                    .glassEffect(.regular.tint(Color.accentColor.opacity(0.2)).interactive(), in: .circle)
+                    .glassEffect(
+                        .regular.tint(Color.accentColor.opacity(GlassStyle.footerTintOpacity)).interactive(),
+                        in: .circle
+                    )
                     .help(t("c.backToTop"))
                 }
                 .padding(.horizontal)
@@ -359,7 +365,7 @@ struct ConvertView: View {
 /// アイコンの下にテキストを配置する。
 private struct FooterStat: View {
     var icon: String
-    var iconColor: Color? = nil
+    var iconColor: Color?
     var text: String
 
     var body: some View {
