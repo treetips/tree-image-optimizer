@@ -24,15 +24,18 @@ struct MediaServicesTests {
     func wallpapers() throws {
         let (bundled, user) = try makeDirs()
         touch(bundled.appendingPathComponent("wallpaper2.jpg"))
-        touch(bundled.appendingPathComponent("wallpaper1.jpg"))
+        touch(bundled.appendingPathComponent("wallpaper1.jxl"))
         touch(bundled.appendingPathComponent("note.txt"))
         touch(user.appendingPathComponent("custom.png"))
         touch(user.appendingPathComponent("custom.webp"))
+        touch(user.appendingPathComponent("custom.avif"))
         let service = WallpaperService(bundledBaseURL: bundled, userBaseURL: user)
         let list = service.listWallpapers()
-        #expect(list.map { $0.name } == ["wallpaper1.jpg", "wallpaper2.jpg", "custom.png"])
+        #expect(list.map { $0.name } == [
+            "wallpaper1.jxl", "wallpaper2.jpg", "custom.avif", "custom.png", "custom.webp"
+        ])
         #expect(list[0].isBundled)
-        #expect(!list[2].isBundled)
+        #expect(!list[4].isBundled)
     }
 
     @Test("壁紙のフォールバック")

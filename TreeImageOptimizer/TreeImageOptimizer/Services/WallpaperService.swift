@@ -96,7 +96,8 @@ struct WallpaperService: Sendable {
         return contents.filter { url in
             let values = try? url.resourceValues(forKeys: [.isRegularFileKey])
             guard values?.isRegularFile == true else { return false }
-            return ["jpg", "jpeg", "png"].contains(url.pathExtension.lowercased())
+            // 変換済み圧縮形式(jxl/avif/webp)もそのまま背景画像に使える。ImageIOがネイティブでデコードする。
+            return ["jpg", "jpeg", "png", "jxl", "avif", "webp"].contains(url.pathExtension.lowercased())
         }
     }
 }
