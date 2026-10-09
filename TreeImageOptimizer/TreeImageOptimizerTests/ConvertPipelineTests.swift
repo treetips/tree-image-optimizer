@@ -101,6 +101,55 @@ struct ConvertPipelineTests {
         }
     }
 
+    @Test("並列実行は1件完了するたびに次のファイルを投入する（常時並列を維持）")
+    func refillsSlotImmediately() async {
+        actor StartLog {
+            private(set) var indices: [Int] = []
+            func record(_ index: Int) { indices.append(index) }
+            func contains(_ index: Int) -> Bool { indices.contains(index) }
+        }
+        let log = StartLog()
+        let result = await ConvertOrchestrator.runParallel(count: 4, workers: 2) { index in
+            await log.record(index)
+            // ファイル0は「ファイル2が開始済み」を確認して完了する。
+            // 完了1件のたびに次が投入されないバッチ方式だと、ファイル2はファイル0の完了待ちで
+            // デッドロックし、タイムアウトで失敗扱いになる。
+            if index == 0 {
+                for _ in 0..<500 {
+                    if await log.contains(2) { return true }
+                    try? await Task.sleep(for: .milliseconds(2))
+                }
+                return false
+            }
+            return true
+        }
+        #expect(result == (success: 4, failure: 0), "全件成功であること（バッチ方式だとファイル0がタイムアウトで失敗する）: \(result)")
+    }
+
+    @Test("並列実行は並列数を超えず、余りが出るまで並列数を満たし続ける")
+    func capsConcurrency() async {
+        actor Probe {
+            private(set) var maxConcurrent = 0
+            private var running = 0
+            func enter() {
+                running += 1
+                maxConcurrent = max(maxConcurrent, running)
+            }
+            func leave() { running -= 1 }
+        }
+        let probe = Probe()
+        let result = await ConvertOrchestrator.runParallel(count: 8, workers: 3) { _ in
+            await probe.enter()
+            try? await Task.sleep(for: .milliseconds(50))
+            await probe.leave()
+            return true
+        }
+        let peak = await probe.maxConcurrent
+        #expect(result == (success: 8, failure: 0), "全件処理されること: \(result)")
+        #expect(peak <= 3, "並列数を超えないこと: \(peak)")
+        #expect(peak == 3, "余りが出るまで並列数を満たし続けること: \(peak)")
+    }
+
     @Test("モデル一覧（.bin走査・フォールバック）")
     func models() throws {
         let fm = FileManager.default
