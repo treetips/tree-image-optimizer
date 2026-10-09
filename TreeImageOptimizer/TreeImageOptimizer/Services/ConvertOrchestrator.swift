@@ -45,6 +45,39 @@ struct ConvertOrchestrator: Sendable {
         return base + format.fileExtension
     }
 
+    /// 常に `workers` 件が実行中であることを維持する実行方式。
+    /// バッチ方式（前バッチの全完了を待つ）ではなく、1件完了のたびに次の未処理ファイルを
+    /// 直ちに投入するスライディングウィンドウ方式（convert-flow.md の並列処理の単位）。
+    /// - Returns: (成功件数, 失敗件数)
+    static func runParallel(
+        count: Int,
+        workers: Int,
+        operation: @Sendable @escaping (Int) async -> Bool
+    ) async -> (success: Int, failure: Int) {
+        let workers = max(1, workers)
+        var success = 0
+        var failure = 0
+        var nextIndex = 0
+        await withTaskGroup(of: Bool.self) { group in
+            // 最初に並列数ぶん投入する。
+            for _ in 0..<workers where nextIndex < count {
+                let index = nextIndex
+                nextIndex += 1
+                group.addTask { await operation(index) }
+            }
+            // 結果を1件受けるたびに次の未処理を投入する。未処理が尽きたら残りを排水して終了。
+            while let succeeded = await group.next() {
+                if succeeded { success += 1 } else { failure += 1 }
+                if nextIndex < count {
+                    let index = nextIndex
+                    nextIndex += 1
+                    group.addTask { await operation(index) }
+                }
+            }
+        }
+        return (success, failure)
+    }
+
     /// - Returns: (成功件数, 失敗件数)
     func run(
         files: [URL],
@@ -54,27 +87,12 @@ struct ConvertOrchestrator: Sendable {
         onOutcome: @Sendable @escaping (FileOutcome) async -> Void
     ) async -> (success: Int, failure: Int) {
         let workers = max(1, min(config.parallelCount, files.count))
-        var success = 0
-        var failure = 0
-        var start = files.startIndex
-        while start < files.endIndex {
-            let end = files.index(start, offsetBy: workers, limitedBy: files.endIndex) ?? files.endIndex
-            let batch = Array(files[start ..< end])
-            let base = start
-            await withTaskGroup(of: Bool.self) { group in
-                for (offset, file) in batch.enumerated() {
-                    let index = base + offset
-                    group.addTask {
-                        await self.processFile(at: index, file: file, config: config, outputDirectory: outputDirectory, paths: paths, onOutcome: onOutcome)
-                    }
-                }
-                for await ok in group {
-                    if ok { success += 1 } else { failure += 1 }
-                }
-            }
-            start = end
+        return await Self.runParallel(count: files.count, workers: workers) { index in
+            await self.processFile(
+                at: index, file: files[index], config: config,
+                outputDirectory: outputDirectory, paths: paths, onOutcome: onOutcome
+            )
         }
-        return (success, failure)
     }
 
     private func processFile(
