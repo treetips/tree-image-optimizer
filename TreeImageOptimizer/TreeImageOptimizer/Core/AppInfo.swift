@@ -22,7 +22,10 @@ enum AppInfo {
 
     /// About画面に表示するアプリアイコン。同梱の `assets/images/icon-tree-01.png` を読む。
     static var appIconImage: NSImage? {
-        guard let url = Bundle.main.resourceURL?.appendingPathComponent("assets/images/icon-tree-01.png", isDirectory: false) else { return nil }
+        guard
+            let url = Bundle.main.resourceURL?.appendingPathComponent(
+                "assets/images/icon-tree-01.png", isDirectory: false)
+        else { return nil }
         return NSImage(contentsOf: url)
     }
 
@@ -34,7 +37,7 @@ enum AppInfo {
             ("PNG (pngoptim)", pngVersion),
             ("JPEG XL (libjxl)", jpegXlVersion),
             ("AV1 (libavif)", av1Version),
-            ("WebP (libwebp)", webpVersion),
+            ("WebP (libwebp)", webpVersion)
         ]
     }
 }

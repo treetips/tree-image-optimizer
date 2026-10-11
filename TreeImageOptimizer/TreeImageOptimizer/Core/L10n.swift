@@ -16,8 +16,8 @@ enum L10n {
             code = nil
         }
         guard let code,
-              let path = Bundle.main.path(forResource: code, ofType: "lproj"),
-              let bundle = Bundle(path: path)
+            let path = Bundle.main.path(forResource: code, ofType: "lproj"),
+            let bundle = Bundle(path: path)
         else {
             return Bundle.main.localizedString(forKey: key, value: nil, table: nil)
         }

@@ -35,156 +35,156 @@ struct ConvertView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Color.clear
-                    .frame(height: 1)
-                    .id("convertTop")
-                GlassCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    Color.clear
+                        .frame(height: 1)
+                        .id("convertTop")
+                    GlassCard {
 
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                        GridRow {
-                            Text(t("c.label.targetFolder")).appFont(.headline)
-                            HStack {
-                                Button {
-                                    selectFolder(isInput: true)
-                                } label: {
-                                    Text(t("c.folderButton")).appFont(.body)
-                                }
-                                TextField(t("c.label.targetFolder"), text: $viewModel.inputFolderPath)
-                                    .appFont(.body)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .stroke(
-                                                viewModel.inputFolderHasError ? Color.red : Color.clear,
-                                                lineWidth: 2
-                                            )
-                                    )
-                                HelpPopover(text: t("c.help.targetFolder"))
-                            }
-                        }
-                        GridRow {
-                            Text(t("c.label.targetFiles")).appFont(.headline)
-                            HStack {
-                                Picker(t("c.label.targetFiles"), selection: $viewModel.targetFilter) {
-                                    Text(t("c.filter.oneDay")).appFont(.body).tag(TargetFilter.oneDay)
-                                    Text(t("c.filter.threeDays")).appFont(.body).tag(TargetFilter.threeDays)
-                                    Text(t("c.filter.sevenDays")).appFont(.body).tag(TargetFilter.sevenDays)
-                                    Text(t("c.filter.thirtyDays")).appFont(.body).tag(TargetFilter.thirtyDays)
-                                    Text(t("c.filter.all")).appFont(.body).tag(TargetFilter.all)
-                                }
-                                .labelsHidden()
-                                Spacer()
-                                HelpPopover(text: t("c.help.targetFiles"))
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                } label: {
-                    Text(t("c.group.input")).appFont(.headline)
-                }
-
-                GlassCard {
-
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                        GridRow {
-                            Text(t("c.label.scale")).appFont(.headline)
-                            HStack {
-                                Slider(value: $viewModel.scale, in: 1 ... 4, step: 1)
-                                    .tint(SliderLoadLevel.scaleLevel(for: viewModel.scale).tint)
-                                Text("\(Int(viewModel.scale))").appFont(.body).frame(width: 30)
-                                Spacer()
-                                HelpPopover(text: t("c.help.scale"))
-                            }
-                        }
-                        GridRow {
-                            Text(t("c.label.model")).appFont(.headline)
-                            HStack {
-                                Picker(t("c.label.model"), selection: $viewModel.selectedModel) {
-                                    ForEach(viewModel.models, id: \.self) { model in
-                                        Text(model).appFont(.body).tag(model)
+                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                            GridRow {
+                                Text(t("c.label.targetFolder")).appFont(.headline)
+                                HStack {
+                                    Button {
+                                        selectFolder(isInput: true)
+                                    } label: {
+                                        Text(t("c.folderButton")).appFont(.body)
                                     }
+                                    TextField(t("c.label.targetFolder"), text: $viewModel.inputFolderPath)
+                                        .appFont(.body)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .stroke(
+                                                    viewModel.inputFolderHasError ? Color.red : Color.clear,
+                                                    lineWidth: 2
+                                                )
+                                        )
+                                    HelpPopover(text: t("c.help.targetFolder"))
                                 }
-                                .labelsHidden()
-                                Spacer()
-                                HelpPopover(text: t("c.help.model"))
                             }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                } label: {
-                    Text(t("c.group.upscale")).appFont(.headline)
-                }
-
-                GlassCard {
-
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                        GridRow {
-                            Text(t("c.label.format")).appFont(.headline)
-                            HStack {
-                                Picker(t("c.label.format"), selection: $viewModel.format) {
-                                    Text("JPEG").appFont(.body).tag(OutputFormat.jpeg)
-                                    Text("PNG").appFont(.body).tag(OutputFormat.png)
-                                    Text("JPEG XL").appFont(.body).tag(OutputFormat.jpegXL)
-                                    Text("AV1").appFont(.body).tag(OutputFormat.av1)
-                                    Text("WebP").appFont(.body).tag(OutputFormat.webp)
+                            GridRow {
+                                Text(t("c.label.targetFiles")).appFont(.headline)
+                                HStack {
+                                    Picker(t("c.label.targetFiles"), selection: $viewModel.targetFilter) {
+                                        Text(t("c.filter.oneDay")).appFont(.body).tag(TargetFilter.oneDay)
+                                        Text(t("c.filter.threeDays")).appFont(.body).tag(TargetFilter.threeDays)
+                                        Text(t("c.filter.sevenDays")).appFont(.body).tag(TargetFilter.sevenDays)
+                                        Text(t("c.filter.thirtyDays")).appFont(.body).tag(TargetFilter.thirtyDays)
+                                        Text(t("c.filter.all")).appFont(.body).tag(TargetFilter.all)
+                                    }
+                                    .labelsHidden()
+                                    Spacer()
+                                    HelpPopover(text: t("c.help.targetFiles"))
                                 }
-                                .labelsHidden()
-                                Spacer()
-                                HelpPopover(text: t("c.help.format"))
                             }
                         }
-                        GridRow {
-                            Text(t("c.label.optimizeType")).appFont(.headline)
-                            HStack {
-                                Picker(t("c.label.optimizeType"), selection: $viewModel.optimizeType) {
-                                    Text(t("c.optimize.anime")).appFont(.body).tag(OptimizeType.anime)
-                                    Text(t("c.optimize.photo")).appFont(.body).tag(OptimizeType.photo)
-                                    Text(t("c.optimize.speed")).appFont(.body).tag(OptimizeType.speed)
-                                    Text(t("c.optimize.quality")).appFont(.body).tag(OptimizeType.quality)
+                        .padding(.vertical, 4)
+                    } label: {
+                        Text(t("c.group.input")).appFont(.headline)
+                    }
+
+                    GlassCard {
+
+                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                            GridRow {
+                                Text(t("c.label.scale")).appFont(.headline)
+                                HStack {
+                                    Slider(value: $viewModel.scale, in: 1...4, step: 1)
+                                        .tint(SliderLoadLevel.scaleLevel(for: viewModel.scale).tint)
+                                    Text("\(Int(viewModel.scale))").appFont(.body).frame(width: 30)
+                                    Spacer()
+                                    HelpPopover(text: t("c.help.scale"))
                                 }
-                                .labelsHidden()
-                                Spacer()
-                                HelpPopover(text: t("c.help.optimizeType"))
+                            }
+                            GridRow {
+                                Text(t("c.label.model")).appFont(.headline)
+                                HStack {
+                                    Picker(t("c.label.model"), selection: $viewModel.selectedModel) {
+                                        ForEach(viewModel.models, id: \.self) { model in
+                                            Text(model).appFont(.body).tag(model)
+                                        }
+                                    }
+                                    .labelsHidden()
+                                    Spacer()
+                                    HelpPopover(text: t("c.help.model"))
+                                }
                             }
                         }
-                        GridRow {
-                            Text(t("c.label.quality")).appFont(.headline)
-                            HStack {
-                                Slider(value: $viewModel.quality, in: 1 ... 100, step: 1)
-                                    .tint(SliderLoadLevel.qualityLevel(for: viewModel.quality).tint)
-                                Text("\(Int(viewModel.quality))").appFont(.body).frame(width: 40)
-                                Spacer()
-                                HelpPopover(text: t("c.help.format"))
+                        .padding(.vertical, 4)
+                    } label: {
+                        Text(t("c.group.upscale")).appFont(.headline)
+                    }
+
+                    GlassCard {
+
+                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                            GridRow {
+                                Text(t("c.label.format")).appFont(.headline)
+                                HStack {
+                                    Picker(t("c.label.format"), selection: $viewModel.format) {
+                                        Text("JPEG").appFont(.body).tag(OutputFormat.jpeg)
+                                        Text("PNG").appFont(.body).tag(OutputFormat.png)
+                                        Text("JPEG XL").appFont(.body).tag(OutputFormat.jpegXL)
+                                        Text("AV1").appFont(.body).tag(OutputFormat.av1)
+                                        Text("WebP").appFont(.body).tag(OutputFormat.webp)
+                                    }
+                                    .labelsHidden()
+                                    Spacer()
+                                    HelpPopover(text: t("c.help.format"))
+                                }
+                            }
+                            GridRow {
+                                Text(t("c.label.optimizeType")).appFont(.headline)
+                                HStack {
+                                    Picker(t("c.label.optimizeType"), selection: $viewModel.optimizeType) {
+                                        Text(t("c.optimize.anime")).appFont(.body).tag(OptimizeType.anime)
+                                        Text(t("c.optimize.photo")).appFont(.body).tag(OptimizeType.photo)
+                                        Text(t("c.optimize.speed")).appFont(.body).tag(OptimizeType.speed)
+                                        Text(t("c.optimize.quality")).appFont(.body).tag(OptimizeType.quality)
+                                    }
+                                    .labelsHidden()
+                                    Spacer()
+                                    HelpPopover(text: t("c.help.optimizeType"))
+                                }
+                            }
+                            GridRow {
+                                Text(t("c.label.quality")).appFont(.headline)
+                                HStack {
+                                    Slider(value: $viewModel.quality, in: 1...100, step: 1)
+                                        .tint(SliderLoadLevel.qualityLevel(for: viewModel.quality).tint)
+                                    Text("\(Int(viewModel.quality))").appFont(.body).frame(width: 40)
+                                    Spacer()
+                                    HelpPopover(text: t("c.help.format"))
+                                }
                             }
                         }
+                        .padding(.vertical, 4)
+                    } label: {
+                        Text(t("c.group.compress")).appFont(.headline)
                     }
-                    .padding(.vertical, 4)
-                } label: {
-                    Text(t("c.group.compress")).appFont(.headline)
-                }
 
-                GlassCard {
+                    GlassCard {
 
-                    HStack {
-                        Text(t("c.label.parallel")).appFont(.headline)
-                        Slider(value: $viewModel.parallelCount, in: 1 ... viewModel.maxParallel, step: 1)
-                            .tint(
-                                SliderLoadLevel.parallelLevel(
-                                    parallel: viewModel.parallelCount,
-                                    maxParallel: viewModel.maxParallel
-                                ).tint
-                            )
-                        Text("\(Int(viewModel.parallelCount))").appFont(.body).frame(width: 30)
-                        HelpPopover(text: t("c.help.parallel"))
+                        HStack {
+                            Text(t("c.label.parallel")).appFont(.headline)
+                            Slider(value: $viewModel.parallelCount, in: 1...viewModel.maxParallel, step: 1)
+                                .tint(
+                                    SliderLoadLevel.parallelLevel(
+                                        parallel: viewModel.parallelCount,
+                                        maxParallel: viewModel.maxParallel
+                                    ).tint
+                                )
+                            Text("\(Int(viewModel.parallelCount))").appFont(.body).frame(width: 30)
+                            HelpPopover(text: t("c.help.parallel"))
+                        }
+                        .padding(.vertical, 4)
+                    } label: {
+                        Text(t("c.group.process")).appFont(.headline)
                     }
-                    .padding(.vertical, 4)
-                } label: {
-                    Text(t("c.group.process")).appFont(.headline)
-                }
 
-                GlassCard {
+                    GlassCard {
 
-                    HStack {
+                        HStack {
                             Text(t("c.label.outputFolder")).appFont(.headline)
                             Button {
                                 selectFolder(isInput: false)
@@ -200,125 +200,125 @@ struct ConvertView: View {
                                             lineWidth: 2
                                         )
                                 )
-                        HelpPopover(text: t("c.help.outputFolder"))
+                            HelpPopover(text: t("c.help.outputFolder"))
+                        }
+                        .padding(.vertical, 4)
+                    } label: {
+                        Text(t("c.group.output")).appFont(.headline)
                     }
-                    .padding(.vertical, 4)
-                } label: {
-                    Text(t("c.group.output")).appFont(.headline)
-                }
 
-                GlassCTAButton(
-                    title: jobStore.isRunning ? t("c.running") : t("c.run"),
-                    disabled: !viewModel.canRun
-                ) {
-                    viewModel.runConversion()
-                    // 実行結果が見えるよう画面最下部へ自動スクロールする。
-                    Task {
-                        try? await Task.sleep(nanoseconds: 500_000_000)
-                        withAnimation {
-                            proxy.scrollTo("convertBottom", anchor: .bottom)
+                    GlassCTAButton(
+                        title: jobStore.isRunning ? t("c.running") : t("c.run"),
+                        disabled: !viewModel.canRun
+                    ) {
+                        viewModel.runConversion()
+                        // 実行結果が見えるよう画面最下部へ自動スクロールする。
+                        Task {
+                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            withAnimation {
+                                proxy.scrollTo("convertBottom", anchor: .bottom)
+                            }
                         }
                     }
-                }
 
-                GlassCard {
+                    GlassCard {
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Toggle(isOn: $viewModel.showWaiting) {
-                                Text(t("status.waitingIcon")).appFont(.body)
-                            }
-                            Toggle(isOn: $viewModel.showRunning) {
-                                Text(t("status.runningIcon")).appFont(.body)
-                            }
-                            Toggle(isOn: $viewModel.showSuccess) {
-                                Text(t("status.successIcon")).appFont(.body)
-                            }
-                            Toggle(isOn: $viewModel.showFailure) {
-                                Text(t("status.failureIcon")).appFont(.body)
-                            }
-                        }
-                        .toggleStyle(.checkbox)
-                        HStack {
-                            ProgressView(value: jobStore.progressPercent, total: 100)
-                            Text("\(Int(jobStore.progressPercent))%")
-                                .frame(width: 64, alignment: .trailing)
-                                .appFont(.headline)
-                        }
-                        Table(viewModel.filteredRows(for: jobStore.rows)) {
-                            TableColumn(t("c.col.fileName")) {
-                                row in
-                                Button {
-                                    NSWorkspace.shared.activateFileViewerSelecting([
-                                        URL(fileURLWithPath: row.sourcePath)
-                                    ])
-                                } label: {
-                                    Text(row.fileName)
-                                        .appFont(.body)
-                                        .foregroundStyle(
-                                            hoveredFileRowID == row.id ? Color.accentColor : Color.primary
-                                        )
-                                        .underline(hoveredFileRowID == row.id)
-                                        // Tableは外部状態の変化でセルを再描画しないため、
-                                        // ホバー有無を同一性に含めて更新を強制する。
-                                        .id(hoveredFileRowID == row.id)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Toggle(isOn: $viewModel.showWaiting) {
+                                    Text(t("status.waitingIcon")).appFont(.body)
                                 }
-                                .buttonStyle(.plain)
-                                .contentShape(Rectangle())
-                                .help(t("c.help.fileName"))
-                                // セルの作り直し時にも exit が飛ぶため、ここでは状態を消さない。
-                                // 消去は表全体の exit でのみ行う。
-                                .onHover { hovering in
-                                    if hovering {
-                                        hoveredFileRowID = row.id
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
+                                Toggle(isOn: $viewModel.showRunning) {
+                                    Text(t("status.runningIcon")).appFont(.body)
+                                }
+                                Toggle(isOn: $viewModel.showSuccess) {
+                                    Text(t("status.successIcon")).appFont(.body)
+                                }
+                                Toggle(isOn: $viewModel.showFailure) {
+                                    Text(t("status.failureIcon")).appFont(.body)
+                                }
+                            }
+                            .toggleStyle(.checkbox)
+                            HStack {
+                                ProgressView(value: jobStore.progressPercent, total: 100)
+                                Text("\(Int(jobStore.progressPercent))%")
+                                    .frame(width: 64, alignment: .trailing)
+                                    .appFont(.headline)
+                            }
+                            Table(viewModel.filteredRows(for: jobStore.rows)) {
+                                TableColumn(t("c.col.fileName")) {
+                                    row in
+                                    Button {
+                                        NSWorkspace.shared.activateFileViewerSelecting([
+                                            URL(fileURLWithPath: row.sourcePath)
+                                        ])
+                                    } label: {
+                                        Text(row.fileName)
+                                            .appFont(.body)
+                                            .foregroundStyle(
+                                                hoveredFileRowID == row.id ? Color.accentColor : Color.primary
+                                            )
+                                            .underline(hoveredFileRowID == row.id)
+                                            // Tableは外部状態の変化でセルを再描画しないため、
+                                            // ホバー有無を同一性に含めて更新を強制する。
+                                            .id(hoveredFileRowID == row.id)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .contentShape(Rectangle())
+                                    .help(t("c.help.fileName"))
+                                    // セルの作り直し時にも exit が飛ぶため、ここでは状態を消さない。
+                                    // 消去は表全体の exit でのみ行う。
+                                    .onHover { hovering in
+                                        if hovering {
+                                            hoveredFileRowID = row.id
+                                            NSCursor.pointingHand.push()
+                                        } else {
+                                            NSCursor.pop()
+                                        }
                                     }
                                 }
+                                TableColumn(t("c.col.upscale")) { row in
+                                    Text(row.upscale.label(language: lang)).appFont(.body)
+                                }
+                                .width(min: 40, ideal: 62, max: 90)
+                                TableColumn(t("c.col.compress")) { row in
+                                    Text(row.compress.label(language: lang)).appFont(.body)
+                                }
+                                .width(min: 40, ideal: 62, max: 90)
+                                TableColumn(t("c.col.output")) { row in
+                                    Text(row.output.label(language: lang)).appFont(.body)
+                                }
+                                .width(min: 40, ideal: 62, max: 90)
                             }
-                            TableColumn(t("c.col.upscale")) { row in
-                                Text(row.upscale.label(language: lang)).appFont(.body)
+                            .frame(minHeight: 360)
+                            // ポインターが表全体から外れたときだけホバーを消す。
+                            .onHover { hovering in
+                                if !hovering {
+                                    hoveredFileRowID = nil
+                                }
                             }
-                            .width(min: 40, ideal: 62, max: 90)
-                            TableColumn(t("c.col.compress")) { row in
-                                Text(row.compress.label(language: lang)).appFont(.body)
+                            // ファイル名ヘッダーの右にℹ️を重ねる。
+                            // TableColumnにヘッダービュー指定APIがないため、
+                            // 見出しと同文言の非表示テキストで位置合わせする。
+                            .overlay(alignment: .topLeading) {
+                                HStack(spacing: 4) {
+                                    Text(t("c.col.fileName")).appFont(.body).hidden()
+                                    HelpPopover(text: t("c.help.fileName"))
+                                }
+                                .padding(.leading, 12)
+                                .padding(.top, 2)
                             }
-                            .width(min: 40, ideal: 62, max: 90)
-                            TableColumn(t("c.col.output")) { row in
-                                Text(row.output.label(language: lang)).appFont(.body)
-                            }
-                            .width(min: 40, ideal: 62, max: 90)
                         }
-                        .frame(minHeight: 360)
-                        // ポインターが表全体から外れたときだけホバーを消す。
-                        .onHover { hovering in
-                            if !hovering {
-                                hoveredFileRowID = nil
-                            }
-                        }
-                        // ファイル名ヘッダーの右にℹ️を重ねる。
-                        // TableColumnにヘッダービュー指定APIがないため、
-                        // 見出しと同文言の非表示テキストで位置合わせする。
-                        .overlay(alignment: .topLeading) {
-                            HStack(spacing: 4) {
-                                Text(t("c.col.fileName")).appFont(.body).hidden()
-                                HelpPopover(text: t("c.help.fileName"))
-                            }
-                            .padding(.leading, 12)
-                            .padding(.top, 2)
-                        }
+                        .padding(.vertical, 4)
+                    } label: {
+                        Text(t("c.group.result")).appFont(.headline)
                     }
-                    .padding(.vertical, 4)
-                } label: {
-                    Text(t("c.group.result")).appFont(.headline)
+                    Color.clear
+                        .frame(height: 1)
+                        .id("convertBottom")
                 }
-                Color.clear
-                    .frame(height: 1)
-                    .id("convertBottom")
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 0)
+                .padding(.horizontal)
+                .padding(.bottom, 0)
             }
             .safeAreaInset(edge: .bottom) {
                 // Apple Musicのダイナミックタブバーのように、
@@ -326,8 +326,12 @@ struct ConvertView: View {
                 HStack(alignment: .bottom, spacing: 12) {
                     HStack(spacing: 16) {
                         FooterStat(icon: "photo.stack", text: "\(t("c.footer.target")): \(jobStore.rows.count)")
-                        FooterStat(icon: "checkmark.circle", iconColor: .green, text: "\(t("c.footer.success")): \(jobStore.successCount)")
-                        FooterStat(icon: "xmark.circle", iconColor: .red, text: "\(t("c.footer.failure")): \(jobStore.failureCount)")
+                        FooterStat(
+                            icon: "checkmark.circle", iconColor: .green,
+                            text: "\(t("c.footer.success")): \(jobStore.successCount)")
+                        FooterStat(
+                            icon: "xmark.circle", iconColor: .red,
+                            text: "\(t("c.footer.failure")): \(jobStore.failureCount)")
                         FooterStat(icon: "clock", text: String(format: t("c.elapsed"), jobStore.elapsedMinutes))
                     }
                     .padding(.horizontal)

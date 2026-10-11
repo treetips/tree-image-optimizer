@@ -14,45 +14,45 @@ struct CompressionService: Sendable {
     // MARK: - Tables
 
     static let jpegQuality: [OptimizeType: Int] = [
-        .anime: 75, .photo: 80, .speed: 60, .quality: 95,
+        .anime: 75, .photo: 80, .speed: 60, .quality: 95
     ]
 
     static let pngQuality: [OptimizeType: Int] = [
-        .anime: 75, .photo: 80, .speed: 60, .quality: 95,
+        .anime: 75, .photo: 80, .speed: 60, .quality: 95
     ]
 
     static let jxlEffort: [OptimizeType: Int] = [
-        .anime: 7, .photo: 7, .speed: 7, .quality: 9,
+        .anime: 7, .photo: 7, .speed: 7, .quality: 9
     ]
 
     static let jxlExtraOpts: [OptimizeType: [String]] = [
         .anime: ["--lossless_jpeg=0"],
         .photo: ["--lossless_jpeg=0"],
         .speed: ["--lossless_jpeg=0"],
-        .quality: ["--lossless_jpeg=0"],
+        .quality: ["--lossless_jpeg=0"]
     ]
 
     static let avifSpeed: [OptimizeType: Int] = [
-        .anime: 3, .photo: 4, .speed: 8, .quality: 4,
+        .anime: 3, .photo: 4, .speed: 8, .quality: 4
     ]
 
     static let avifYuv: [OptimizeType: Int] = [
-        .anime: 444, .photo: 420, .speed: 420, .quality: 444,
+        .anime: 444, .photo: 420, .speed: 420, .quality: 444
     ]
 
     static let avifAomOpts: [OptimizeType: [String]] = [
         .anime: ["-a", "end-usage=q", "-a", "cq-level=20"],
         .photo: ["-a", "end-usage=q", "-a", "cq-level=22"],
         .speed: [],
-        .quality: ["-a", "end-usage=q", "-a", "cq-level=16"],
+        .quality: ["-a", "end-usage=q", "-a", "cq-level=16"]
     ]
 
     static let webpPreset: [OptimizeType: String] = [
-        .anime: "drawing", .photo: "photo", .speed: "default", .quality: "photo",
+        .anime: "drawing", .photo: "photo", .speed: "default", .quality: "photo"
     ]
 
     static let webpMethod: [OptimizeType: Int] = [
-        .anime: 4, .photo: 4, .speed: 0, .quality: 6,
+        .anime: 4, .photo: 4, .speed: 0, .quality: 6
     ]
 
     /// 品質 (1-100) を JPEG XL の距離に変換する。100はロスレス相当 (0)。
@@ -73,13 +73,15 @@ struct CompressionService: Sendable {
         [output, "-o", output, "--quality", "\(quality)"]
     }
 
-    static func cjxlArguments(input: String, output: String, optimizeType: OptimizeType, quality: Int, threads: Int) -> [String] {
+    static func cjxlArguments(input: String, output: String, optimizeType: OptimizeType, quality: Int, threads: Int)
+        -> [String]
+    {
         [
             input,
             output,
             "--distance=\(qualityToDistance(quality))",
             "-e", "\(jxlEffort[optimizeType, default: 7])",
-            "--num_threads=\(threads)",
+            "--num_threads=\(threads)"
         ] + (jxlExtraOpts[optimizeType] ?? [])
     }
 
@@ -87,7 +89,7 @@ struct CompressionService: Sendable {
         [
             "--speed", "\(avifSpeed[optimizeType, default: 6])",
             "-q", "\(quality)",
-            "-y", "\(avifYuv[optimizeType, default: 420])",
+            "-y", "\(avifYuv[optimizeType, default: 420])"
         ] + (avifAomOpts[optimizeType] ?? []) + [input, output]
     }
 
@@ -99,7 +101,7 @@ struct CompressionService: Sendable {
             "-mt",
             input,
             "-o",
-            output,
+            output
         ]
     }
 
@@ -121,22 +123,28 @@ struct CompressionService: Sendable {
             try await compressPng(input: input, output: output, optimizeType: optimizeType, paths: paths)
         case .jpegXL:
             let bin = paths.cjxlBinURL
-            try await runBinary(bin, args: Self.cjxlArguments(
-                input: input.path, output: output.path,
-                optimizeType: optimizeType, quality: quality, threads: threads
-            ), workingDirectory: bin.deletingLastPathComponent().path)
+            try await runBinary(
+                bin,
+                args: Self.cjxlArguments(
+                    input: input.path, output: output.path,
+                    optimizeType: optimizeType, quality: quality, threads: threads
+                ), workingDirectory: bin.deletingLastPathComponent().path)
         case .av1:
             let bin = paths.avifencBinURL
-            try await runBinary(bin, args: Self.avifencArguments(
-                input: input.path, output: output.path,
-                optimizeType: optimizeType, quality: quality
-            ), workingDirectory: bin.deletingLastPathComponent().path)
+            try await runBinary(
+                bin,
+                args: Self.avifencArguments(
+                    input: input.path, output: output.path,
+                    optimizeType: optimizeType, quality: quality
+                ), workingDirectory: bin.deletingLastPathComponent().path)
         case .webp:
             let bin = paths.cwebpBinURL
-            try await runBinary(bin, args: Self.cwebpArguments(
-                input: input.path, output: output.path,
-                optimizeType: optimizeType, quality: quality
-            ), workingDirectory: bin.deletingLastPathComponent().path)
+            try await runBinary(
+                bin,
+                args: Self.cwebpArguments(
+                    input: input.path, output: output.path,
+                    optimizeType: optimizeType, quality: quality
+                ), workingDirectory: bin.deletingLastPathComponent().path)
         }
     }
 
@@ -153,8 +161,9 @@ struct CompressionService: Sendable {
         try Self.convertToJPEG(input: input, output: output, quality: 1.0)
         do {
             let bin = paths.jpegoptimBinURL
-            try await runBinary(bin, args: Self.jpegoptimArguments(output: output.path, quality: quality),
-                                workingDirectory: bin.deletingLastPathComponent().path)
+            try await runBinary(
+                bin, args: Self.jpegoptimArguments(output: output.path, quality: quality),
+                workingDirectory: bin.deletingLastPathComponent().path)
         } catch {
             // フォールバック：指定品質で再エンコードする。
             try Self.convertToJPEG(input: output, output: output, quality: Double(quality) / 100.0)
@@ -166,8 +175,9 @@ struct CompressionService: Sendable {
         try Self.convertToPNG(input: input, output: output)
         do {
             let bin = paths.pngoptimBinURL
-            try await runBinary(bin, args: Self.pngoptimArguments(output: output.path, quality: quality),
-                                workingDirectory: bin.deletingLastPathComponent().path)
+            try await runBinary(
+                bin, args: Self.pngoptimArguments(output: output.path, quality: quality),
+                workingDirectory: bin.deletingLastPathComponent().path)
         } catch {
             try Self.convertToPNG(input: output, output: output)
         }
@@ -177,8 +187,8 @@ struct CompressionService: Sendable {
 
     static func convertToJPEG(input: URL, output: URL, quality: Double) throws {
         guard let source = CGImageSourceCreateWithURL(input as CFURL, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
-              let dest = CGImageDestinationCreateWithURL(output as CFURL, UTType.jpeg.identifier as CFString, 1, nil)
+            let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+            let dest = CGImageDestinationCreateWithURL(output as CFURL, UTType.jpeg.identifier as CFString, 1, nil)
         else {
             throw AppError.fileNotFound("画像のデコードに失敗しました: \(input.path)")
         }
@@ -191,8 +201,8 @@ struct CompressionService: Sendable {
 
     static func convertToPNG(input: URL, output: URL) throws {
         guard let source = CGImageSourceCreateWithURL(input as CFURL, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
-              let dest = CGImageDestinationCreateWithURL(output as CFURL, UTType.png.identifier as CFString, 1, nil)
+            let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+            let dest = CGImageDestinationCreateWithURL(output as CFURL, UTType.png.identifier as CFString, 1, nil)
         else {
             throw AppError.fileNotFound("画像のデコードに失敗しました: \(input.path)")
         }

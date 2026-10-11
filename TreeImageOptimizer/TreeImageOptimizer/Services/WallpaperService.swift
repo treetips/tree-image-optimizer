@@ -28,8 +28,9 @@ struct WallpaperService: Sendable {
             candidates.append(resources.appendingPathComponent("assets/images/wallpaper", isDirectory: true))
         }
         let fm = FileManager.default
-        candidates.append(URL(fileURLWithPath: fm.currentDirectoryPath, isDirectory: true)
-            .appendingPathComponent("assets/images/wallpaper", isDirectory: true))
+        candidates.append(
+            URL(fileURLWithPath: fm.currentDirectoryPath, isDirectory: true)
+                .appendingPathComponent("assets/images/wallpaper", isDirectory: true))
         return candidates
     }
 
@@ -90,7 +91,10 @@ struct WallpaperService: Sendable {
     }
 
     private func listWallpaperFiles(in dir: URL) -> [URL] {
-        guard let contents = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.isRegularFileKey]) else {
+        guard
+            let contents = try? FileManager.default.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: [.isRegularFileKey])
+        else {
             return []
         }
         return contents.filter { url in

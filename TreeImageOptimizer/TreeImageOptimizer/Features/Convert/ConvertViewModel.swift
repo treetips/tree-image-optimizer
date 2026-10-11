@@ -7,10 +7,16 @@ import Foundation
 @MainActor
 final class ConvertViewModel {
     var inputFolderPath: String = "" {
-        didSet { validateFolders(); saveConvert() }
+        didSet {
+            validateFolders()
+            saveConvert()
+        }
     }
     var outputFolderPath: String = "" {
-        didSet { validateFolders(); saveConvert() }
+        didSet {
+            validateFolders()
+            saveConvert()
+        }
     }
     var inputFolderHasError: Bool = false
     var outputFolderHasError: Bool = false

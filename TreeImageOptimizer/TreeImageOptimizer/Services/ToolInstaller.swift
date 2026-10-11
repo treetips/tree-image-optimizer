@@ -12,7 +12,7 @@ struct ToolInstaller: Sendable {
         "avifenc",
         "jpegoptim",
         "pngoptim",
-        "cwebp",
+        "cwebp"
     ]
 
     /// `tools/` からの相対パス一覧。
@@ -22,7 +22,7 @@ struct ToolInstaller: Sendable {
         "pngoptim/bin/macos/pngoptim",
         "libjxl/bin/macos/cjxl",
         "libavif/bin/macos/avifenc",
-        "libwebp/bin/macos/cwebp",
+        "libwebp/bin/macos/cwebp"
     ]
 
     static let webpVersion = "1.6.0"
@@ -50,12 +50,13 @@ struct ToolInstaller: Sendable {
     static func defaultDevToolsCandidates() -> [URL] {
         var candidates: [URL] = []
         if let devPath = Bundle.main.object(forInfoDictionaryKey: "DevToolsPath") as? String,
-           !devPath.contains("$(")
+            !devPath.contains("$(")
         {
             candidates.append(URL(fileURLWithPath: devPath, isDirectory: true))
         }
-        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
-            .appendingPathComponent("tools", isDirectory: true))
+        candidates.append(
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
+                .appendingPathComponent("tools", isDirectory: true))
         if let resources = Bundle.main.resourceURL {
             candidates.append(resources.appendingPathComponent("tools", isDirectory: true))
         }
@@ -106,7 +107,7 @@ struct ToolInstaller: Sendable {
             ("pngoptim", "pngoptim", "pngoptim/bin/macos/pngoptim"),
             ("libjxl", "libjxl", "libjxl/bin/macos/cjxl"),
             ("libavif", "libavif", "libavif/bin/macos/avifenc"),
-            ("libwebp", "libwebp", "libwebp/bin/macos/cwebp"),
+            ("libwebp", "libwebp", "libwebp/bin/macos/cwebp")
         ]
         for check in checks {
             let bin = paths.toolsURL.appendingPathComponent(check.binary, isDirectory: false)
@@ -227,7 +228,8 @@ struct ToolInstaller: Sendable {
         let binDir = paths.toolsURL.appendingPathComponent("libwebp/bin/macos", isDirectory: true)
         try FileManager.default.createDirectory(at: binDir, withIntermediateDirectories: true)
         // tar.gz を /usr/bin/tar で展開し、*/bin/cwebp を配置する。
-        _ = try await runner.run("/usr/bin/tar", args: ["-xzf", archive.path, "-C", tmpDir.path], workingDirectory: nil)
+        _ = try await runner.run(
+            "/usr/bin/tar", args: ["-xzf", archive.path, "-C", tmpDir.path], workingDirectory: nil)
         guard let cwebp = findFile(named: "cwebp", under: tmpDir) else {
             throw AppError.toolMissing("cwebp not found in \(name)")
         }

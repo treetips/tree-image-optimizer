@@ -12,7 +12,7 @@ struct UpdateInfo: Codable, Equatable {
     func isNewerThan(currentVersion: String, currentBuild: Int) -> Bool {
         let current = currentVersion.split(separator: ".").compactMap { Int($0) }
         let remote = version.split(separator: ".").compactMap { Int($0) }
-        for i in 0 ..< 3 {
+        for i in 0..<3 {
             let c = i < current.count ? current[i] : 0
             let n = i < remote.count ? remote[i] : 0
             if n > c { return true }
@@ -113,9 +113,11 @@ struct UpdateService: Sendable {
 
     private func collectAppBundles(under directory: URL, depth: Int, maxDepth: Int, into results: inout [URL]) {
         guard depth <= maxDepth else { return }
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: directory, includingPropertiesForKeys: [.isDirectoryKey]
-        ) else { return }
+        guard
+            let contents = try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.isDirectoryKey]
+            )
+        else { return }
         for url in contents {
             if url.pathExtension == "app" {
                 results.append(url)

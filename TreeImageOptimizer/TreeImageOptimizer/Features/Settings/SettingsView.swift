@@ -49,7 +49,9 @@ struct SettingsView: View {
             // IDを付け替えて再生成し、復元値を確実に表示する。
             bgHexFieldID = UUID()
         }
-        bgHexLogger.info("bghex commit: input=\(input, privacy: .public) valid=\(valid) stored=\(viewModel.wallpaperBackgroundColorHex, privacy: .public)")
+        bgHexLogger.info(
+            "bghex commit: input=\(input, privacy: .public) valid=\(valid) stored=\(viewModel.wallpaperBackgroundColorHex, privacy: .public)"
+        )
     }
 
     var body: some View {
@@ -123,135 +125,135 @@ struct SettingsView: View {
                         GridRow {
                             Text(t("s.appearance")).appFont(.headline)
                             HStack {
-                            ForEach(AppearanceMode.allCases) { mode in
-                                let selected = viewModel.appearance == mode.rawValue
-                                Button {
-                                    viewModel.setAppearance(mode.rawValue)
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: selected ? "largecircle.fill.circle" : "circle")
-                                        Image(systemName: appearanceIcon(mode))
-                                        Text(appearanceText(mode)).appFont(.body)
+                                ForEach(AppearanceMode.allCases) { mode in
+                                    let selected = viewModel.appearance == mode.rawValue
+                                    Button {
+                                        viewModel.setAppearance(mode.rawValue)
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                                            Image(systemName: appearanceIcon(mode))
+                                            Text(appearanceText(mode)).appFont(.body)
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(selected ? Color.accentColor.opacity(0.12) : Color.clear)
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    selected ? Color.accentColor : Color.secondary.opacity(0.4),
+                                                    lineWidth: selected ? 2 : 1
+                                                )
+                                        )
                                     }
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(selected ? Color.accentColor.opacity(0.12) : Color.clear)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(
-                                                selected ? Color.accentColor : Color.secondary.opacity(0.4),
-                                                lineWidth: selected ? 2 : 1
-                                            )
-                                    )
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
-                            }
-                            Spacer()
+                                Spacer()
                             }
                         }
                         GridRow {
                             Text(t("s.language")).appFont(.headline)
                             HStack {
-                            Picker(t("s.language"), selection: $viewModel.language) {
-                                Text(t("s.lang.auto")).appFont(.body).tag("")
-                                Text(t("s.lang.ja")).appFont(.body).tag("ja-JP")
-                                Text(t("s.lang.en")).appFont(.body).tag("en-US")
-                            }
-                            .labelsHidden()
-                            Spacer()
-                            HelpPopover(text: t("s.help.language"))
+                                Picker(t("s.language"), selection: $viewModel.language) {
+                                    Text(t("s.lang.auto")).appFont(.body).tag("")
+                                    Text(t("s.lang.ja")).appFont(.body).tag("ja-JP")
+                                    Text(t("s.lang.en")).appFont(.body).tag("en-US")
+                                }
+                                .labelsHidden()
+                                Spacer()
+                                HelpPopover(text: t("s.help.language"))
                             }
                         }
                         GridRow {
                             Text(t("s.fontSize")).appFont(.headline)
                             HStack {
-                            ForEach(FontSizeOption.allCases) { option in
-                                let selected = viewModel.fontSize == option.rawValue
-                                Button {
-                                    viewModel.fontSize = option.rawValue
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: selected ? "largecircle.fill.circle" : "circle")
-                                        Image(systemName: fontSizeIcon(option))
-                                        Text(fontSizeText(option)).appFont(.body)
+                                ForEach(FontSizeOption.allCases) { option in
+                                    let selected = viewModel.fontSize == option.rawValue
+                                    Button {
+                                        viewModel.fontSize = option.rawValue
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                                            Image(systemName: fontSizeIcon(option))
+                                            Text(fontSizeText(option)).appFont(.body)
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(selected ? Color.accentColor.opacity(0.12) : Color.clear)
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    selected ? Color.accentColor : Color.secondary.opacity(0.4),
+                                                    lineWidth: selected ? 2 : 1
+                                                )
+                                        )
                                     }
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(selected ? Color.accentColor.opacity(0.12) : Color.clear)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(
-                                                selected ? Color.accentColor : Color.secondary.opacity(0.4),
-                                                lineWidth: selected ? 2 : 1
-                                            )
-                                    )
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
-                            }
-                            Spacer()
+                                Spacer()
                             }
                         }
                         GridRow {
                             Text(t("s.wallpaper")).appFont(.headline)
                             HStack {
-                            Picker(t("s.wallpaper"), selection: $viewModel.wallpaper) {
-                                ForEach(viewModel.wallpapers) { option in
-                                    Text(wallpaperLabel(for: option)).appFont(.body).tag(option.name)
+                                Picker(t("s.wallpaper"), selection: $viewModel.wallpaper) {
+                                    ForEach(viewModel.wallpapers) { option in
+                                        Text(wallpaperLabel(for: option)).appFont(.body).tag(option.name)
+                                    }
                                 }
-                            }
-                            .labelsHidden()
-                            Spacer()
-                            HelpPopover(text: t("s.help.wallpaper"))
+                                .labelsHidden()
+                                Spacer()
+                                HelpPopover(text: t("s.help.wallpaper"))
                             }
                         }
                         GridRow {
                             Text(t("s.opacity")).appFont(.headline)
                             HStack {
-                            Slider(value: $viewModel.wallpaperOpacity, in: 0 ... 1)
-                                .frame(maxWidth: .infinity)
-                            Text(String(format: "%.1f", viewModel.wallpaperOpacity)).appFont(.body)
-                                .frame(width: 32)
-                            Spacer()
-                            HelpPopover(text: t("s.help.opacity"))
+                                Slider(value: $viewModel.wallpaperOpacity, in: 0...1)
+                                    .frame(maxWidth: .infinity)
+                                Text(String(format: "%.1f", viewModel.wallpaperOpacity)).appFont(.body)
+                                    .frame(width: 32)
+                                Spacer()
+                                HelpPopover(text: t("s.help.opacity"))
                             }
                         }
                         GridRow {
                             Text(t("s.bgcolor")).appFont(.headline)
                             HStack {
-                            // 自動モードではシステム値を使うため編集不可にする。
-                            // タイトルはGridのラベル欄に表示するため、空にして重複を防ぐ。
-                            ColorPicker("", selection: backgroundColorBinding)
-                            .labelsHidden()
+                                // 自動モードではシステム値を使うため編集不可にする。
+                                // タイトルはGridのラベル欄に表示するため、空にして重複を防ぐ。
+                                ColorPicker("", selection: backgroundColorBinding)
+                                    .labelsHidden()
+                                    .disabled(viewModel.appearance == AppearanceMode.auto.rawValue)
+                                    .accessibilityLabel(t("s.bgcolor"))
+                                TextField("#FFFFFF", text: $bgHexDraft, onCommit: commitBgHex)
+                                    .appFont(.body)
+                                    .id(bgHexFieldID)
+                                    .frame(maxWidth: 110)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(
+                                                bgHexInvalid ? Color.red : Color.clear,
+                                                lineWidth: 2
+                                            )
+                                    )
+                                Button {
+                                    viewModel.resetWallpaperBackgroundColor()
+                                    bgHexDraft = viewModel.wallpaperBackgroundColorHex
+                                    bgHexInvalid = false
+                                } label: {
+                                    Text(t("s.reset")).appFont(.body)
+                                }
+                                .help(t("s.resetHelp"))
                                 .disabled(viewModel.appearance == AppearanceMode.auto.rawValue)
-                                .accessibilityLabel(t("s.bgcolor"))
-                            TextField("#FFFFFF", text: $bgHexDraft, onCommit: commitBgHex)
-                                .appFont(.body)
-                                .id(bgHexFieldID)
-                                .frame(maxWidth: 110)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(
-                                            bgHexInvalid ? Color.red : Color.clear,
-                                            lineWidth: 2
-                                        )
-                                )
-                            Button {
-                                viewModel.resetWallpaperBackgroundColor()
-                                bgHexDraft = viewModel.wallpaperBackgroundColorHex
-                                bgHexInvalid = false
-                            } label: {
-                                Text(t("s.reset")).appFont(.body)
-                            }
-                            .help(t("s.resetHelp"))
-                            .disabled(viewModel.appearance == AppearanceMode.auto.rawValue)
-                            Spacer()
-                            HelpPopover(text: t("s.help.bgcolor"))
+                                Spacer()
+                                HelpPopover(text: t("s.help.bgcolor"))
                             }
                         }
                         .onAppear {
@@ -322,7 +324,10 @@ struct SettingsView: View {
 
     private func hexString(_ color: Color) -> String {
         let resolved = NSColor(color).usingColorSpace(.sRGB) ?? NSColor(color)
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
         resolved.getRed(&r, green: &g, blue: &b, alpha: &a)
         return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
     }

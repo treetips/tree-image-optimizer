@@ -72,7 +72,10 @@ final class SoundService: Sendable {
         } else {
             let base = userDirectory ?? userBaseURL
             // success/error両方を探す
-            let candidates = ["success", "error"].map { base.appendingPathComponent($0, isDirectory: true).appendingPathComponent(option.name, isDirectory: false) }
+            let candidates = ["success", "error"].map {
+                base.appendingPathComponent($0, isDirectory: true).appendingPathComponent(
+                    option.name, isDirectory: false)
+            }
             guard let found = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
                 return nil
             }
@@ -84,7 +87,8 @@ final class SoundService: Sendable {
     private func findBundled(name: String) -> URL? {
         for base in bundledBaseCandidates() {
             for folder in ["success", "error"] {
-                let url = base.appendingPathComponent(folder, isDirectory: true).appendingPathComponent(name, isDirectory: false)
+                let url = base.appendingPathComponent(folder, isDirectory: true).appendingPathComponent(
+                    name, isDirectory: false)
                 if FileManager.default.fileExists(atPath: url.path) { return url }
             }
         }
@@ -92,7 +96,10 @@ final class SoundService: Sendable {
     }
 
     private func listSoundFiles(in dir: URL) -> [URL] {
-        guard let contents = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.isRegularFileKey]) else {
+        guard
+            let contents = try? FileManager.default.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: [.isRegularFileKey])
+        else {
             return []
         }
         let exts = ["mp3", "wav", "flac", "aac", "ogg"]

@@ -31,7 +31,10 @@ final class EasyConvertViewModel {
         didSet { saveConvert() }
     }
     var outputFolderPath: String = "" {
-        didSet { validateOutputFolder(); saveConvert() }
+        didSet {
+            validateOutputFolder()
+            saveConvert()
+        }
     }
     var outputFolderHasError: Bool = false
     var maxParallel: Double = Double(max(1, ProcessInfo.processInfo.processorCount))

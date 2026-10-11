@@ -33,14 +33,19 @@ struct ConvertOrchestrator: Sendable {
     let upscale: UpscaleService
     let compression: CompressionService
 
-    init(upscale: UpscaleService = UpscaleService(), compression: CompressionService = CompressionService()) {
+    init(
+        upscale: UpscaleService = UpscaleService(),
+        compression: CompressionService = CompressionService()
+    ) {
         self.upscale = upscale
         self.compression = compression
     }
 
     /// 出力ファイル名を組み立てる。拡張子直前の `.` ではなく最初の `.` で切る（Flutter版踏襲）。
     static func outputFileName(for inputName: String, format: OutputFormat) -> String {
-        let base = inputName.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init)
+        let base =
+            inputName.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false).first.map(
+                String.init)
             ?? inputName
         return base + format.fileExtension
     }
@@ -95,6 +100,18 @@ struct ConvertOrchestrator: Sendable {
         }
     }
 
+    /// 中間ファイルを出力先へ確定する。同一ボリュームならコピーではなくrenameで移動する。
+    /// renameはコピー置き換えに比べI/OがO(1)であり、大きな画像ほど差が出る（Why not: copyは移動元が残るため置換前に削除が必要）。
+    static func installOutput(from source: URL, to destination: URL) throws {
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(
+            at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if fileManager.fileExists(atPath: destination.path) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.moveItem(at: source, to: destination)
+    }
+
     private func processFile(
         at index: Int,
         file: URL,
@@ -109,15 +126,21 @@ struct ConvertOrchestrator: Sendable {
             try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
             defer { try? fm.removeItem(at: tempDir) }
             let upscaled = tempDir.appendingPathComponent("upscaled.png", isDirectory: false)
-            await onOutcome(FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: false, started: true))
+            await onOutcome(
+                FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: false, started: true)
+            )
             do {
-                try await upscale.run(input: file, output: upscaled, scale: config.scale, model: config.model, paths: paths)
+                try await upscale.run(
+                    input: file, output: upscaled, scale: config.scale, model: config.model, paths: paths)
             } catch {
-                await onOutcome(FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: true))
+                await onOutcome(
+                    FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: true))
                 return false
             }
             await onOutcome(FileOutcome(index: index, stage: .upscale, succeeded: true, fileDone: false))
-            await onOutcome(FileOutcome(index: index, stage: .compress, succeeded: false, fileDone: false, started: true))
+            await onOutcome(
+                FileOutcome(
+                    index: index, stage: .compress, succeeded: false, fileDone: false, started: true))
             let outName = Self.outputFileName(for: file.lastPathComponent, format: config.format)
             let compressed = tempDir.appendingPathComponent(outName, isDirectory: false)
             do {
@@ -127,17 +150,16 @@ struct ConvertOrchestrator: Sendable {
                     quality: config.quality, threads: config.parallelCount, paths: paths
                 )
             } catch {
-                await onOutcome(FileOutcome(index: index, stage: .compress, succeeded: false, fileDone: true))
+                await onOutcome(
+                    FileOutcome(index: index, stage: .compress, succeeded: false, fileDone: true))
                 return false
             }
             await onOutcome(FileOutcome(index: index, stage: .compress, succeeded: true, fileDone: false))
-            await onOutcome(FileOutcome(index: index, stage: .output, succeeded: false, fileDone: false, started: true))
-            try fm.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
-            let destination = outputDirectory.appendingPathComponent(outName, isDirectory: false)
-            if fm.fileExists(atPath: destination.path) {
-                try fm.removeItem(at: destination)
-            }
-            try fm.copyItem(at: compressed, to: destination)
+            await onOutcome(
+                FileOutcome(index: index, stage: .output, succeeded: false, fileDone: false, started: true))
+            try Self.installOutput(
+                from: compressed, to: outputDirectory.appendingPathComponent(outName, isDirectory: false)
+            )
             await onOutcome(FileOutcome(index: index, stage: .output, succeeded: true, fileDone: true))
             return true
         } catch {

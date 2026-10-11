@@ -35,114 +35,114 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-        NavigationSplitView {
-            VStack(alignment: .leading, spacing: 0) {
-                List(SidebarSelection.allCases, selection: $navigation.selection) { item in
-                    NavigationLink(value: item) {
-                        HStack(spacing: 6) {
+            NavigationSplitView {
+                VStack(alignment: .leading, spacing: 0) {
+                    List(SidebarSelection.allCases, selection: $navigation.selection) { item in
+                        NavigationLink(value: item) {
+                            HStack(spacing: 6) {
+                                Label {
+                                    Text(item.title(language: settings.language))
+                                        .font(AppTheme.font(.body, scale: fontScale))
+                                } icon: {
+                                    // 実行中はアイコンをローディング表示に切り替える。
+                                    // 終了すれば `isRunning` が戻り元のアイコンに戻る。
+                                    if isItemRunning(item) {
+                                        SidebarLoadingIcon()
+                                    } else {
+                                        Image(systemName: item.systemImage)
+                                    }
+                                }
+                                // 一括変換の実行中は右端に進捗%を表示する。
+                                // 終了すれば非表示になる。かんたん変換は1ファイルのため%は出さない。
+                                if item == .convert, convertJobStore.isRunning {
+                                    Spacer()
+                                    Text(convertProgressLabel)
+                                        .font(AppTheme.font(.caption, scale: fontScale))
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                            // 実行中は行の下端の最背面に細いリニアバーを表示する。
+                            // 背景配置のためレイアウトに参加せず行の高さは変わらない。
+                            // 一括変換は進捗連動の確定バー、かんたん変換は不確定バー。
+                            .background(alignment: .bottom) {
+                                VStack(spacing: 0) {
+                                    Spacer(minLength: 0)
+                                    if item == .convert, convertJobStore.isRunning {
+                                        DeterminateLinearBar(progress: convertJobStore.progressPercent)
+                                    } else if item == .easyConvert, easyConvertJobStore.isRunning {
+                                        IndeterminateLinearBar()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .navigationSplitViewColumnWidth(min: 150, ideal: 180)
+                    // アップデートが有る場合のみ最下部に通知ボタンを表示する。
+                    // 背景色はOSのテーマカラー、無い場合は非表示のため背景色なし扱い。
+                    if updateCheck.updateAvailableInfo != nil {
+                        Divider()
+                        Button {
+                            updateCheck.checkForUpdate(language: settings.language)
+                        } label: {
                             Label {
-                                Text(item.title(language: settings.language))
+                                Text(L10n.string("nav.updateAvailable", language: settings.language))
                                     .font(AppTheme.font(.body, scale: fontScale))
                             } icon: {
-                                // 実行中はアイコンをローディング表示に切り替える。
-                                // 終了すれば `isRunning` が戻り元のアイコンに戻る。
-                                if isItemRunning(item) {
-                                    SidebarLoadingIcon()
+                                Image(systemName: "arrow.down.circle.fill")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.accentColor)
+                            )
+                            .foregroundStyle(.white)
+                            // ホバー時はポインターカーソルにし、クリック可能と分かるようにする。
+                            .onHover { hovering in
+                                if hovering {
+                                    NSCursor.pointingHand.push()
                                 } else {
-                                    Image(systemName: item.systemImage)
+                                    NSCursor.pop()
                                 }
                             }
-                            // 一括変換の実行中は右端に進捗%を表示する。
-                            // 終了すれば非表示になる。かんたん変換は1ファイルのため%は出さない。
-                            if item == .convert, convertJobStore.isRunning {
-                                Spacer()
-                                Text(convertProgressLabel)
-                                    .font(AppTheme.font(.caption, scale: fontScale))
-                                    .foregroundStyle(Color.accentColor)
-                            }
                         }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal)
                         .padding(.vertical, 8)
-                        // 実行中は行の下端の最背面に細いリニアバーを表示する。
-                        // 背景配置のためレイアウトに参加せず行の高さは変わらない。
-                        // 一括変換は進捗連動の確定バー、かんたん変換は不確定バー。
-                        .background(alignment: .bottom) {
-                            VStack(spacing: 0) {
-                                Spacer(minLength: 0)
-                                if item == .convert, convertJobStore.isRunning {
-                                    DeterminateLinearBar(progress: convertJobStore.progressPercent)
-                                } else if item == .easyConvert, easyConvertJobStore.isRunning {
-                                    IndeterminateLinearBar()
-                                }
-                            }
-                        }
                     }
                 }
-                .navigationSplitViewColumnWidth(min: 150, ideal: 180)
-                // アップデートが有る場合のみ最下部に通知ボタンを表示する。
-                // 背景色はOSのテーマカラー、無い場合は非表示のため背景色なし扱い。
-                if updateCheck.updateAvailableInfo != nil {
-                    Divider()
-                    Button {
-                        updateCheck.checkForUpdate(language: settings.language)
-                    } label: {
-                        Label {
-                            Text(L10n.string("nav.updateAvailable", language: settings.language))
-                                .font(AppTheme.font(.body, scale: fontScale))
-                        } icon: {
-                            Image(systemName: "arrow.down.circle.fill")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.accentColor)
-                        )
-                        .foregroundStyle(.white)
-                        // ホバー時はポインターカーソルにし、クリック可能と分かるようにする。
-                        .onHover { hovering in
-                            if hovering {
-                                NSCursor.pointingHand.push()
-                            } else {
-                                NSCursor.pop()
-                            }
-                        }
+            } detail: {
+                ZStack {
+                    backgroundColor
+                    backgroundImage
+                    switch navigation.selection {
+                    case .convert:
+                        ConvertView(jobStore: convertJobStore)
+                    case .easyConvert:
+                        EasyConvertView(jobStore: easyConvertJobStore)
+                    case .settings:
+                        SettingsView(viewModel: settings)
+                    case .about:
+                        AboutView(controller: updateCheck)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
                 }
             }
-        } detail: {
-            ZStack {
-                backgroundColor
-                backgroundImage
-                switch navigation.selection {
-                case .convert:
-                    ConvertView(jobStore: convertJobStore)
-                case .easyConvert:
-                    EasyConvertView(jobStore: easyConvertJobStore)
-                case .settings:
-                    SettingsView(viewModel: settings)
-                case .about:
-                    AboutView(controller: updateCheck)
-                }
+            .environment(\.locale, settings.effectiveLocale)
+            .preferredColorScheme(appearanceScheme)
+            .environment(\.sizeCategory, AppTheme.sizeCategory(for: settings.fontSize))
+            .environment(\.appFontScale, AppTheme.fontScale(for: settings.fontSize))
+            .onAppear {
+                logAppearance(context: "appear")
+                // 起動時にサイレント確認し、サイドナビ通知に反映する。
+                updateCheck.refreshAvailability()
+                // 初回はtools展開が必要なため、揃うまで操作をブロックする。
+                bootstrap.start()
             }
-        }
-        .environment(\.locale, settings.effectiveLocale)
-        .preferredColorScheme(appearanceScheme)
-        .environment(\.sizeCategory, AppTheme.sizeCategory(for: settings.fontSize))
-        .environment(\.appFontScale, AppTheme.fontScale(for: settings.fontSize))
-        .onAppear {
-            logAppearance(context: "appear")
-            // 起動時にサイレント確認し、サイドナビ通知に反映する。
-            updateCheck.refreshAvailability()
-            // 初回はtools展開が必要なため、揃うまで操作をブロックする。
-            bootstrap.start()
-        }
-        .disabled(!bootstrap.isReady)
-        if !bootstrap.isReady {
-            bootstrapOverlay
-        }
+            .disabled(!bootstrap.isReady)
+            if !bootstrap.isReady {
+                bootstrapOverlay
+            }
         }
         .onChange(of: settings.appearance) {
             logAppearance(context: "change")
@@ -195,10 +195,12 @@ struct RootView: View {
             }
         } message: {
             if let info = updateCheck.availableInfo {
-                Text(String(
-                    format: L10n.string("a.confirmInstallMsg", language: settings.language),
-                    info.version
-                ))
+                Text(
+                    String(
+                        format: L10n.string("a.confirmInstallMsg", language: settings.language),
+                        info.version
+                    )
+                )
                 .font(AppTheme.font(.body, scale: fontScale))
             }
         }
@@ -219,7 +221,7 @@ struct RootView: View {
             Text(updateCheck.errorDialog ?? "")
                 .font(AppTheme.font(.body, scale: fontScale))
         }
-        }
+    }
 
     /// ツール展開中の全画面オーバーレイ。揃うまで操作をブロックする。
     @ViewBuilder
@@ -293,22 +295,21 @@ struct RootView: View {
         }
     }
 
-
-
     /// 診断用に文字の大きさ解決結果を記録する。
     private func logFontSize() {
-        let message = "fontsize: setting=\(settings.fontSize), " +
-            "sizeCategory=\(String(describing: AppTheme.sizeCategory(for: settings.fontSize)))"
+        let message =
+            "fontsize: setting=\(settings.fontSize), "
+            + "sizeCategory=\(String(describing: AppTheme.sizeCategory(for: settings.fontSize)))"
         appearanceLogger.info("\(message, privacy: .public)")
     }
 
     /// 診断用に外観解決結果を記録する。ヘッドレスでも `log` コマンドで確認できる。
     private func logAppearance(context: String) {
         let systemStyle = SettingsViewModel.systemAppearanceName() ?? "(light)"
-        let message = "appearance[\(context)]: setting=\(settings.appearance), " +
-            "scheme=\(String(describing: appearanceScheme)), " +
-            "bg=\(settings.effectiveWallpaperBackgroundColorHex), " +
-            "system=\(systemStyle)"
+        let message =
+            "appearance[\(context)]: setting=\(settings.appearance), "
+            + "scheme=\(String(describing: appearanceScheme)), "
+            + "bg=\(settings.effectiveWallpaperBackgroundColorHex), " + "system=\(systemStyle)"
         appearanceLogger.info("\(message, privacy: .public)")
     }
 
@@ -320,7 +321,8 @@ struct RootView: View {
     private var backgroundImage: some View {
         // 「背景無し」選択時は何も表示しない。
         if let url = settings.wallpaperFileURL(),
-           let image = NSImage(contentsOf: url) {
+            let image = NSImage(contentsOf: url)
+        {
             GeometryReader { geometry in
                 // 縦にピッタリ合わせ、アスペクト比は維持する。
                 let aspect = image.size.width / max(image.size.height, 1)
@@ -419,8 +421,8 @@ private struct IndeterminateLinearBar: View {
     }
 }
 
-private extension SidebarSelection {
-    func title(language: String) -> String {
+extension SidebarSelection {
+    fileprivate func title(language: String) -> String {
         switch self {
         case .convert: return L10n.string("nav.convert", language: language)
         case .easyConvert: return L10n.string("nav.easyConvert", language: language)
@@ -429,7 +431,7 @@ private extension SidebarSelection {
         }
     }
 
-    var systemImage: String {
+    fileprivate var systemImage: String {
         switch self {
         case .convert: return "photo.badge.arrow.down"
         case .easyConvert: return "wand.and.stars"

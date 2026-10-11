@@ -11,7 +11,8 @@ enum TargetFiles {
         guard fm.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue else {
             throw AppError.fileNotFound(folder.path)
         }
-        let contents = try fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey])
+        let contents = try fm.contentsOfDirectory(
+            at: folder, includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey])
         let now = Date()
         var result: [URL] = []
         for url in contents {
@@ -40,7 +41,8 @@ enum TargetFiles {
     /// `.bin` からモデル名一覧を返す。空ならフォールバックを返す。
     static func listModels(in modelsDir: URL) -> [String] {
         let fm = FileManager.default
-        guard let contents = try? fm.contentsOfDirectory(at: modelsDir, includingPropertiesForKeys: [.isRegularFileKey]) else {
+        guard let contents = try? fm.contentsOfDirectory(at: modelsDir, includingPropertiesForKeys: [.isRegularFileKey])
+        else {
             return ["realesr-animevideov3-x4"]
         }
         var models = Set<String>()

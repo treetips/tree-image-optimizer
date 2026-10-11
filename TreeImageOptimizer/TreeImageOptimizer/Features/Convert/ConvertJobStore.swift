@@ -150,7 +150,8 @@ final class ConvertJobStore {
             let options = soundService.listSounds(success: allSuccess)
             let resolved = soundService.resolveSelected(name, options: options)
             if let option = options.first(where: { $0.name == resolved }),
-               let player = soundService.makePlayer(for: option) {
+                let player = soundService.makePlayer(for: option)
+            {
                 audioPlayer = player
                 player.play()
             }

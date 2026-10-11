@@ -18,8 +18,9 @@ struct TreeImageOptimizerApp: App {
         WindowGroup {
             RootView(
                 navigation: navigation, settings: settings, updateCheck: updateCheck,
-                convertJobStore: convertJobStore, easyConvertJobStore: easyConvertJobStore)
-                .frame(minWidth: 800, minHeight: 600)
+                convertJobStore: convertJobStore, easyConvertJobStore: easyConvertJobStore
+            )
+            .frame(minWidth: 800, minHeight: 600)
         }
         .windowStyle(.automatic)
         .commands {
