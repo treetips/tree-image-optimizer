@@ -36,7 +36,7 @@ struct EasyConvertTests {
             URL(fileURLWithPath: "/tmp/e.webp"),
             URL(fileURLWithPath: "/tmp/f.txt"),
             URL(fileURLWithPath: "/tmp/g.pdf"),
-            URL(fileURLWithPath: "/tmp/noext"),
+            URL(fileURLWithPath: "/tmp/noext")
         ]
         let filtered = EasyConvertViewModel.filterDroppedImageFiles(urls)
         #expect(filtered.map { $0.lastPathComponent } == ["a.jpg", "b.JPG", "c.jpeg", "d.png", "e.webp"])

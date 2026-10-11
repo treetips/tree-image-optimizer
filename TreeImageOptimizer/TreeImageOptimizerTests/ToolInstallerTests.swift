@@ -121,16 +121,21 @@ struct ToolInstallerTests {
 
     @Test("libwebpアーカイブ名の決定")
     func libwebpArchiveNames() {
-        #expect(ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "macos", arch: "arm64")
-            == "libwebp-1.6.0-mac-arm64.tar.gz")
-        #expect(ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "macos", arch: "x86_64")
-            == "libwebp-1.6.0-mac-x86-64.tar.gz")
-        #expect(ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "linux", arch: "x86_64")
-            == "libwebp-1.6.0-linux-x86-64.tar.gz")
-        #expect(ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "linux", arch: "aarch64")
-            == "libwebp-1.6.0-linux-aarch64.tar.gz")
-        #expect(ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "windows", arch: "x86_64")
-            == "libwebp-1.6.0-windows-x64.zip")
+        #expect(
+            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "macos", arch: "arm64")
+                == "libwebp-1.6.0-mac-arm64.tar.gz")
+        #expect(
+            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "macos", arch: "x86_64")
+                == "libwebp-1.6.0-mac-x86-64.tar.gz")
+        #expect(
+            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "linux", arch: "x86_64")
+                == "libwebp-1.6.0-linux-x86-64.tar.gz")
+        #expect(
+            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "linux", arch: "aarch64")
+                == "libwebp-1.6.0-linux-aarch64.tar.gz")
+        #expect(
+            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "windows", arch: "x86_64")
+                == "libwebp-1.6.0-windows-x64.zip")
     }
 
     @Test("SHA-256計算")

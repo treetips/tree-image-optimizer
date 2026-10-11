@@ -33,17 +33,19 @@ struct ProcessRunner: Sendable {
                 let stdout = String(data: outData, encoding: .utf8) ?? ""
                 let stderr = String(data: errData, encoding: .utf8) ?? ""
                 if process.terminationStatus != 0 {
-                    continuation.resume(throwing: AppError.processFailed(
-                        executable: executable,
-                        exitCode: process.terminationStatus,
-                        output: "\(stdout)\n\(stderr)"
-                    ))
+                    continuation.resume(
+                        throwing: AppError.processFailed(
+                            executable: executable,
+                            exitCode: process.terminationStatus,
+                            output: "\(stdout)\n\(stderr)"
+                        ))
                 } else {
-                    continuation.resume(returning: ProcessResult(
-                        exitCode: process.terminationStatus,
-                        stdout: stdout,
-                        stderr: stderr
-                    ))
+                    continuation.resume(
+                        returning: ProcessResult(
+                            exitCode: process.terminationStatus,
+                            stdout: stdout,
+                            stderr: stderr
+                        ))
                 }
             }
             do {

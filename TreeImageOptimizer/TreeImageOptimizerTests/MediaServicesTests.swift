@@ -31,9 +31,10 @@ struct MediaServicesTests {
         touch(user.appendingPathComponent("custom.avif"))
         let service = WallpaperService(bundledBaseURL: bundled, userBaseURL: user)
         let list = service.listWallpapers()
-        #expect(list.map { $0.name } == [
-            "wallpaper1.jxl", "wallpaper2.jpg", "custom.avif", "custom.png", "custom.webp"
-        ])
+        #expect(
+            list.map { $0.name } == [
+                "wallpaper1.jxl", "wallpaper2.jpg", "custom.avif", "custom.png", "custom.webp"
+            ])
         #expect(list[0].isBundled)
         #expect(!list[4].isBundled)
     }
@@ -95,7 +96,8 @@ struct MediaServicesTests {
         let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         let prepared = base.appendingPathComponent("TreeImageOptimizer.app", isDirectory: false)
-        try fm.createDirectory(at: prepared.appendingPathComponent("Contents", isDirectory: true), withIntermediateDirectories: true)
+        try fm.createDirectory(
+            at: prepared.appendingPathComponent("Contents", isDirectory: true), withIntermediateDirectories: true)
         touch(prepared.appendingPathComponent("Contents/Info.plist"))
         let destination = base.appendingPathComponent("Applications", isDirectory: true)
             .appendingPathComponent("TreeImageOptimizer.app", isDirectory: false)

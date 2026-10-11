@@ -44,16 +44,16 @@ struct AboutView: View {
                 GlassCard {
 
                     VStack(alignment: .leading, spacing: 8) {
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                        GridRow {
-                            appIcon
-                            Text("Tree Image Optimizer")
-                                .appFont(.title2)
-                        }
-                        GridRow {
-                            Text(t("a.version")).appFont(.headline)
-                            Text(AppInfo.bundleVersion).appFont(.body)
-                        }
+                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                            GridRow {
+                                appIcon
+                                Text("Tree Image Optimizer")
+                                    .appFont(.title2)
+                            }
+                            GridRow {
+                                Text(t("a.version")).appFont(.headline)
+                                Text(AppInfo.bundleVersion).appFont(.body)
+                            }
                             GridRow {
                                 Text("GitHub").appFont(.headline)
                                 Link(destination: AppInfo.githubURL) {

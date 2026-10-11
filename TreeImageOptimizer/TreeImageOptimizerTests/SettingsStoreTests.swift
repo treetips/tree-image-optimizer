@@ -45,10 +45,10 @@ struct SettingsStoreTests {
     func correctsInvalidValues() throws {
         let (store, file) = try makeStore()
         let broken = """
-        {"settings":{"showOsNotification":"yes","wallpaperOpacity":9.9,"wallpaperBackgroundColor":"zzz"},
-         "batch":{"scale":99,"format":"nope","quality":0,"parallelCount":999},
-         "easy":{"scale":99,"quality":0}}
-        """
+            {"settings":{"showOsNotification":"yes","wallpaperOpacity":9.9,"wallpaperBackgroundColor":"zzz"},
+             "batch":{"scale":99,"format":"nope","quality":0,"parallelCount":999},
+             "easy":{"scale":99,"quality":0}}
+            """
         try broken.write(to: file, atomically: true, encoding: .utf8)
         let loaded = try store.load(maxParallel: 8)
         #expect(loaded.settings.showOsNotification == false)
@@ -71,9 +71,9 @@ struct SettingsStoreTests {
     func migratesLegacyConvertKey() throws {
         let (store, file) = try makeStore()
         let legacy = """
-        {"settings":{"playSound":true},
-         "convert":{"scale":3,"quality":75,"outputFolderPath":"/tmp/out"}}
-        """
+            {"settings":{"playSound":true},
+             "convert":{"scale":3,"quality":75,"outputFolderPath":"/tmp/out"}}
+            """
         try legacy.write(to: file, atomically: true, encoding: .utf8)
         let loaded = try store.load(maxParallel: 8)
         #expect(loaded.batch.scale == 3)
@@ -92,10 +92,10 @@ struct SettingsStoreTests {
     func migratesIntermediateKeys() throws {
         let (store, file) = try makeStore()
         let legacy = """
-        {"settings":{},
-         "batch":{"scale":3,"outputFolderPath":"/tmp/batch-out"},
-         "easy":{"scale":4,"outputFolderPath":"/tmp/easy-out"}}
-        """
+            {"settings":{},
+             "batch":{"scale":3,"outputFolderPath":"/tmp/batch-out"},
+             "easy":{"scale":4,"outputFolderPath":"/tmp/easy-out"}}
+            """
         try legacy.write(to: file, atomically: true, encoding: .utf8)
         let loaded = try store.load(maxParallel: 8)
         #expect(loaded.batch.scale == 3)

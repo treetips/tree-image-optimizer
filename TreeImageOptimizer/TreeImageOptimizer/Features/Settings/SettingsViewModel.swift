@@ -1,5 +1,5 @@
-import AppKit
 import AVFoundation
+import AppKit
 import Foundation
 
 /// 設定画面の状態と保存。`settings.json` への永続化・一覧取得を配線する。
@@ -113,7 +113,10 @@ final class SettingsViewModel {
     private let notificationService: NotificationService
     private var audioPlayer: AVAudioPlayer?
 
-    init(store: SettingsStore? = nil, soundService: SoundService? = nil, wallpaperService: WallpaperService? = nil, notificationService: NotificationService? = nil) {
+    init(
+        store: SettingsStore? = nil, soundService: SoundService? = nil, wallpaperService: WallpaperService? = nil,
+        notificationService: NotificationService? = nil
+    ) {
         let paths = AppPaths()
         self.store = store ?? SettingsStore(paths: paths)
         self.soundService = soundService ?? SoundService(paths: paths)
@@ -156,7 +159,8 @@ final class SettingsViewModel {
             s.errorSound, options: errorOptions
         )
         // プルダウン先頭に「背景無し」を追加する。
-        wallpapers = [WallpaperOption(name: WallpaperSelection.noneName, isBundled: false)]
+        wallpapers =
+            [WallpaperOption(name: WallpaperSelection.noneName, isBundled: false)]
             + wallpaperService.listWallpapers()
         wallpaper = wallpaperService.resolveSelected(s.wallpaper, options: wallpapers)
         // 保存値が一覧に無い場合の解決で「背景無し」が選ばれることはないため、
@@ -203,7 +207,7 @@ final class SettingsViewModel {
     private func play(name: String, success: Bool) {
         let options = soundService.listSounds(success: success)
         guard let option = options.first(where: { $0.name == name }),
-              let player = soundService.makePlayer(for: option)
+            let player = soundService.makePlayer(for: option)
         else { return }
         audioPlayer = player
         player.play()

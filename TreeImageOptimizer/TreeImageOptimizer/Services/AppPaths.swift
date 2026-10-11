@@ -15,7 +15,8 @@ struct AppPaths: Sendable {
             return baseURL
         }
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return home
+        return
+            home
             .appendingPathComponent("Library/Application Support/tree-image-optimizer", isDirectory: true)
     }
 
@@ -23,7 +24,8 @@ struct AppPaths: Sendable {
     /// テスト時は `baseURL/.config/tree-image-optimizer` を使う。
     var configDirectoryURL: URL {
         if baseURL != nil {
-            return projectDirectoryURL
+            return
+                projectDirectoryURL
                 .appendingPathComponent(".config/tree-image-optimizer", isDirectory: true)
         }
         return FileManager.default.homeDirectoryForCurrentUser

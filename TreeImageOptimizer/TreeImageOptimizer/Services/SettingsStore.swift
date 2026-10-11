@@ -181,7 +181,8 @@ final class SettingsStore: Sendable {
             return defaults
         }
         return ScreenSettings(
-            showOsNotification: boolValue(json["showOsNotification"], fallback: defaults.showOsNotification, mark: mark),
+            showOsNotification: boolValue(
+                json["showOsNotification"], fallback: defaults.showOsNotification, mark: mark),
             playSound: boolValue(json["playSound"], fallback: defaults.playSound, mark: mark),
             successSound: stringValue(json["successSound"], fallback: defaults.successSound, mark: mark),
             errorSound: stringValue(json["errorSound"], fallback: defaults.errorSound, mark: mark),
@@ -189,8 +190,10 @@ final class SettingsStore: Sendable {
             appearance: appearanceValue(json["appearance"], fallback: defaults.appearance, mark: mark),
             fontSize: fontSizeValue(json["fontSize"], fallback: defaults.fontSize, mark: mark),
             wallpaper: stringValue(json["wallpaper"], fallback: defaults.wallpaper, mark: mark),
-            wallpaperOpacity: doubleValue(json["wallpaperOpacity"], min: 0, max: 1, fallback: defaults.wallpaperOpacity, mark: mark),
-            wallpaperBackgroundColor: colorValue(json["wallpaperBackgroundColor"], fallback: defaults.wallpaperBackgroundColor, mark: mark)
+            wallpaperOpacity: doubleValue(
+                json["wallpaperOpacity"], min: 0, max: 1, fallback: defaults.wallpaperOpacity, mark: mark),
+            wallpaperBackgroundColor: colorValue(
+                json["wallpaperBackgroundColor"], fallback: defaults.wallpaperBackgroundColor, mark: mark)
         )
     }
 
@@ -218,7 +221,8 @@ final class SettingsStore: Sendable {
             format: validatedFormat(json["format"], fallback: defaults.format, mark: mark),
             optimizeType: validatedOptimizeType(json["optimizeType"], fallback: defaults.optimizeType, mark: mark),
             quality: intValue(json["quality"], min: 1, max: 100, fallback: defaults.quality, mark: mark),
-            parallelCount: intValue(json["parallelCount"], min: 1, max: maxParallel, fallback: defaults.parallelCount, mark: mark),
+            parallelCount: intValue(
+                json["parallelCount"], min: 1, max: maxParallel, fallback: defaults.parallelCount, mark: mark),
             inputFolderPath: optionalPath(json["inputFolderPath"]),
             outputFolderPath: optionalPath(json["outputFolderPath"])
         )
@@ -240,7 +244,8 @@ final class SettingsStore: Sendable {
             format: validatedFormat(json["format"], fallback: defaults.format, mark: mark),
             optimizeType: validatedOptimizeType(json["optimizeType"], fallback: defaults.optimizeType, mark: mark),
             quality: intValue(json["quality"], min: 1, max: 100, fallback: defaults.quality, mark: mark),
-            parallelCount: intValue(json["parallelCount"], min: 1, max: maxParallel, fallback: defaults.parallelCount, mark: mark),
+            parallelCount: intValue(
+                json["parallelCount"], min: 1, max: maxParallel, fallback: defaults.parallelCount, mark: mark),
             outputFolderPath: optionalPath(json["outputFolderPath"])
         )
     }
