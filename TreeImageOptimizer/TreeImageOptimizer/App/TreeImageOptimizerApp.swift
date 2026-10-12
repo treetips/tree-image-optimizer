@@ -22,6 +22,7 @@ struct TreeImageOptimizerApp: App {
             )
             .frame(minWidth: 800, minHeight: 600)
         }
+        .defaultSize(width: 900, height: 900)
         .windowStyle(.automatic)
         .commands {
             CommandGroup(after: .appInfo) {
