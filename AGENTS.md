@@ -27,7 +27,7 @@
 - Swift/Xcodeはホストコンピューターにインストール済みであることを前提とする。
 
 ## コーディング規約
-- コミットメッセージは [Conventional Commits](https://www.conventionalcommits.org/ja/v1.0.0/) に準拠し、日本語で記述。
+- コミットメッセージは [Conventional Commits](https://www.conventionalcommits.org/ja/v1.0.0/) に準拠し、日本語で記述。Pull Requestのタイトルも同様。
 - mainブランチへの直接pushは禁止。必ずfeatureブランチからPRを作成。
 
 ## 禁止事項
