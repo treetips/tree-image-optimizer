@@ -7,7 +7,6 @@ import SwiftUI
 struct ConvertView: View {
     @State private var viewModel: ConvertViewModel
     private let jobStore: ConvertJobStore
-    @State private var hoveredFileRowID: UUID?
     @Environment(\.locale) private var locale
 
     init(jobStore: ConvertJobStore) {
@@ -246,37 +245,13 @@ struct ConvertView: View {
                                     .appFont(.headline)
                             }
                             Table(viewModel.filteredRows(for: jobStore.rows)) {
-                                TableColumn(t("c.col.fileName")) {
-                                    row in
-                                    Button {
-                                        NSWorkspace.shared.activateFileViewerSelecting([
-                                            URL(fileURLWithPath: row.sourcePath)
-                                        ])
-                                    } label: {
-                                        Text(row.fileName)
-                                            .appFont(.body)
-                                            .foregroundStyle(
-                                                hoveredFileRowID == row.id ? Color.accentColor : Color.primary
-                                            )
-                                            .underline(hoveredFileRowID == row.id)
-                                            // Tableは外部状態の変化でセルを再描画しないため、
-                                            // ホバー有無を同一性に含めて更新を強制する。
-                                            .id(hoveredFileRowID == row.id)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .contentShape(Rectangle())
-                                    .help(t("c.help.fileName"))
-                                    // セルの作り直し時にも exit が飛ぶため、ここでは状態を消さない。
-                                    // 消去は表全体の exit でのみ行う。
-                                    .onHover { hovering in
-                                        if hovering {
-                                            hoveredFileRowID = row.id
-                                            NSCursor.pointingHand.push()
-                                        } else {
-                                            NSCursor.pop()
-                                        }
-                                    }
+                                TableColumn(t("c.col.fileName")) { row in
+                                    Text(row.fileName).appFont(.body)
                                 }
+                                TableColumn(t("c.col.before")) { row in
+                                    FileLinkCell(path: row.sourcePath, missingMessage: t("c.missingFile"))
+                                }
+                                .width(min: 30, ideal: 40, max: 50)
                                 TableColumn(t("c.col.upscale")) { row in
                                     Text(row.upscale.label(language: lang)).appFont(.body)
                                 }
@@ -284,30 +259,17 @@ struct ConvertView: View {
                                 TableColumn(t("c.col.compress")) { row in
                                     Text(row.compress.label(language: lang)).appFont(.body)
                                 }
-                                .width(min: 40, ideal: 62, max: 90)
+                                .width(min: 40, ideal: 52, max: 90)
                                 TableColumn(t("c.col.output")) { row in
                                     Text(row.output.label(language: lang)).appFont(.body)
                                 }
-                                .width(min: 40, ideal: 62, max: 90)
+                                .width(min: 40, ideal: 52, max: 90)
+                                TableColumn(t("c.col.after")) { row in
+                                    FileLinkCell(path: row.outputPath, missingMessage: t("c.missingFile"))
+                                }
+                                .width(min: 30, ideal: 40, max: 50)
                             }
                             .frame(minHeight: 360)
-                            // ポインターが表全体から外れたときだけホバーを消す。
-                            .onHover { hovering in
-                                if !hovering {
-                                    hoveredFileRowID = nil
-                                }
-                            }
-                            // ファイル名ヘッダーの右にℹ️を重ねる。
-                            // TableColumnにヘッダービュー指定APIがないため、
-                            // 見出しと同文言の非表示テキストで位置合わせする。
-                            .overlay(alignment: .topLeading) {
-                                HStack(spacing: 4) {
-                                    Text(t("c.col.fileName")).appFont(.body).hidden()
-                                    HelpPopover(text: t("c.help.fileName"))
-                                }
-                                .padding(.leading, 12)
-                                .padding(.top, 2)
-                            }
                         }
                         .padding(.vertical, 4)
                     } label: {
@@ -362,6 +324,34 @@ struct ConvertView: View {
             }
         }
         .navigationTitle(t("c.navTitle"))
+    }
+}
+
+/// 変換前後の画像をFinderで表示するリンクセル。
+/// ファイルが存在しない場合はポップオーバーで通知する（Why not: 選択するとFinderが空振りするため）。
+private struct FileLinkCell: View {
+    var path: String
+    var missingMessage: String
+
+    @State private var showsMissing = false
+
+    var body: some View {
+        Button {
+            let url = URL(fileURLWithPath: path)
+            if FileManager.default.fileExists(atPath: url.path) {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            } else {
+                showsMissing = true
+            }
+        } label: {
+            Text("🔗").appFont(.body)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showsMissing) {
+            Text(missingMessage)
+                .appFont(.body)
+                .padding()
+        }
     }
 }
 

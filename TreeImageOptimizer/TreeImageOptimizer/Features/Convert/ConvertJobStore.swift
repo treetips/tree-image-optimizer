@@ -40,6 +40,24 @@ final class ConvertJobStore {
         self.maxParallel = max(1, ProcessInfo.processInfo.processorCount)
     }
 
+    /// 進捗表の初期行を組み立てる。実行前の待機中状態で、変換前後のフルパスを保持する。
+    /// 出力パスは実行時と同じ命名（`outputFileName`）で先に確定させる（Why not: 実行後に都度計算すると表の再描画ごとに組み立てが必要になる）。
+    static func makeRows(files: [URL], format: OutputFormat, outputDirectory: URL) -> [FileRow] {
+        files.map { file in
+            FileRow(
+                fileName: file.lastPathComponent,
+                sourcePath: file.path,
+                outputPath: outputDirectory.appendingPathComponent(
+                    ConvertOrchestrator.outputFileName(for: file.lastPathComponent, format: format),
+                    isDirectory: false
+                ).path,
+                upscale: .waiting,
+                compress: .waiting,
+                output: .waiting
+            )
+        }
+    }
+
     /// 変換を開始する。実行中は受け付けない。
     func start(files: [URL], config: ConvertConfig, outputDirectory: URL) {
         guard !isRunning else { return }
@@ -73,11 +91,7 @@ final class ConvertJobStore {
             isRunning = false
             elapsedMinutes = Date().timeIntervalSince(started) / 60.0
         }
-        rows = files.map {
-            FileRow(
-                fileName: $0.lastPathComponent, sourcePath: $0.path, upscale: .waiting,
-                compress: .waiting, output: .waiting)
-        }
+        rows = Self.makeRows(files: files, format: config.format, outputDirectory: outputDirectory)
         let (success, failure) = await orchestrator.run(
             files: files, config: config, outputDirectory: outputDirectory, paths: paths
         ) { [weak self] outcome in

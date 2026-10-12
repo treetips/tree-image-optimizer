@@ -98,6 +98,8 @@ struct FileRow: Identifiable {
     var fileName: String
     /// 変換対象ファイルのフルパス。Finder表示に使う。
     var sourcePath: String = ""
+    /// 変換後ファイルのフルパス。Finder表示に使う。
+    var outputPath: String = ""
     var upscale: ProcessStatus
     var compress: ProcessStatus
     var output: ProcessStatus
