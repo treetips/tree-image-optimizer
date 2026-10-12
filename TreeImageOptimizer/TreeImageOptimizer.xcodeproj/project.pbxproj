@@ -35,6 +35,7 @@
 		E40000000000000000000009 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000009 /* AppThemeTests.swift */; };
 		E40000000000000000000011 /* SliderLoadLevelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000011 /* SliderLoadLevelTests.swift */; };
 		E40000000000000000000012 /* GlassCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000012 /* GlassCardTests.swift */; };
+		E40000000000000000000013 /* ConvertJobStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000013 /* ConvertJobStoreTests.swift */; };
 		E40000000000000000000008 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* Localizable.xcstrings */; };
 		E30000000000000000000002 /* AppInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000002 /* AppInfo.swift */; };
 		E30000000000000000000003 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000003 /* AppPaths.swift */; };
@@ -93,6 +94,7 @@
 		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000011 /* SliderLoadLevelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderLoadLevelTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000012 /* GlassCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCardTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000013 /* ConvertJobStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertJobStoreTests.swift; sourceTree = "<group>"; };
 		F30000000000000000000003 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		F30000000000000000000004 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		F30000000000000000000005 /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
@@ -178,6 +180,7 @@
 				F40000000000000000000011 /* SliderLoadLevelTests.swift */,
 				F40000000000000000000010 /* EasyConvertTests.swift */,
 				F40000000000000000000012 /* GlassCardTests.swift */,
+				F40000000000000000000013 /* ConvertJobStoreTests.swift */,
 			);
 			path = TreeImageOptimizerTests;
 			sourceTree = "<group>";
@@ -393,6 +396,7 @@
 				E40000000000000000000011 /* SliderLoadLevelTests.swift in Sources */,
 				E40000000000000000000010 /* EasyConvertTests.swift in Sources */,
 				E40000000000000000000012 /* GlassCardTests.swift in Sources */,
+				E40000000000000000000013 /* ConvertJobStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

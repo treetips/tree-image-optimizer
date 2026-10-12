@@ -452,6 +452,40 @@
         }
       }
     },
+    "c.col.after" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後"
+          }
+        }
+      }
+    },
+    "c.col.before" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Before"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前"
+          }
+        }
+      }
+    },
     "c.col.compress" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -826,23 +860,6 @@
         }
       }
     },
-    "c.help.fileName" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Click to show the file in Finder."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "クリックするとFinderで表示します"
-          }
-        }
-      }
-    },
     "c.help.format" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1128,6 +1145,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "対象フォルダ"
+          }
+        }
+      }
+    },
+    "c.missingFile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file does not exist."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルが存在しません"
           }
         }
       }
