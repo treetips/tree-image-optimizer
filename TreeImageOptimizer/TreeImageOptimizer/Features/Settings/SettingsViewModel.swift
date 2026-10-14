@@ -32,6 +32,72 @@ final class SettingsViewModel {
     var wallpaper: String = WallpaperSelection.noneName {
         didSet { save() }
     }
+    var wallpaperRandom: Bool = false {
+        didSet {
+            save()
+            updateWallpaperShuffleTimer()
+        }
+    }
+    var wallpaperShuffleInterval: Int = 1 {
+        didSet {
+            save()
+            updateWallpaperShuffleTimer()
+        }
+    }
+    // 別名 (互換用)。いずれも `wallpaperRandom` / `wallpaperShuffleInterval` の読み書きに委譲する。
+    var wallpaperShuffle: Bool {
+        get { wallpaperRandom }
+        set { wallpaperRandom = newValue }
+    }
+    var randomWallpaper: Bool {
+        get { wallpaperRandom }
+        set { wallpaperRandom = newValue }
+    }
+    var shuffleWallpaper: Bool {
+        get { wallpaperRandom }
+        set { wallpaperRandom = newValue }
+    }
+    var shuffleEnabled: Bool {
+        get { wallpaperRandom }
+        set { wallpaperRandom = newValue }
+    }
+    var wallpaperShuffleEnabled: Bool {
+        get { wallpaperRandom }
+        set { wallpaperRandom = newValue }
+    }
+    var isRandom: Bool {
+        get { wallpaperRandom }
+        set { wallpaperRandom = newValue }
+    }
+    var isShuffle: Bool {
+        get { wallpaperRandom }
+        set { wallpaperRandom = newValue }
+    }
+    var wallpaperShuffleMinutes: Int {
+        get { wallpaperShuffleInterval }
+        set { wallpaperShuffleInterval = newValue }
+    }
+    var wallpaperRandomInterval: Int {
+        get { wallpaperShuffleInterval }
+        set { wallpaperShuffleInterval = newValue }
+    }
+    var shuffleInterval: Int {
+        get { wallpaperShuffleInterval }
+        set { wallpaperShuffleInterval = newValue }
+    }
+    var shuffleMinutes: Int {
+        get { wallpaperShuffleInterval }
+        set { wallpaperShuffleInterval = newValue }
+    }
+    var wallpaperShuffleTime: Int {
+        get { wallpaperShuffleInterval }
+        set { wallpaperShuffleInterval = newValue }
+    }
+    var wallpaperShuffleIntervalMinutes: Int {
+        get { wallpaperShuffleInterval }
+        set { wallpaperShuffleInterval = newValue }
+    }
+
     var wallpapers: [WallpaperOption] = []
     var wallpaperOpacity: Double = 1.0 {
         didSet { save() }
@@ -112,6 +178,7 @@ final class SettingsViewModel {
     private let wallpaperService: WallpaperService
     private let notificationService: NotificationService
     private var audioPlayer: AVAudioPlayer?
+    private nonisolated(unsafe) var wallpaperShuffleTimer: Timer?
 
     init(
         store: SettingsStore? = nil, soundService: SoundService? = nil, wallpaperService: WallpaperService? = nil,
@@ -163,6 +230,9 @@ final class SettingsViewModel {
             [WallpaperOption(name: WallpaperSelection.noneName, isBundled: false)]
             + wallpaperService.listWallpapers()
         wallpaper = wallpaperService.resolveSelected(s.wallpaper, options: wallpapers)
+        // シャッフル設定を復元する。wallpapers設定後に代入し、タイマーが候補を参照できるようにする。
+        wallpaperRandom = s.wallpaperRandom
+        wallpaperShuffleInterval = s.wallpaperShuffleInterval
         // 保存値が一覧に無い場合の解決で「背景無し」が選ばれることはないため、
         // 不正値はサービス側フォールバックに任せる。
     }
@@ -180,6 +250,21 @@ final class SettingsViewModel {
         updated.settings.wallpaper = wallpaper
         updated.settings.wallpaperOpacity = wallpaperOpacity
         updated.settings.wallpaperBackgroundColor = wallpaperBackgroundColorHex
+        updated.settings.wallpaperRandom = wallpaperRandom
+        updated.settings.wallpaperShuffle = wallpaperRandom
+        updated.settings.wallpaperShuffleEnabled = wallpaperRandom
+        updated.settings.randomWallpaper = wallpaperRandom
+        updated.settings.shuffleWallpaper = wallpaperRandom
+        updated.settings.shuffleEnabled = wallpaperRandom
+        updated.settings.isRandom = wallpaperRandom
+        updated.settings.isShuffle = wallpaperRandom
+        updated.settings.wallpaperShuffleInterval = wallpaperShuffleInterval
+        updated.settings.wallpaperShuffleMinutes = wallpaperShuffleInterval
+        updated.settings.wallpaperRandomInterval = wallpaperShuffleInterval
+        updated.settings.shuffleInterval = wallpaperShuffleInterval
+        updated.settings.shuffleMinutes = wallpaperShuffleInterval
+        updated.settings.wallpaperShuffleTime = wallpaperShuffleInterval
+        updated.settings.wallpaperShuffleIntervalMinutes = wallpaperShuffleInterval
         try? store.save(updated)
     }
 
@@ -187,6 +272,27 @@ final class SettingsViewModel {
     func wallpaperFileURL() -> URL? {
         if wallpaper == WallpaperSelection.noneName { return nil }
         return wallpaperService.fileURL(for: wallpaper)
+    }
+
+    /// ランダム設定に応じてシャッフルタイマーを起動/停止する。
+    private func updateWallpaperShuffleTimer() {
+        wallpaperShuffleTimer?.invalidate()
+        wallpaperShuffleTimer = nil
+        guard wallpaperRandom else { return }
+        let seconds = Double(wallpaperShuffleInterval) * 60.0
+        guard seconds > 0 else { return }
+        wallpaperShuffleTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.performWallpaperShuffle()
+            }
+        }
+    }
+
+    /// ユーザー壁紙の中からランダムに1枚を選択する。同梱壁紙は対象外。
+    private func performWallpaperShuffle() {
+        let candidates = wallpapers.filter { !$0.isBundled && $0.name != WallpaperSelection.noneName }
+        guard let chosen = candidates.randomElement() else { return }
+        wallpaper = chosen.name
     }
 
     /// Hex入力を検証し、正常値なら反映してtrueを返す。不正値なら保存せずfalseを返す。
@@ -202,6 +308,10 @@ final class SettingsViewModel {
 
     func playErrorSound() {
         play(name: errorSound, success: false)
+    }
+
+    deinit {
+        wallpaperShuffleTimer?.invalidate()
     }
 
     private func play(name: String, success: Bool) {
