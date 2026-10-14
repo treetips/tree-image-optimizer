@@ -208,8 +208,25 @@ struct SettingsView: View {
                                     }
                                 }
                                 .labelsHidden()
+                                .disabled(viewModel.wallpaperRandom)
                                 Spacer()
                                 HelpPopover(text: t("s.help.wallpaper"))
+                            }
+                        }
+                        GridRow {
+                            Text(shuffleLabel).appFont(.headline)
+                            HStack {
+                                Picker("", selection: $viewModel.wallpaperShuffleInterval) {
+                                    ForEach(shuffleIntervalOptions, id: \.self) { minutes in
+                                        Text(shuffleIntervalLabel(minutes)).appFont(.body).tag(minutes)
+                                    }
+                                }
+                                .labelsHidden()
+                                .disabled(!viewModel.wallpaperRandom)
+                                Toggle(isOn: $viewModel.wallpaperRandom) {
+                                    Text(randomLabel).appFont(.body)
+                                }
+                                Spacer()
                             }
                         }
                         GridRow {
@@ -308,6 +325,32 @@ struct SettingsView: View {
         case .standard: return "textformat.size"
         case .large: return "textformat.size.larger"
         }
+    }
+
+    private var shuffleIntervalOptions: [Int] {
+        [1, 5, 15, 30, 60, 240, 720, 1440]
+    }
+
+    private func shuffleIntervalLabel(_ minutes: Int) -> String {
+        if lang.hasPrefix("ja") {
+            if minutes == 1440 { return "1日ごと" }
+            if minutes >= 60 { return "\(minutes / 60)時間ごと" }
+            return "\(minutes)分ごと"
+        } else {
+            if minutes == 1440 { return "Every day" }
+            if minutes == 60 { return "Every hour" }
+            if minutes >= 60 { return "Every \(minutes / 60) hours" }
+            if minutes == 1 { return "Every minute" }
+            return "Every \(minutes) minutes"
+        }
+    }
+
+    private var randomLabel: String {
+        lang.hasPrefix("ja") ? "ランダム" : "Random"
+    }
+
+    private var shuffleLabel: String {
+        lang.hasPrefix("ja") ? "背景画像のシャッフル" : "Wallpaper Shuffle"
     }
 
     private func parseHex(_ hex: String) -> Color? {

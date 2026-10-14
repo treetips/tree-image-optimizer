@@ -63,6 +63,37 @@ struct ScreenSettings: Codable, Equatable {
     var wallpaper: String
     var wallpaperOpacity: Double
     var wallpaperBackgroundColor: String
+    /// 壁紙をランダムにシャッフルするかどうか (checkbox label: ランダム).
+    var wallpaperRandom: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var wallpaperShuffle: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var wallpaperShuffleEnabled: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var randomWallpaper: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var shuffleWallpaper: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var shuffleEnabled: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var isRandom: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var isShuffle: Bool = false
+
+    /// シャッフル間隔 (分). 1/5/15/30/60/240/720/1440 のいずれか.
+    var wallpaperShuffleInterval: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var wallpaperShuffleMinutes: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var wallpaperRandomInterval: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var shuffleInterval: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var shuffleMinutes: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var wallpaperShuffleTime: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var wallpaperShuffleIntervalMinutes: Int = 1
 
     static func defaults() -> ScreenSettings {
         ScreenSettings(
@@ -75,7 +106,22 @@ struct ScreenSettings: Codable, Equatable {
             fontSize: FontSizeOption.standard.rawValue,
             wallpaper: WallpaperSelection.noneName,
             wallpaperOpacity: 1.0,
-            wallpaperBackgroundColor: "#1E1E1E"
+            wallpaperBackgroundColor: "#1E1E1E",
+            wallpaperRandom: false,
+            wallpaperShuffle: false,
+            wallpaperShuffleEnabled: false,
+            randomWallpaper: false,
+            shuffleWallpaper: false,
+            shuffleEnabled: false,
+            isRandom: false,
+            isShuffle: false,
+            wallpaperShuffleInterval: 1,
+            wallpaperShuffleMinutes: 1,
+            wallpaperRandomInterval: 1,
+            shuffleInterval: 1,
+            shuffleMinutes: 1,
+            wallpaperShuffleTime: 1,
+            wallpaperShuffleIntervalMinutes: 1
         )
     }
 }
@@ -180,6 +226,22 @@ final class SettingsStore: Sendable {
             mark()
             return defaults
         }
+        // シャッフル関連の真偽値と間隔は複数のキー名を許容し、最初に見つかった値を採用する。
+        // デフォルト名だけでなく旧/別名からの値も統合するため、すべて同じ値に揃える。
+        let shuffleBoolRaw =
+            json["wallpaperRandom"] ?? json["wallpaperShuffle"] ?? json["randomWallpaper"]
+            ?? json["shuffleWallpaper"] ?? json["shuffleEnabled"] ?? json["wallpaperShuffleEnabled"]
+            ?? json["isRandom"] ?? json["isShuffle"]
+        let shuffleBool = boolValue(
+            shuffleBoolRaw, fallback: defaults.wallpaperRandom, mark: mark)
+        let shuffleIntervalRaw =
+            json["wallpaperShuffleInterval"] ?? json["wallpaperShuffleMinutes"]
+            ?? json["wallpaperRandomInterval"] ?? json["shuffleInterval"]
+            ?? json["shuffleMinutes"] ?? json["wallpaperShuffleTime"]
+            ?? json["wallpaperShuffleIntervalMinutes"]
+        let shuffleInterval = intValue(
+            shuffleIntervalRaw, min: 1, max: 1440, fallback: defaults.wallpaperShuffleInterval,
+            mark: mark)
         return ScreenSettings(
             showOsNotification: boolValue(
                 json["showOsNotification"], fallback: defaults.showOsNotification, mark: mark),
@@ -193,7 +255,22 @@ final class SettingsStore: Sendable {
             wallpaperOpacity: doubleValue(
                 json["wallpaperOpacity"], min: 0, max: 1, fallback: defaults.wallpaperOpacity, mark: mark),
             wallpaperBackgroundColor: colorValue(
-                json["wallpaperBackgroundColor"], fallback: defaults.wallpaperBackgroundColor, mark: mark)
+                json["wallpaperBackgroundColor"], fallback: defaults.wallpaperBackgroundColor, mark: mark),
+            wallpaperRandom: shuffleBool,
+            wallpaperShuffle: shuffleBool,
+            wallpaperShuffleEnabled: shuffleBool,
+            randomWallpaper: shuffleBool,
+            shuffleWallpaper: shuffleBool,
+            shuffleEnabled: shuffleBool,
+            isRandom: shuffleBool,
+            isShuffle: shuffleBool,
+            wallpaperShuffleInterval: shuffleInterval,
+            wallpaperShuffleMinutes: shuffleInterval,
+            wallpaperRandomInterval: shuffleInterval,
+            shuffleInterval: shuffleInterval,
+            shuffleMinutes: shuffleInterval,
+            wallpaperShuffleTime: shuffleInterval,
+            wallpaperShuffleIntervalMinutes: shuffleInterval
         )
     }
 
