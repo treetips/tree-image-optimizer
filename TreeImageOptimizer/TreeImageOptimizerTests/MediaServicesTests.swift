@@ -73,6 +73,38 @@ struct MediaServicesTests {
         #expect(service.resolveSelected("gone.mp3", options: list) == "a.mp3")
     }
 
+    @Test("ランダム抽選はユーザー配置サウンドのみ対象")
+    func randomPlaybackOption() throws {
+        let (bundled, user) = try makeDirs()
+        let success = bundled.appendingPathComponent("success", isDirectory: true)
+        try FileManager.default.createDirectory(at: success, withIntermediateDirectories: true)
+        touch(success.appendingPathComponent("sample.mp3"))
+        let userSuccess = user.appendingPathComponent("success", isDirectory: true)
+        try FileManager.default.createDirectory(at: userSuccess, withIntermediateDirectories: true)
+        touch(userSuccess.appendingPathComponent("user1.mp3"))
+        touch(userSuccess.appendingPathComponent("user2.mp3"))
+        let service = SoundService(bundledBaseURL: bundled, userBaseURL: user)
+        // ランダム無効時は選択中のサウンド
+        let fixed = service.resolvePlaybackOption(success: true, name: "sample.mp3", random: false)
+        #expect(fixed?.name == "sample.mp3")
+        // ランダム有効時は同梱サンプルが選ばれない
+        for _ in 0..<20 {
+            let chosen = service.resolvePlaybackOption(success: true, name: "sample.mp3", random: true)
+            #expect(chosen?.name == "user1.mp3" || chosen?.name == "user2.mp3")
+        }
+    }
+
+    @Test("ユーザー配置が無い場合ランダムは選択中のサウンドへフォールバック")
+    func randomPlaybackOptionFallback() throws {
+        let (bundled, user) = try makeDirs()
+        let success = bundled.appendingPathComponent("success", isDirectory: true)
+        try FileManager.default.createDirectory(at: success, withIntermediateDirectories: true)
+        touch(success.appendingPathComponent("sample.mp3"))
+        let service = SoundService(bundledBaseURL: bundled, userBaseURL: user)
+        let chosen = service.resolvePlaybackOption(success: true, name: "sample.mp3", random: true)
+        #expect(chosen?.name == "sample.mp3")
+    }
+
     @Test("アップデート比較")
     func updateComparison() {
         let info = UpdateInfo(version: "0.1.0", build: 2, url: "https://example.com/a.zip", sha256: "x")
