@@ -18,6 +18,14 @@ final class SettingsViewModel {
     var errorSound: String = "beep1.mp3" {
         didSet { save() }
     }
+    /// 成功時サウンドをランダム再生するか (checkbox label: ランダム)。
+    var successSoundRandom: Bool = false {
+        didSet { save() }
+    }
+    /// 失敗時サウンドをランダム再生するか (checkbox label: ランダム)。
+    var errorSoundRandom: Bool = false {
+        didSet { save() }
+    }
     var successSounds: [SoundOption] = []
     var errorSounds: [SoundOption] = []
     var language: String = "" {
@@ -225,6 +233,8 @@ final class SettingsViewModel {
         errorSound = soundService.resolveSelected(
             s.errorSound, options: errorOptions
         )
+        successSoundRandom = s.successSoundRandom
+        errorSoundRandom = s.errorSoundRandom
         // プルダウン先頭に「背景無し」を追加する。
         wallpapers =
             [WallpaperOption(name: WallpaperSelection.noneName, isBundled: false)]
@@ -244,6 +254,8 @@ final class SettingsViewModel {
         updated.settings.playSound = playSound
         updated.settings.successSound = successSound
         updated.settings.errorSound = errorSound
+        updated.settings.successSoundRandom = successSoundRandom
+        updated.settings.errorSoundRandom = errorSoundRandom
         updated.settings.language = language
         updated.settings.appearance = appearance
         updated.settings.fontSize = fontSize

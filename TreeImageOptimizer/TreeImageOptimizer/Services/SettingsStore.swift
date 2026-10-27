@@ -57,6 +57,10 @@ struct ScreenSettings: Codable, Equatable {
     var playSound: Bool
     var successSound: String
     var errorSound: String
+    /// 成功時サウンドをランダム再生するか (checkbox label: ランダム).
+    var successSoundRandom: Bool = false
+    /// 失敗時サウンドをランダム再生するか (checkbox label: ランダム).
+    var errorSoundRandom: Bool = false
     var language: String
     var appearance: String
     var fontSize: String
@@ -101,6 +105,8 @@ struct ScreenSettings: Codable, Equatable {
             playSound: false,
             successSound: "assets/sounds/success/decision49.mp3",
             errorSound: "assets/sounds/error/beep1.mp3",
+            successSoundRandom: false,
+            errorSoundRandom: false,
             language: "",
             appearance: AppearanceMode.auto.rawValue,
             fontSize: FontSizeOption.standard.rawValue,
@@ -226,14 +232,8 @@ final class SettingsStore: Sendable {
             mark()
             return defaults
         }
-        // シャッフル関連の真偽値と間隔は複数のキー名を許容し、最初に見つかった値を採用する。
-        // デフォルト名だけでなく旧/別名からの値も統合するため、すべて同じ値に揃える。
-        let shuffleBoolRaw =
-            json["wallpaperRandom"] ?? json["wallpaperShuffle"] ?? json["randomWallpaper"]
-            ?? json["shuffleWallpaper"] ?? json["shuffleEnabled"] ?? json["wallpaperShuffleEnabled"]
-            ?? json["isRandom"] ?? json["isShuffle"]
-        let shuffleBool = boolValue(
-            shuffleBoolRaw, fallback: defaults.wallpaperRandom, mark: mark)
+        // シャッフル関連の間隔は複数のキー名を許容し、最初に見つかった値を採用する。
+        let shuffleBool = wallpaperShuffleBoolValue(json, defaults: defaults, mark: mark)
         let shuffleIntervalRaw =
             json["wallpaperShuffleInterval"] ?? json["wallpaperShuffleMinutes"]
             ?? json["wallpaperRandomInterval"] ?? json["shuffleInterval"]
@@ -248,6 +248,10 @@ final class SettingsStore: Sendable {
             playSound: boolValue(json["playSound"], fallback: defaults.playSound, mark: mark),
             successSound: stringValue(json["successSound"], fallback: defaults.successSound, mark: mark),
             errorSound: stringValue(json["errorSound"], fallback: defaults.errorSound, mark: mark),
+            successSoundRandom: boolValue(
+                json["successSoundRandom"], fallback: defaults.successSoundRandom, mark: mark),
+            errorSoundRandom: boolValue(
+                json["errorSoundRandom"], fallback: defaults.errorSoundRandom, mark: mark),
             language: languageValue(json["language"], fallback: defaults.language, mark: mark),
             appearance: appearanceValue(json["appearance"], fallback: defaults.appearance, mark: mark),
             fontSize: fontSizeValue(json["fontSize"], fallback: defaults.fontSize, mark: mark),
@@ -272,6 +276,18 @@ final class SettingsStore: Sendable {
             wallpaperShuffleTime: shuffleInterval,
             wallpaperShuffleIntervalMinutes: shuffleInterval
         )
+    }
+
+    /// 壁紙シャッフルの真偽値。複数のキー名を許容し、最初に見つかった値を採用する。
+    /// デフォルト名だけでなく旧/別名からの値も統合するため、すべて同じ値に揃える。
+    private func wallpaperShuffleBoolValue(
+        _ json: [String: Any], defaults: ScreenSettings, mark: () -> Void
+    ) -> Bool {
+        boolValue(
+            json["wallpaperRandom"] ?? json["wallpaperShuffle"] ?? json["randomWallpaper"]
+                ?? json["shuffleWallpaper"] ?? json["shuffleEnabled"] ?? json["wallpaperShuffleEnabled"]
+                ?? json["isRandom"] ?? json["isShuffle"],
+            fallback: defaults.wallpaperRandom, mark: mark)
     }
 
     func resolveBatch(
@@ -337,83 +353,5 @@ final class SettingsStore: Sendable {
         if let raw = value as? String, OptimizeType(rawValue: raw) != nil { return raw }
         mark()
         return fallback
-    }
-
-    // MARK: - Primitives
-
-    func boolValue(_ value: Any?, fallback: Bool, mark: () -> Void) -> Bool {
-        if let value = value as? Bool { return value }
-        mark()
-        return fallback
-    }
-
-    func languageValue(_ value: Any?, fallback: String, mark: () -> Void) -> String {
-        if let value = value as? String { return value }
-        mark()
-        return fallback
-    }
-
-    func appearanceValue(_ value: Any?, fallback: String, mark: () -> Void) -> String {
-        if let value = value as? String, AppearanceMode(rawValue: value) != nil { return value }
-        mark()
-        return fallback
-    }
-
-    func fontSizeValue(_ value: Any?, fallback: String, mark: () -> Void) -> String {
-        if let value = value as? String, FontSizeOption(rawValue: value) != nil { return value }
-        mark()
-        return fallback
-    }
-
-    func optionalPath(_ value: Any?) -> String? {
-        if let value = value as? String, !value.isEmpty { return value }
-        return nil
-    }
-
-    func stringValue(_ value: Any?, fallback: String, mark: () -> Void) -> String {
-        if let value = value as? String, !value.isEmpty { return value }
-        mark()
-        return fallback
-    }
-
-    func intValue(_ value: Any?, min: Int, max: Int, fallback: Int, mark: () -> Void) -> Int {
-        if let value = value as? Int {
-            let clamped = Swift.min(Swift.max(value, min), max)
-            if clamped != value { mark() }
-            return clamped
-        }
-        mark()
-        return fallback
-    }
-
-    func doubleValue(_ value: Any?, min: Double, max: Double, fallback: Double, mark: () -> Void) -> Double {
-        var parsed: Double?
-        if let value = value as? Double {
-            parsed = value
-        } else if let value = value as? Int {
-            parsed = Double(value)
-        } else if let value = value as? String {
-            parsed = Double(value)
-        }
-        guard let parsed else {
-            mark()
-            return fallback
-        }
-        let clamped = Swift.min(Swift.max(parsed, min), max)
-        if clamped != parsed { mark() }
-        return clamped
-    }
-
-    func colorValue(_ value: Any?, fallback: String, mark: () -> Void) -> String {
-        if let value = value as? String, Self.isValidColor(value) { return value }
-        mark()
-        return fallback
-    }
-
-    static func isValidColor(_ hex: String) -> Bool {
-        var h = hex.trimmingCharacters(in: .whitespaces)
-        if h.hasPrefix("#") { h.removeFirst() }
-        guard h.count == 6 || h.count == 8 else { return false }
-        return UInt(h, radix: 16) != nil
     }
 }

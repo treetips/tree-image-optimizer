@@ -103,10 +103,11 @@ final class EasyConvertJobStore {
             return
         }
         guard settings.playSound else { return }
-        let name = allSuccess ? settings.successSound : settings.errorSound
-        let options = soundService.listSounds(success: allSuccess)
-        let resolved = soundService.resolveSelected(name, options: options)
-        if let option = options.first(where: { $0.name == resolved }),
+        if let option = soundService.resolvePlaybackOption(
+            success: allSuccess,
+            name: allSuccess ? settings.successSound : settings.errorSound,
+            random: allSuccess ? settings.successSoundRandom : settings.errorSoundRandom
+        ),
             let player = soundService.makePlayer(for: option)
         {
             audioPlayer = player

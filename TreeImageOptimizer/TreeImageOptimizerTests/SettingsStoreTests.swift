@@ -173,4 +173,21 @@ struct SettingsStoreTests {
         #expect(!SettingsStore.isValidColor("#FFF"))
         #expect(!SettingsStore.isValidColor(""))
     }
+
+    @Test("サウンドランダム設定の初期値と保存と補正")
+    func soundRandom() throws {
+        let (store, file) = try makeStore()
+        #expect(try store.load(maxParallel: 8).settings.successSoundRandom == false)
+        #expect(try store.load(maxParallel: 8).settings.errorSoundRandom == false)
+        var saved = try store.load(maxParallel: 8)
+        saved.settings.successSoundRandom = true
+        saved.settings.errorSoundRandom = true
+        try store.save(saved)
+        let reloaded = try store.load(maxParallel: 8)
+        #expect(reloaded.settings.successSoundRandom == true)
+        #expect(reloaded.settings.errorSoundRandom == true)
+        // 不正な型はfalseへ補正する
+        try #"{"settings":{"successSoundRandom":"yes"}}"#.write(to: file, atomically: true, encoding: .utf8)
+        #expect(try store.load(maxParallel: 8).settings.successSoundRandom == false)
+    }
 }

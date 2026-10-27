@@ -83,12 +83,17 @@ struct SettingsView: View {
                                     }
                                 }
                                 .labelsHidden()
+                                .disabled(viewModel.successSoundRandom)
+                                Toggle(isOn: $viewModel.successSoundRandom) {
+                                    Text(randomLabel).appFont(.body)
+                                }
                                 Button {
                                     viewModel.playSuccessSound()
                                 } label: {
                                     Image(systemName: "play.fill")
                                 }
                                 .help(t("s.help.playThis"))
+                                .disabled(viewModel.successSoundRandom)
                                 Spacer()
                                 HelpPopover(text: t("s.help.successSound"))
                             }
@@ -102,12 +107,17 @@ struct SettingsView: View {
                                     }
                                 }
                                 .labelsHidden()
+                                .disabled(viewModel.errorSoundRandom)
+                                Toggle(isOn: $viewModel.errorSoundRandom) {
+                                    Text(randomLabel).appFont(.body)
+                                }
                                 Button {
                                     viewModel.playErrorSound()
                                 } label: {
                                     Image(systemName: "play.fill")
                                 }
                                 .help(t("s.help.playThis"))
+                                .disabled(viewModel.errorSoundRandom)
                                 Spacer()
                                 HelpPopover(text: t("s.help.errorSound"))
                             }
