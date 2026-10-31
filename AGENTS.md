@@ -22,6 +22,10 @@
 
 ## メンテナンス
 - Xcodeのバージョンは `.xcode-version` で管理する。CIはこのファイルを参照してXcodeを選択する。
+    - CIのランナーに対応するXcodeバージョンは、[actions/runner-images](https://github.com/actions/runner-images)
+      のREADMEに記載の各macOSイメージのReadme（例: `macos-latest` → `images/macos/macos-26-arm64-Readme.md`）の
+      「Xcode」テーブルで調査する。イメージ上の最新版が `.xcode-version` より新しければ更新する。
+      preview版を含む専用イメージ（`xcode-27` 等）は `macos-latest` が参照しないため対象外とする。
 - 依存はSwift Package Manager（Xcodeの `packageProductDependencies`）で管理する。
 - Swiftバージョンは `project.pbxproj` の `SWIFT_VERSION`、デプロイメントターゲットは `MACOSX_DEPLOYMENT_TARGET`（現行: macOS 26.0）で維持する。
 - Swift/Xcodeはホストコンピューターにインストール済みであることを前提とする。
