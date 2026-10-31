@@ -4,18 +4,31 @@ import Foundation
 /// アップデート確認の共通コントローラ。
 /// About画面のボタン・OSメニューバーの「更新を確認」・サイドナビ通知から共用する。
 /// 文言は設定言語に従う。
+/// サイドナビ下部の更新カードの状態。ネットワーク確認の有無をUIと切り離すため独立させる。
+@MainActor
+enum UpdateCard: Equatable {
+    /// 更新あり。クリックでインストールダイアログを開く。
+    case available(UpdateInfo)
+    /// 更新なし。クリックでカードを非表示化する。
+    case noUpdate
+}
+
 @Observable
 @MainActor
 final class UpdateCheckController {
+    /// 更新なしカードの自動非表示までの秒数。仕様は docs/design/feature/update-application.md。
+    static let noUpdateCardHideSeconds: Int64 = 10
+
     var isChecking = false
     var isInstalling = false
     var message = ""
     var latestDialog = false
     var availableInfo: UpdateInfo?
     var errorDialog: String?
-    /// サイドナビ通知用のサイレント確認結果。ダイアログは出さない。
-    var updateAvailableInfo: UpdateInfo?
+    /// サイドナビ下部の更新カード。起動時のサイレント確認結果を反映する。
+    var card: UpdateCard?
 
+    private var hideCardTask: Task<Void, Never>?
     private let updateService = UpdateService()
 
     private func language() -> String {
@@ -31,7 +44,7 @@ final class UpdateCheckController {
         return (version, build)
     }
 
-    /// 起動時などにダイアログなしで有無だけ確認し、サイドナビ通知に反映する。
+    /// 起動時などにダイアログなしで有無だけ確認し、サイドナビの更新カードに反映する。
     func refreshAvailability() {
         Task {
             let current = currentVersion()
@@ -40,12 +53,47 @@ final class UpdateCheckController {
                 currentVersion: current.version,
                 currentBuild: current.build
             )
-            if case .available(let info) = result {
-                updateAvailableInfo = info
-            } else {
-                updateAvailableInfo = nil
+            setCard(Self.resolveCard(for: result))
+        }
+    }
+
+    /// 確認結果をカード状態に解決する。更新の有無に応じて表示文言が変わる。
+    // テストから直接検証できるよう純粋関数として切り出す。
+    static func resolveCard(for result: UpdateCheckResult) -> UpdateCard {
+        if case .available(let info) = result { return .available(info) }
+        return .noUpdate
+    }
+
+    /// カードを差し替える。更新なしカードは10秒後に自動で非表示化する。
+    /// クリック等で先に非表示になった後のタイマー発火を防ぐため、差し替え時に必ず旧タイマーを止める。
+    private func setCard(_ newCard: UpdateCard) {
+        hideCardTask?.cancel()
+        hideCardTask = nil
+        card = newCard
+        if case .noUpdate = newCard {
+            hideCardTask = Task { [weak self] in
+                do {
+                    try await Task.sleep(for: .seconds(Self.noUpdateCardHideSeconds))
+                } catch {
+                    // キャンセルまたは差し替え時はタイマーを終えるだけ。
+                    return
+                }
+                self?.card = nil
             }
         }
+    }
+
+    /// 更新ありカードのクリック。サイレント確認結果を元にインストール確認ダイアログを出す。
+    func showInstallDialog() {
+        guard case .available(let info) = card else { return }
+        availableInfo = info
+    }
+
+    /// 更新なしカードのクリック。自動非表示のタイマーも止める。
+    func dismissCard() {
+        hideCardTask?.cancel()
+        hideCardTask = nil
+        card = nil
     }
 
     func checkForUpdate(language: String? = nil) {

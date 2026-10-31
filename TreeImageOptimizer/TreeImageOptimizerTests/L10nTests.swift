@@ -9,12 +9,15 @@ struct L10nTests {
     func japanese() {
         #expect(L10n.string("nav.convert", language: "ja") == "一括画像変換")
         #expect(L10n.string("menu.checkForUpdates", language: "ja-JP") == "更新を確認")
+        #expect(L10n.string("nav.updateAvailable", language: "ja") == "アップデートが有ります")
+        #expect(L10n.string("nav.updateNone", language: "ja") == "アップデートは有りません")
     }
 
     @Test("英語解決")
     func english() {
         #expect(L10n.string("nav.convert", language: "en") == "Convert")
         #expect(L10n.string("menu.checkForUpdates", language: "en-US") == "Check for Update")
+        #expect(L10n.string("nav.updateNone", language: "en") == "No update available")
     }
 
     @Test("書式付き文字列")

@@ -85,38 +85,64 @@ struct RootView: View {
                         }
                     }
                     .navigationSplitViewColumnWidth(min: 150, ideal: 180)
-                    // アップデートが有る場合のみ最下部に通知ボタンを表示する。
-                    // 背景色はOSのテーマカラー、無い場合は非表示のため背景色なし扱い。
-                    if updateCheck.updateAvailableInfo != nil {
+                    // 更新カード。更新ありはOSテーマ色（アクセント色）の背景で最下部に表示し、
+                    // クリックでインストールダイアログを出す。更新なしは背景なしで表示し、
+                    // クリックで非表示化する（10秒後の自動非表示はUpdateCheckController側）。
+                    if let card = updateCheck.card {
                         Divider()
-                        Button {
-                            updateCheck.checkForUpdate(language: settings.language)
-                        } label: {
-                            Label {
-                                Text(L10n.string("nav.updateAvailable", language: settings.language))
-                                    .font(AppTheme.font(.body, scale: fontScale))
-                            } icon: {
-                                Image(systemName: "arrow.down.circle.fill")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.accentColor)
-                            )
-                            .foregroundStyle(.white)
-                            // ホバー時はポインターカーソルにし、クリック可能と分かるようにする。
-                            .onHover { hovering in
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
+                        switch card {
+                        case .available:
+                            Button {
+                                updateCheck.showInstallDialog()
+                            } label: {
+                                updateCardLabel(
+                                    text: L10n.string("nav.updateAvailable", language: settings.language),
+                                    icon: "arrow.down.circle.fill",
+                                    fontScale: fontScale
+                                )
+                                // 更新カードはLiquid Glassで表示。背景色はOSのテーマカラー
+                                // （アクセント色）。不透明な塗りはグラスを飽和させるため半透明で重ねる。
+                                .glassEffect(
+                                    .regular
+                                        .tint(Color.accentColor.opacity(GlassStyle.updateCardTintOpacity))
+                                        .interactive(),
+                                    in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
+                                )
+                                .foregroundStyle(.white)
+                                // ホバー時はポインターカーソルにし、クリック可能と分かるようにする。
+                                .onHover { hovering in
+                                    if hovering {
+                                        NSCursor.pointingHand.push()
+                                    } else {
+                                        NSCursor.pop()
+                                    }
                                 }
                             }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                        case .noUpdate:
+                            Button {
+                                updateCheck.dismissCard()
+                            } label: {
+                                updateCardLabel(
+                                    text: L10n.string("nav.updateNone", language: settings.language),
+                                    icon: "checkmark.circle",
+                                    fontScale: fontScale
+                                )
+                                // 更新なしはLiquid Glassで透明に近い目立たない色にする。
+                                .glassEffect(
+                                    .regular
+                                        .tint(Color.accentColor.opacity(GlassStyle.updateCardNoneTintOpacity))
+                                        .interactive(),
+                                    in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
+                                )
+                                .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
                         }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
                     }
                 }
             } detail: {
@@ -291,6 +317,18 @@ struct RootView: View {
     /// サイドナビの一括変換メニュー右端に表示する進捗%。
     private var convertProgressLabel: String {
         "\(Int(convertJobStore.progressPercent))%"
+    }
+
+    /// 更新カード共通のラベル。文言とアイコンだけを受け取り、両カードで見た目の共通部分を纏める。
+    private func updateCardLabel(text: String, icon: String, fontScale: CGFloat) -> some View {
+        Label {
+            Text(text)
+                .font(AppTheme.font(.body, scale: fontScale))
+        } icon: {
+            Image(systemName: icon)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
     }
 
     /// 実行中のメニューはアイコンをローディング表示に切り替える。
