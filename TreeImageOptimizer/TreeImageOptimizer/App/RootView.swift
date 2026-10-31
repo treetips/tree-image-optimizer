@@ -108,7 +108,11 @@ struct RootView: View {
                                         .interactive(),
                                     in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
                                 )
-                                .foregroundStyle(.white)
+                                .bold()
+                                // ライト・ダークどちらのモードでも読める強調色。
+                                // 半透明のアクセントtintの上で白一色だとライトモードで
+                                // 埋もれるため、実効スキームに応じて色を選ぶ。
+                                .foregroundStyle(availableTextColor)
                                 // ホバー時はポインターカーソルにし、クリック可能と分かるようにする。
                                 .onHover { hovering in
                                     if hovering {
@@ -137,7 +141,8 @@ struct RootView: View {
                                         .interactive(),
                                     in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
                                 )
-                                .foregroundStyle(Color.accentColor)
+                                // サイドナビのメニュー項目と同じテキスト色（標準のprimary）。
+                                .foregroundStyle(.primary)
                             }
                             .buttonStyle(.plain)
                             .padding(.horizontal)
@@ -312,6 +317,13 @@ struct RootView: View {
 
     private var fontScale: CGFloat {
         AppTheme.fontScale(for: settings.fontSize)
+    }
+
+    /// 更新ありカードのテキスト色。OSテーマカラー（半透明アクセントtint）の上で
+    /// ライト・ダークどちらのモードでも強調して見える色にする。
+    /// 自動モードは `appearanceScheme` で実効スキームに解決済み。
+    private var availableTextColor: Color {
+        appearanceScheme == .dark ? .white : Color(nsColor: .textColor)
     }
 
     /// サイドナビの一括変換メニュー右端に表示する進捗%。
