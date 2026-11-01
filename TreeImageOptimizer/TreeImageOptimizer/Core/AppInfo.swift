@@ -4,6 +4,7 @@ import Foundation
 /// ツールバージョン定数。
 enum AppInfo {
     static let upscalBinVersion = "upscayl-bin-20251207-174704"
+    static let realcuganVersion = "realcugan-ncnn-vulkan-20220728"
     static let jpegVersion = "v1.5.6"
     static let pngVersion = "v0.5.4"
     static let jpegXlVersion = "v0.12.0"
@@ -31,8 +32,8 @@ enum AppInfo {
 
     static var toolVersions: [(binary: String, version: String)] {
         [
-            ("upscal-bin", upscalBinVersion),
-            ("upscal models", ""),
+            ("upscayl-bin", upscalBinVersion),
+            ("Real-CUGAN", realcuganVersion),
             ("JPEG (jpegoptim)", jpegVersion),
             ("PNG (pngoptim)", pngVersion),
             ("JPEG XL (libjxl)", jpegXlVersion),

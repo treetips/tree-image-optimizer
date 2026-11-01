@@ -24,12 +24,57 @@ final class ConvertViewModel {
         didSet { saveConvert() }
     }
     var scale: Double = 2 {
-        didSet { saveConvert() }
+        didSet {
+            syncRealCuganModelForScale()
+            saveConvert()
+        }
     }
     var selectedModel: String = "realesr-animevideov3-x4" {
         didSet { saveConvert() }
     }
     var models: [String] = ["realesr-animevideov3-x4"]
+    /// アップスケーラーのエンジン。切替時に拡大率の範囲とモデル一覧を同期する。
+    var engine: UpscaleEngine = .upscayl {
+        didSet {
+            guard engine != oldValue else { return }
+            syncEngineChange()
+            saveConvert()
+        }
+    }
+    /// Real-CUGANのモデルID（`models-se/up2x-conservative` 形式）。
+    var selectedRealCuganModel: String = "models-se/up2x-conservative" {
+        didSet { saveConvert() }
+    }
+    /// Real-CUGANのカタログ。初期化時に `tools/realcugan` を走査して作る。
+    private(set) var realCuganModels: [RealCUGANModel] = []
+    /// Real-CUGANが実行可能か。未配置（任意ツール）の場合はfalseで実行を無効化する。
+    private(set) var realCuganAvailable: Bool = false
+
+    /// エンジンごとのスライダー範囲。Real-CUGANは2〜4（1xモデルが存在しないため）。
+    var scaleRange: ClosedRange<Double> { engine.scaleRange }
+
+    /// 選択中エンジンのモデル選択肢。現在の拡大率に合うものだけを示す。
+    var modelOptions: [UpscaleModelOption] {
+        if engine == .realCUGAN {
+            return RealCUGANModels.models(models: realCuganModels, scale: Int(scale))
+                .map { UpscaleModelOption(id: $0.id, label: $0.label) }
+        }
+        return models.map { UpscaleModelOption(id: $0, label: $0) }
+    }
+
+    /// 現在選択中のモデルID。エンジンごとに保存先が異なる。
+    var selectedModelID: String {
+        engine == .realCUGAN ? selectedRealCuganModel : selectedModel
+    }
+
+    /// モデルを選択する。エンジンごとの保存先へ書き込む。
+    func selectModel(id: String) {
+        if engine == .realCUGAN {
+            selectedRealCuganModel = id
+        } else {
+            selectedModel = id
+        }
+    }
     var format: OutputFormat = .jpegXL {
         didSet { saveConvert() }
     }
@@ -64,12 +109,14 @@ final class ConvertViewModel {
     }
 
     /// 実行ボタンの活性条件。ジョブ実行中は非活性になる。
+    /// Real-CUGAN選択時はツールが揃っていることも条件にする。
     var canRun: Bool {
         !jobStore.isRunning
             && !inputFolderPath.isEmpty
             && !outputFolderPath.isEmpty
             && !inputFolderHasError
             && !outputFolderHasError
+            && (engine != .realCUGAN || realCuganAvailable)
     }
 
     private let paths: AppPaths
@@ -84,11 +131,42 @@ final class ConvertViewModel {
         self.store = store ?? SettingsStore(paths: paths)
         self.jobStore = jobStore ?? ConvertJobStore(paths: paths, store: self.store)
         maxParallel = Double(max(1, ProcessInfo.processInfo.processorCount))
+        loadRealCuganCatalog()
         loadPersisted()
         models = TargetFiles.listModels(in: paths.upscalModelsURL)
         if !models.contains(selectedModel), let first = models.first {
             selectedModel = first
         }
+        applyRealCuganResolution()
+    }
+
+    /// Real-CUGANのカタログと利用可否を読む。設定より先に行い、後続の解決に使う。
+    private func loadRealCuganCatalog() {
+        realCuganModels = RealCUGANModels.catalog(in: paths.realCuganRootURL)
+        realCuganAvailable =
+            !realCuganModels.isEmpty
+            && FileManager.default.fileExists(atPath: paths.realCuganBinURL.path)
+    }
+
+    /// 保存済みReal-CUGANモデルIDをカタログに解決し、見つからなければ補正する。
+    private func applyRealCuganResolution() {
+        let resolved = RealCUGANModels.resolve(
+            id: selectedRealCuganModel, catalog: realCuganModels, scale: Int(scale))
+        selectedRealCuganModel = resolved.id
+    }
+
+    /// エンジン切替時の同期。拡大率を範囲へクランプし、モデル選択を復元する。
+    private func syncEngineChange() {
+        scale = min(max(scale, scaleRange.lowerBound), scaleRange.upperBound)
+        applyRealCuganResolution()
+    }
+
+    /// Real-CUGAN選択中に拡大率が変わったとき、対応する拡大率のモデルへ切替える。
+    private func syncRealCuganModelForScale() {
+        guard engine == .realCUGAN else { return }
+        let current = RealCUGANModel.parse(selectedRealCuganModel)
+        if current?.scale == Int(scale) { return }
+        applyRealCuganResolution()
     }
 
     private func loadPersisted() {
@@ -97,6 +175,8 @@ final class ConvertViewModel {
         if let filter = TargetFilter(rawValue: c.targetFilter) { targetFilter = filter }
         scale = Double(c.scale)
         selectedModel = c.model
+        if let engineValue = UpscaleEngine(rawValue: c.engine) { engine = engineValue }
+        selectedRealCuganModel = c.realCuganModel
         if let format = OutputFormat(rawValue: c.format) { self.format = format }
         if let type = OptimizeType(rawValue: c.optimizeType) { optimizeType = type }
         quality = Double(c.quality)
@@ -118,6 +198,10 @@ final class ConvertViewModel {
         updated.batch.parallelCount = Int(parallelCount)
         updated.batch.inputFolderPath = inputFolderPath.isEmpty ? nil : inputFolderPath
         updated.batch.outputFolderPath = outputFolderPath.isEmpty ? nil : outputFolderPath
+        // Real-CUGANは拡大率2〜4のため、モデルの拡大率と揃える。
+        if engine == .realCUGAN { updated.batch.scale = Int(scale) }
+        updated.batch.engine = engine.rawValue
+        updated.batch.realCuganModel = selectedRealCuganModel
         try? store.save(updated)
     }
 
@@ -143,13 +227,16 @@ final class ConvertViewModel {
         } catch {
             return
         }
+        let realCuganModel = RealCUGANModel.parse(selectedRealCuganModel)
         let config = ConvertConfig(
             scale: Int(scale),
             model: selectedModel,
             format: format,
             optimizeType: optimizeType,
             quality: Int(quality),
-            parallelCount: Int(parallelCount)
+            parallelCount: Int(parallelCount),
+            engine: engine,
+            realCuganModel: engine == .realCUGAN ? realCuganModel : nil
         )
         jobStore.start(files: files, config: config, outputDirectory: outputURL)
     }

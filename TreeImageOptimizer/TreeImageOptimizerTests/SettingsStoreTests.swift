@@ -22,6 +22,10 @@ struct SettingsStoreTests {
         #expect(loaded.batch.quality == 80)
         #expect(loaded.easy.format == OutputFormat.jpegXL.rawValue)
         #expect(loaded.easy.outputFolderPath == nil)
+        #expect(loaded.batch.engine == "upscayl")
+        #expect(loaded.batch.realCuganModel == "models-se/up2x-conservative")
+        #expect(loaded.easy.engine == "upscayl")
+        #expect(loaded.easy.realCuganModel == "models-se/up2x-conservative")
         #expect(FileManager.default.fileExists(atPath: file.path))
     }
 
@@ -189,5 +193,32 @@ struct SettingsStoreTests {
         // 不正な型はfalseへ補正する
         try #"{"settings":{"successSoundRandom":"yes"}}"#.write(to: file, atomically: true, encoding: .utf8)
         #expect(try store.load(maxParallel: 8).settings.successSoundRandom == false)
+    }
+
+    @Test("エンジンとReal-CUGANモデルの保存と補正")
+    func engineAndRealCugan() throws {
+        let (store, file) = try makeStore()
+        var saved = try store.load(maxParallel: 8)
+        saved.batch.engine = "realCUGAN"
+        saved.batch.realCuganModel = "models-se/up2x-conservative"
+        saved.easy.engine = "realCUGAN"
+        saved.easy.realCuganModel = "models-se/up2x-denoise3x"
+        try store.save(saved)
+        let reloaded = try store.load(maxParallel: 8)
+        #expect(reloaded.batch.engine == "realCUGAN")
+        #expect(reloaded.easy.realCuganModel == "models-se/up2x-denoise3x")
+        // 不正なエンジン名・モデルIDは既定値へ補正する。
+        try #"{"batchConvert":{"engine":"foo","realCuganModel":"bar"},"easyConvert":{"engine":3}}"#
+            .write(to: file, atomically: true, encoding: .utf8)
+        let corrected = try store.load(maxParallel: 8)
+        #expect(corrected.batch.engine == "upscayl")
+        #expect(corrected.batch.realCuganModel == "models-se/up2x-conservative")
+        #expect(corrected.easy.engine == "upscayl")
+        // キーが無い旧形式のファイルも既定値で補完される。
+        try #"{"batchConvert":{"scale":2},"easyConvert":{"scale":2}}"#
+            .write(to: file, atomically: true, encoding: .utf8)
+        let merged = try store.load(maxParallel: 8)
+        #expect(merged.batch.engine == "upscayl")
+        #expect(merged.batch.realCuganModel == "models-se/up2x-conservative")
     }
 }

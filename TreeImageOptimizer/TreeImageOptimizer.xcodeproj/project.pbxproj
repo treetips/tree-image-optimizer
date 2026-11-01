@@ -32,12 +32,14 @@
 		E30000000000000000000020 /* SliderLoadLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000020 /* SliderLoadLevel.swift */; };
 		E30000000000000000000021 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000021 /* GlassCard.swift */; };
 		E30000000000000000000022 /* SettingsStoreValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000022 /* SettingsStoreValues.swift */; };
+		E30000000000000000000023 /* RealCUGANModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000023 /* RealCUGANModels.swift */; };
 		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
 		E40000000000000000000009 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000009 /* AppThemeTests.swift */; };
 		E40000000000000000000011 /* SliderLoadLevelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000011 /* SliderLoadLevelTests.swift */; };
 		E40000000000000000000012 /* GlassCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000012 /* GlassCardTests.swift */; };
 		E40000000000000000000013 /* ConvertJobStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000013 /* ConvertJobStoreTests.swift */; };
 		E40000000000000000000014 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000014 /* SettingsViewModelTests.swift */; };
+		E40000000000000000000015 /* ConvertViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000015 /* ConvertViewModelTests.swift */; };
 		E40000000000000000000008 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* Localizable.xcstrings */; };
 		E30000000000000000000002 /* AppInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000002 /* AppInfo.swift */; };
 		E30000000000000000000003 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000003 /* AppPaths.swift */; };
@@ -93,12 +95,14 @@
 		F30000000000000000000020 /* SliderLoadLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderLoadLevel.swift; sourceTree = "<group>"; };
 		F30000000000000000000021 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
 		F30000000000000000000022 /* SettingsStoreValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreValues.swift; sourceTree = "<group>"; };
+		F30000000000000000000023 /* RealCUGANModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealCUGANModels.swift; sourceTree = "<group>"; };
 		F40000000000000000000007 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000011 /* SliderLoadLevelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderLoadLevelTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000012 /* GlassCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCardTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000013 /* ConvertJobStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertJobStoreTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000014 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000015 /* ConvertViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertViewModelTests.swift; sourceTree = "<group>"; };
 		F30000000000000000000003 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		F30000000000000000000004 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		F30000000000000000000005 /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
@@ -186,6 +190,7 @@
 				F40000000000000000000012 /* GlassCardTests.swift */,
 				F40000000000000000000013 /* ConvertJobStoreTests.swift */,
 				F40000000000000000000014 /* SettingsViewModelTests.swift */,
+				F40000000000000000000015 /* ConvertViewModelTests.swift */,
 			);
 			path = TreeImageOptimizerTests;
 			sourceTree = "<group>";
@@ -206,6 +211,7 @@
 				F30000000000000000000013 /* NotificationService.swift */,
 				F30000000000000000000014 /* UpdateService.swift */,
 				F30000000000000000000022 /* SettingsStoreValues.swift */,
+				F30000000000000000000023 /* RealCUGANModels.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -404,6 +410,7 @@
 				E40000000000000000000012 /* GlassCardTests.swift in Sources */,
 				E40000000000000000000013 /* ConvertJobStoreTests.swift in Sources */,
 				E40000000000000000000014 /* SettingsViewModelTests.swift in Sources */,
+				E40000000000000000000015 /* ConvertViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -430,6 +437,7 @@
 				E30000000000000000000003 /* AppPaths.swift in Sources */,
 				E30000000000000000000004 /* SettingsStore.swift in Sources */,
 				E30000000000000000000022 /* SettingsStoreValues.swift in Sources */,
+				E30000000000000000000023 /* RealCUGANModels.swift in Sources */,
 				E30000000000000000000005 /* ProcessRunner.swift in Sources */,
 				E30000000000000000000006 /* ToolInstaller.swift in Sources */,
 				E30000000000000000000007 /* TargetFiles.swift in Sources */,

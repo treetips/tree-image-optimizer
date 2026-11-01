@@ -86,26 +86,55 @@ struct ConvertView: View {
 
                         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                             GridRow {
+                                Text(t("c.label.engine")).appFont(.headline)
+                                HStack {
+                                    Picker(t("c.label.engine"), selection: $viewModel.engine) {
+                                        ForEach(UpscaleEngine.allCases) { engine in
+                                            Text(engine.displayName).appFont(.body).tag(engine)
+                                        }
+                                    }
+                                    .labelsHidden()
+                                    Spacer()
+                                    HelpPopover(text: t("c.help.engine"))
+                                }
+                            }
+                            GridRow {
+                                Text(t("c.label.model")).appFont(.headline)
+                                HStack {
+                                    Picker(
+                                        t("c.label.model"),
+                                        selection: Binding(
+                                            get: { viewModel.selectedModelID },
+                                            set: { viewModel.selectModel(id: $0) }
+                                        )
+                                    ) {
+                                        ForEach(viewModel.modelOptions) { option in
+                                            Text(option.label).appFont(.body).tag(option.id)
+                                        }
+                                    }
+                                    .labelsHidden()
+                                    Spacer()
+                                    HelpPopover(
+                                        text: viewModel.engine == .realCUGAN
+                                            ? t("c.help.realcuganModel") : t("c.help.model"))
+                                }
+                            }
+                            GridRow {
                                 Text(t("c.label.scale")).appFont(.headline)
                                 HStack {
-                                    Slider(value: $viewModel.scale, in: 1...4, step: 1)
+                                    Slider(value: $viewModel.scale, in: viewModel.scaleRange, step: 1)
                                         .tint(SliderLoadLevel.scaleLevel(for: viewModel.scale).tint)
                                     Text("\(Int(viewModel.scale))").appFont(.body).frame(width: 30)
                                     Spacer()
                                     HelpPopover(text: t("c.help.scale"))
                                 }
                             }
-                            GridRow {
-                                Text(t("c.label.model")).appFont(.headline)
-                                HStack {
-                                    Picker(t("c.label.model"), selection: $viewModel.selectedModel) {
-                                        ForEach(viewModel.models, id: \.self) { model in
-                                            Text(model).appFont(.body).tag(model)
-                                        }
-                                    }
-                                    .labelsHidden()
-                                    Spacer()
-                                    HelpPopover(text: t("c.help.model"))
+                            if viewModel.engine == .realCUGAN && !viewModel.realCuganAvailable {
+                                GridRow {
+                                    Text("").appFont(.headline)
+                                    Text(t("c.realcugan.unavailable"))
+                                        .appFont(.caption)
+                                        .foregroundStyle(.orange)
                                 }
                             }
                         }

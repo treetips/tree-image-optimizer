@@ -1,4 +1,6 @@
+import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
 
 @testable import TreeImageOptimizer
@@ -207,5 +209,216 @@ struct ConvertPipelineTests {
             fm.createFile(atPath: dir.appendingPathComponent(name).path, contents: Data("x".utf8))
         }
         #expect(TargetFiles.listModels(in: dir) == ["a", "b"])
+    }
+}
+
+/// Real-CUGANエンジンに関わるテスト。既存のConvertPipelineスイートと分けて
+/// 1型あたりの行数制限を守る。
+@Suite("ConvertPipeline RealCUGAN")
+struct ConvertPipelineRealCUGANTests {
+    @Test("Real-CUGAN引数")
+    func realCuganArgs() {
+        #expect(
+            UpscaleService.realCuganArguments(
+                input: "/in/a.webp", output: "/out/a.png", scale: 2, noise: -1,
+                modelsDir: "/m/models-se")
+                == [
+                    "-i", "/in/a.webp", "-o", "/out/a.png", "-s", "2", "-n", "-1", "-m",
+                    "/m/models-se"
+                ])
+    }
+
+    @Test("Real-CUGANモデルIDの分解")
+    func realCuganParse() throws {
+        // scaleとnoiseの導出。
+        let model = try #require(RealCUGANModel.parse("models-se/up2x-conservative"))
+        #expect(model == RealCUGANModel(folder: "models-se", name: "up2x-conservative"))
+        #expect(model.scale == 2)
+        #expect(model.noise == -1)
+        #expect(model.label == "SE / up2x-conservative")
+        #expect(RealCUGANModel.parse("models-pro/up3x-no-denoise")?.noise == 0)
+        #expect(RealCUGANModel.parse("models-se/up4x-denoise3x")?.noise == 3)
+        #expect(RealCUGANModel.parse("models-se/up4x-denoise1x")?.noise == 1)
+        // 1xは1xモデルが存在しないため不正とする。
+        #expect(RealCUGANModel.parse("models-se/up1x-conservative") == nil)
+        // 既知外フォルダ・不正形式はnil。
+        #expect(RealCUGANModel.parse("models/up2x-conservative") == nil)
+        #expect(RealCUGANModel.parse("up2x-conservative") == nil)
+        #expect(RealCUGANModel.parse("models-se/conservative-2x") == nil)
+    }
+
+    @Test("Real-CUGANモデル一覧はノイズ除去が弱い順に並ぶ")
+    func realCuganModelOrder() {
+        // ファイル名の辞書順や -n の値順とは違う並びになるため、意図的に混ぜた順で渡す。
+        let models = [
+            "up2x-denoise3x", "up2x-conservative", "up2x-no-denoise", "up2x-denoise1x",
+            "up2x-denoise2x"
+        ].map { RealCUGANModel(folder: "models-se", name: $0) }
+        let ordered = RealCUGANModels.models(models: models, scale: 2)
+        // 除去しない no-denoise が先頭。conservative は「除去しないが最低限の抑制あり」で次。
+        #expect(ordered.map(\.name) == [
+            "up2x-no-denoise", "up2x-conservative", "up2x-denoise1x", "up2x-denoise2x",
+            "up2x-denoise3x"
+        ])
+        // ノイズ除去が同じ場合はID順で確定的に並べる（ProがSEより先）。
+        let mixed = [
+            RealCUGANModel(folder: "models-se", name: "up2x-conservative"),
+            RealCUGANModel(folder: "models-pro", name: "up2x-conservative")
+        ]
+        #expect(
+            RealCUGANModels.models(models: mixed, scale: 2).map(\.folder)
+                == ["models-pro", "models-se"])
+    }
+
+    @Test("Real-CUGANカタログ（ペア走査・拡大率絞り込み・弱い順）")
+    func realCuganCatalog() throws {
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let se = root.appendingPathComponent("models-se", isDirectory: true)
+        try fm.createDirectory(at: se, withIntermediateDirectories: true)
+        for name in ["up2x-conservative", "up2x-denoise3x", "up3x-conservative"] {
+            fm.createFile(
+                atPath: se.appendingPathComponent("\(name).bin").path, contents: Data("x".utf8))
+            fm.createFile(
+                atPath: se.appendingPathComponent("\(name).param").path, contents: Data("x".utf8))
+        }
+        // 片方だけの欠けは一覧から除外する。
+        fm.createFile(
+            atPath: se.appendingPathComponent("up2x-no-denoise.bin").path, contents: Data("x".utf8))
+        // 既知外フォルダ・無関係ファイルは無視する。
+        let other = root.appendingPathComponent("models", isDirectory: true)
+        try fm.createDirectory(at: other, withIntermediateDirectories: true)
+        fm.createFile(
+            atPath: other.appendingPathComponent("up2x-conservative.bin").path,
+            contents: Data("x".utf8))
+        fm.createFile(
+            atPath: root.appendingPathComponent("README.txt").path, contents: Data("x".utf8))
+
+        let catalog = RealCUGANModels.catalog(in: root)
+        #expect(catalog.count == 3)
+        // 同梱しないup2x-no-denoise（.binのみ）が除かれていること。
+        #expect(!catalog.contains { $0.name == "up2x-no-denoise" })
+
+        // 拡大率による絞り込みと弱い順の並び（先頭はconservative）。
+        let twos = RealCUGANModels.models(models: catalog, scale: 2)
+        #expect(twos.count == 2)
+        #expect(twos.first?.name == "up2x-conservative")
+        #expect(RealCUGANModels.models(models: catalog, scale: 4).isEmpty)
+    }
+
+    @Test("Real-CUGANモデル解決（カタログ内・フォールバック・既定値）")
+    func realCuganResolve() throws {
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let se = root.appendingPathComponent("models-se", isDirectory: true)
+        try fm.createDirectory(at: se, withIntermediateDirectories: true)
+        for name in ["up2x-conservative", "up3x-conservative", "up4x-no-denoise"] {
+            fm.createFile(
+                atPath: se.appendingPathComponent("\(name).bin").path, contents: Data("x".utf8))
+            fm.createFile(
+                atPath: se.appendingPathComponent("\(name).param").path, contents: Data("x".utf8))
+        }
+        let catalog = RealCUGANModels.catalog(in: root)
+
+        // カタログ内のIDはそのまま使う。
+        #expect(
+            RealCUGANModels.resolve(id: "models-se/up4x-no-denoise", catalog: catalog, scale: 4)
+                == RealCUGANModel(folder: "models-se", name: "up4x-no-denoise"))
+        // 不在IDは拡大率に合う先頭（ノイズ除去が最も弱いもの）へフォールバックする。
+        #expect(
+            RealCUGANModels.resolve(id: "models-se/up2x-denoise3x", catalog: catalog, scale: 2)
+                == RealCUGANModel(folder: "models-se", name: "up2x-conservative"))
+        // 拡大率が合わない保存IDも拡大率に合う先頭へフォールバックする。
+        #expect(
+            RealCUGANModels.resolve(id: "models-se/up2x-conservative", catalog: catalog, scale: 4)
+                == RealCUGANModel(folder: "models-se", name: "up4x-no-denoise"))
+        // 拡大率に合うモデルが無いIDもフォールバックする。
+        #expect(
+            RealCUGANModels.resolve(id: "no/such-model", catalog: catalog, scale: 4)
+                == RealCUGANModel(folder: "models-se", name: "up4x-no-denoise"))
+        // 空カタログ（ツール未配置）では保存IDを維持し、選択を失わない。
+        #expect(
+            RealCUGANModels.resolve(id: "models-se/up2x-conservative", catalog: [], scale: 2)
+                == RealCUGANModel(folder: "models-se", name: "up2x-conservative"))
+        #expect(
+            RealCUGANModels.resolve(id: "models-se/up4x-denoise3x", catalog: [], scale: 2)
+                == RealCUGANModel(folder: "models-se", name: "up4x-denoise3x"))
+        // 空カタログで不正なIDなら既定値に戻す。
+        #expect(
+            RealCUGANModels.resolve(id: "no/such-model", catalog: [], scale: 2)
+                == RealCUGANModel(folder: "models-se", name: "up2x-conservative"))
+    }
+
+    @Test("Real-CUGAN実行前検証（.param/.binペア）")
+    func realCuganPreflight() throws {
+        let fm = FileManager.default
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let model = RealCUGANModel(folder: "models-se", name: "up2x-conservative")
+        let service = UpscaleService()
+        // 何も無い場合はエラー。
+        #expect(throws: AppError.self) { try service.preflight(model: model, modelsDir: dir) }
+        fm.createFile(
+            atPath: dir.appendingPathComponent("up2x-conservative.param").path,
+            contents: Data("x".utf8))
+        // .paramだけではエラー。
+        #expect(throws: AppError.self) { try service.preflight(model: model, modelsDir: dir) }
+        fm.createFile(
+            atPath: dir.appendingPathComponent("up2x-conservative.bin").path,
+            contents: Data("x".utf8))
+        // ペアが揃えば通る。
+        try service.preflight(model: model, modelsDir: dir)
+    }
+
+    @Test("Real-CUGAN実行後検証（存在・空でない・寸法がscale倍）")
+    func realCuganPostVerify() throws {
+        let fm = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: base, withIntermediateDirectories: true)
+        // 10x8のテスト用PNGを作る（CGImageSourceで読める形式でなければならない）。
+        let input = base.appendingPathComponent("input.png", isDirectory: false)
+        try Self.writePNG(width: 10, height: 8, to: input)
+        let output = base.appendingPathComponent("output.png", isDirectory: false)
+        try Self.writePNG(width: 20, height: 16, to: output)
+        let service = UpscaleService()
+        try service.postVerify(output: output, input: input, scale: 2)
+        // 拡大率が合わない出力はエラー。
+        try Self.writePNG(width: 30, height: 24, to: output)
+        #expect(throws: AppError.self) {
+            try service.postVerify(output: output, input: input, scale: 2)
+        }
+        // 欠損や空ファイルもエラー。
+        try fm.removeItem(at: output)
+        #expect(throws: AppError.self) {
+            try service.postVerify(output: output, input: input, scale: 2)
+        }
+    }
+
+    /// テスト用の単色PNGを書き出す。
+    static func writePNG(width: Int, height: Int, to url: URL) throws {
+        let context = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        guard let ctx = context else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        ctx.setFillColor(CGColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        guard let image = ctx.makeImage() else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil)
+        else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        CGImageDestinationAddImage(dest, image, nil)
+        guard CGImageDestinationFinalize(dest) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
     }
 }

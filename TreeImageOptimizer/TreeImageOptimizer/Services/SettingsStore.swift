@@ -11,6 +11,10 @@ struct BatchSettings: Codable, Equatable {
     var parallelCount: Int
     var inputFolderPath: String?
     var outputFolderPath: String?
+    /// アップスケーラーのエンジン。`upscayl` / `realCUGAN`。
+    var engine: String = UpscaleEngine.upscayl.rawValue
+    /// Real-CUGANのモデルID。`models-se/up2x-conservative` 形式。
+    var realCuganModel: String = "models-se/up2x-conservative"
 
     static func defaults(maxParallel: Int) -> BatchSettings {
         BatchSettings(
@@ -22,7 +26,9 @@ struct BatchSettings: Codable, Equatable {
             quality: 80,
             parallelCount: max(1, maxParallel / 2 - 1),
             inputFolderPath: nil,
-            outputFolderPath: nil
+            outputFolderPath: nil,
+            engine: UpscaleEngine.upscayl.rawValue,
+            realCuganModel: "models-se/up2x-conservative"
         )
     }
 }
@@ -37,6 +43,10 @@ struct EasyConvertSettings: Codable, Equatable {
     var quality: Int
     var parallelCount: Int
     var outputFolderPath: String?
+    /// アップスケーラーのエンジン。`upscayl` / `realCUGAN`。
+    var engine: String = UpscaleEngine.upscayl.rawValue
+    /// Real-CUGANのモデルID。`models-se/up2x-conservative` 形式。
+    var realCuganModel: String = "models-se/up2x-conservative"
 
     static func defaults(maxParallel: Int) -> EasyConvertSettings {
         EasyConvertSettings(
@@ -46,7 +56,9 @@ struct EasyConvertSettings: Codable, Equatable {
             optimizeType: OptimizeType.anime.rawValue,
             quality: 80,
             parallelCount: max(1, maxParallel / 2 - 1),
-            outputFolderPath: nil
+            outputFolderPath: nil,
+            engine: UpscaleEngine.upscayl.rawValue,
+            realCuganModel: "models-se/up2x-conservative"
         )
     }
 }
@@ -317,7 +329,10 @@ final class SettingsStore: Sendable {
             parallelCount: intValue(
                 json["parallelCount"], min: 1, max: maxParallel, fallback: defaults.parallelCount, mark: mark),
             inputFolderPath: optionalPath(json["inputFolderPath"]),
-            outputFolderPath: optionalPath(json["outputFolderPath"])
+            outputFolderPath: optionalPath(json["outputFolderPath"]),
+            engine: validatedEngine(json["engine"], fallback: defaults.engine, mark: mark),
+            realCuganModel: realCuganModelValue(
+                json["realCuganModel"], fallback: defaults.realCuganModel, mark: mark)
         )
     }
 
@@ -339,8 +354,25 @@ final class SettingsStore: Sendable {
             quality: intValue(json["quality"], min: 1, max: 100, fallback: defaults.quality, mark: mark),
             parallelCount: intValue(
                 json["parallelCount"], min: 1, max: maxParallel, fallback: defaults.parallelCount, mark: mark),
-            outputFolderPath: optionalPath(json["outputFolderPath"])
+            outputFolderPath: optionalPath(json["outputFolderPath"]),
+            engine: validatedEngine(json["engine"], fallback: defaults.engine, mark: mark),
+            realCuganModel: realCuganModelValue(
+                json["realCuganModel"], fallback: defaults.realCuganModel, mark: mark)
         )
+    }
+
+    /// エンジン名の検証。既知の `UpscaleEngine` のみ許容し、それ以外は既定へ戻す。
+    private func validatedEngine(_ value: Any?, fallback: String, mark: () -> Void) -> String {
+        if let raw = value as? String, UpscaleEngine(rawValue: raw) != nil { return raw }
+        mark()
+        return fallback
+    }
+
+    /// Real-CUGANモデルIDの検証。`models-{se,pro,nose}/up{2..4}x-...` 形式のみ許容する。
+    private func realCuganModelValue(_ value: Any?, fallback: String, mark: () -> Void) -> String {
+        if let raw = value as? String, RealCUGANModel.parse(raw) != nil { return raw }
+        mark()
+        return fallback
     }
 
     private func validatedFormat(_ value: Any?, fallback: String, mark: () -> Void) -> String {

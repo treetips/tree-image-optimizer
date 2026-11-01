@@ -29,4 +29,21 @@ struct AppPathsTests {
         #expect(paths.cwebpBinURL.path.contains("libwebp/bin/macos/cwebp"))
         #expect(!paths.cwebpBinURL.path.contains(".exe"))
     }
+
+    @Test("Real-CUGANのパスを解決する")
+    func realCuganPaths() {
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let paths = AppPaths(baseURL: base)
+
+        #expect(
+            paths.realCuganRootURL.path
+                == base.appendingPathComponent("tools/realcugan", isDirectory: true).path)
+        #expect(
+            paths.realCuganBinURL.path
+                == base.appendingPathComponent(
+                    "tools/realcugan/bin/macos/realcugan-ncnn-vulkan", isDirectory: false
+                ).path)
+        #expect(paths.realCuganBinURL.lastPathComponent == "realcugan-ncnn-vulkan")
+    }
 }

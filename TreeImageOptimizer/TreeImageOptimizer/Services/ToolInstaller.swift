@@ -5,6 +5,7 @@ import Foundation
 ///
 /// SwiftUI版はmacOS専用のためWindows/Linux分岐は持たない。
 /// `libwebp` はGitHub Releasesで配布されていないためGoogle Storageから取得する。
+/// `Real-CUGAN` はGitHub Releasesから取得する。どちらも欠損時のみダウンロードする。
 struct ToolInstaller: Sendable {
     static let executables = [
         "upscayl-bin",
@@ -12,7 +13,8 @@ struct ToolInstaller: Sendable {
         "avifenc",
         "jpegoptim",
         "pngoptim",
-        "cwebp"
+        "cwebp",
+        "realcugan-ncnn-vulkan"
     ]
 
     /// `tools/` からの相対パス一覧。
@@ -22,11 +24,16 @@ struct ToolInstaller: Sendable {
         "pngoptim/bin/macos/pngoptim",
         "libjxl/bin/macos/cjxl",
         "libavif/bin/macos/avifenc",
-        "libwebp/bin/macos/cwebp"
+        "libwebp/bin/macos/cwebp",
+        "realcugan/bin/macos/realcugan-ncnn-vulkan"
     ]
 
     static let webpVersion = "1.6.0"
     static let webpBaseURL = "https://storage.googleapis.com/downloads.webmproject.org/releases/webp"
+
+    static let realcuganVersion = "20220728"
+    static let realcuganFullVersion = "realcugan-ncnn-vulkan-20220728"
+    static let realcuganBaseURL = "https://github.com/nihui/realcugan-ncnn-vulkan/releases/download"
 
     let paths: AppPaths
     let runner: ProcessRunner
@@ -83,6 +90,15 @@ struct ToolInstaller: Sendable {
         return false
     }
 
+    /// Real-CUGANが使えるか。バイナリと有効なモデルペア（`models-*` 配下の
+    /// `.param`/`.bin` ペア）が1つ以上揃っていること。`isInstalled()` はバイナリのみを
+    /// 見るため、モデルの揃いまで検査したい場面で使う。
+    func isRealCuganInstalled() -> Bool {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: paths.realCuganBinURL.path) else { return false }
+        return !RealCUGANModels.catalog(in: paths.realCuganRootURL).isEmpty
+    }
+
     /// 揃っていなければ修復する。進捗（0.0〜1.0と作業名）を報告する。
     func ensureInstalled(progress: @Sendable (Double, String) -> Void = { _, _ in }) async throws {
         if isInstalled() {
@@ -97,64 +113,120 @@ struct ToolInstaller: Sendable {
     }
 
     /// 不足分を修復する。ローカルのtoolsコピーを優先し、無ければダウンロードする。
+    /// libwebpとReal-CUGANはネットワーク取得可能なため、ローカルに無ければダウンロードする。
+    /// それ以外はローカルコピーのみで、無ければエラーにする。
     func repairMissingTools(progress: @Sendable (Double, String) -> Void = { _, _ in }) async throws {
         let fm = FileManager.default
         try fm.createDirectory(at: paths.toolsURL, withIntermediateDirectories: true)
-        var missingFolders: [String] = []
-        let checks: [(name: String, folder: String, binary: String)] = [
-            ("upscal", "upscal", "upscal/bin/upscayl-bin"),
-            ("jpegoptim", "jpegoptim", "jpegoptim/bin/macos/jpegoptim"),
-            ("pngoptim", "pngoptim", "pngoptim/bin/macos/pngoptim"),
-            ("libjxl", "libjxl", "libjxl/bin/macos/cjxl"),
-            ("libavif", "libavif", "libavif/bin/macos/avifenc"),
-            ("libwebp", "libwebp", "libwebp/bin/macos/cwebp")
-        ]
-        for check in checks {
-            let bin = paths.toolsURL.appendingPathComponent(check.binary, isDirectory: false)
-            if fm.fileExists(atPath: bin.path) { continue }
-            missingFolders.append(check.folder)
-            let folder = paths.toolsURL.appendingPathComponent(check.folder, isDirectory: true)
-            if fm.fileExists(atPath: folder.path) {
-                try fm.removeItem(at: folder)
+        // 欠損しているフォルダを確定し、中途半端に残ったフォルダは消してから修復する。
+        let missingFolders: [String] = Self.toolBinaryChecks.compactMap { tool in
+            let bin = paths.toolsURL.appendingPathComponent(tool.binary, isDirectory: false)
+            guard fm.fileExists(atPath: bin.path) else { return tool.folder }
+            return nil
+        }
+        for folder in missingFolders {
+            let dir = paths.toolsURL.appendingPathComponent(folder, isDirectory: true)
+            if fm.fileExists(atPath: dir.path) {
+                try fm.removeItem(at: dir)
             }
         }
-        // libwebpはGoogle Storageから分離して取得する。
-        let libwebpMissing = missingFolders.contains("libwebp")
-        let othersMissing = missingFolders.filter { $0 != "libwebp" }
+        // libwebpとReal-CUGANは開発用toolsコピーを優先し、無ければダウンロードする。
+        let downloadable = Set(["libwebp", "realcugan"])
         let total = Double(max(missingFolders.count, 1))
         var done = 0.0
-        if !othersMissing.isEmpty {
-            var restored = false
-            for folder in othersMissing {
+        for folder in missingFolders {
+            if downloadable.contains(folder) {
                 if copyFromDevTools(folder: folder) {
-                    restored = true
-                    break
+                    done += 1
+                    progress(done / total, folder)
+                    continue
                 }
-            }
-            if !restored {
-                // 単一ZIPのダウンロードはフェーズ3の配布基盤で扱う。
-                // 現時点ではローカルに無ければエラーにする。
-                throw AppError.toolMissing("tools unavailable locally: \(othersMissing.joined(separator: ","))")
-            }
-            for folder in othersMissing {
-                let dest = paths.toolsURL.appendingPathComponent(folder, isDirectory: true)
-                if !fm.fileExists(atPath: dest.path) {
-                    _ = copyFromDevTools(folder: folder)
-                }
+                progress(done / total, folder)
+                try await downloadTool(folder: folder)
                 done += 1
                 progress(done / total, folder)
+                continue
             }
-        }
-        if libwebpMissing {
-            if !copyFromDevTools(folder: "libwebp") {
-                progress(done / total, "libwebp")
-                try await downloadLibwebp()
+            // それ以外は開発用toolsからのコピーのみ。無ければエラーで再試行UIへ出す。
+            guard copyFromDevTools(folder: folder) else {
+                throw AppError.toolMissing("tools unavailable locally: \(folder)")
             }
             done += 1
-            progress(done / total, "libwebp")
+            progress(done / total, folder)
         }
     }
 
+    /// ツールのバイナリ存在チェック一覧。上から順に起動時に検査する。
+    static let toolBinaryChecks: [(folder: String, binary: String)] = [
+        ("upscal", "upscal/bin/upscayl-bin"),
+        ("jpegoptim", "jpegoptim/bin/macos/jpegoptim"),
+        ("pngoptim", "pngoptim/bin/macos/pngoptim"),
+        ("libjxl", "libjxl/bin/macos/cjxl"),
+        ("libavif", "libavif/bin/macos/avifenc"),
+        ("libwebp", "libwebp/bin/macos/cwebp"),
+        ("realcugan", "realcugan/bin/macos/realcugan-ncnn-vulkan")
+    ]
+}
+
+// MARK: ネットワークからの取得
+extension ToolInstaller {
+    /// ネットワーク配布のあるツールをダウンロードして配置する。
+    func downloadTool(folder: String) async throws {
+        switch folder {
+        case "libwebp": try await downloadLibwebp()
+        case "realcugan": try await downloadRealcugan()
+        default: throw AppError.toolMissing("no download source for \(folder)")
+        }
+    }
+
+    /// GitHub ReleasesからReal-CUGANのZIPをダウンロードし、フォルダごと `tools/realcugan` へ配置する。
+    /// 上流ZIPは `realcugan-ncnn-vulkan-<version>-macos/` 配下にバイナリ・`models-*`・LICENSEを持つ。
+    func downloadRealcugan() async throws {
+        let fm = FileManager.default
+        let folderName = "realcugan-ncnn-vulkan-\(Self.realcuganVersion)-macos"
+        let archiveName = "\(folderName).zip"
+        guard let url = URL(string: "\(Self.realcuganBaseURL)/\(Self.realcuganVersion)/\(archiveName)") else {
+            throw AppError.networkError("invalid realcugan URL")
+        }
+        let data = try await download(url: url)
+        let tmpDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: tmpDir) }
+        let archive = tmpDir.appendingPathComponent(archiveName, isDirectory: false)
+        try data.write(to: archive)
+        // ZIPは /usr/bin/unzip で展開する（tar.gzのlibwebpと形式が異なる）。
+        _ = try await runner.run(
+            "/usr/bin/unzip", args: ["-q", archive.path, "-d", tmpDir.path], workingDirectory: nil)
+        guard let extracted = findDirectory(named: folderName, under: tmpDir) else {
+            throw AppError.toolMissing("\(folderName) not found in \(archiveName)")
+        }
+        // 配置後、モデル・バイナリが揃っていない場合は失敗扱いにする。
+        try installRealCugan(from: extracted)
+        guard isRealCuganInstalled() else {
+            throw AppError.toolMissing("realcugan installation incomplete")
+        }
+    }
+
+    /// 展開済みのReal-CUGANフォルダを `tools/realcugan` へ配置する。テストからも呼ぶ。
+    func installRealCugan(from source: URL) throws {
+        let fm = FileManager.default
+        let dest = paths.toolsURL.appendingPathComponent("realcugan", isDirectory: true)
+        // Why not: 親ディレクトリが無いとcopyItemが「ソース不在」の誤ったエラーを出すため先に作る。
+        try fm.createDirectory(at: paths.toolsURL, withIntermediateDirectories: true)
+        if fm.fileExists(atPath: dest.path) {
+            try fm.removeItem(at: dest)
+        }
+        try fm.copyItem(at: source, to: dest)
+        let bin = paths.realCuganBinURL
+        // Why not: unzipの権限は保持されるが、環境差で実行権が落ちると起動を妨げるため明示する。
+        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: bin.path)
+        try Self.realcuganFullVersion
+            .write(to: paths.realCuganRootURL.appendingPathComponent(".version"), atomically: true, encoding: .utf8)
+    }
+}
+
+// MARK: ローカルコピー
+extension ToolInstaller {
     /// 開発用toolsからフォルダをコピーする。成功したらtrue。
     @discardableResult
     func copyFromDevTools(folder: String) -> Bool {
@@ -189,8 +261,7 @@ struct ToolInstaller: Sendable {
         }
     }
 
-    // MARK: - Download
-
+    // MARK: ネットワーク取得
     /// 現在のアーキテクチャに応じたlibwebpアーカイブ名。
     static func libwebpArchiveName(version: String, platform: String, arch: String) -> String {
         let a = arch.lowercased()
@@ -247,6 +318,20 @@ struct ToolInstaller: Sendable {
         }
         for case let url as URL in enumerator {
             if url.lastPathComponent == name { return url }
+        }
+        return nil
+    }
+
+    /// 配下から指定名のディレクトリを探す。Real-CUGANのZIP展開フォルダ特定に使う。
+    func findDirectory(named name: String, under directory: URL) -> URL? {
+        guard
+            let enumerator = FileManager.default.enumerator(
+                at: directory,
+                includingPropertiesForKeys: [.isDirectoryKey])
+        else { return nil }
+        for case let url as URL in enumerator {
+            let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
+            if values?.isDirectory == true && url.lastPathComponent == name { return url }
         }
         return nil
     }

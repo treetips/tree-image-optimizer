@@ -57,6 +57,38 @@ enum OptimizeType: String, Hashable, Identifiable, CaseIterable {
     var id: String { rawValue }
 }
 
+/// アップスケーラーのエンジン。`upscayl-bin` と `realcugan-ncnn-vulkan` の二択。
+enum UpscaleEngine: String, Hashable, Identifiable, CaseIterable, Sendable {
+    case upscayl
+    case realCUGAN
+
+    var id: String { rawValue }
+
+    /// UIプルダウンに表示する名前。
+    var displayName: String {
+        switch self {
+        case .upscayl: return "upscayl-bin"
+        case .realCUGAN: return "Real-CUGAN"
+        }
+    }
+
+    /// Real-CUGANは1xモデルが存在しないため拡大率2〜4に制限する。
+    var scaleRange: ClosedRange<Double> {
+        switch self {
+        case .upscayl: return 1...4
+        case .realCUGAN: return 2...4
+        }
+    }
+}
+
+/// アップスケールモデル選択肢。プルダウン表示用のタプル。
+/// Real-CUGANではフォルダ名+ファイル名のID（`models-se/up2x-conservative`）を持つ。
+struct UpscaleModelOption: Hashable, Identifiable {
+    /// 設定JSONへ保存するID。upscaylはモデル名そのまま、Real-CUGANは `フォルダ/ファイル名`。
+    let id: String
+    var label: String
+}
+
 /// 外観モード。macOSの外観モードと同じくライト／ダーク／自動（システムに従う）。
 enum AppearanceMode: String, Hashable, Identifiable, CaseIterable {
     case auto
