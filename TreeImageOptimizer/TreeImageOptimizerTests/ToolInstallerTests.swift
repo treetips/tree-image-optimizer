@@ -143,4 +143,63 @@ struct ToolInstallerTests {
         let hex = ToolInstaller.sha256Hex(of: Data("abc".utf8))
         #expect(hex == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
     }
+
+    @Test("Real-CUGANは必須ツール（未配置では未インストール・配置すれば判定が変わる）")
+    func realCuganOptional() throws {
+        let (installer, base) = try makeInstaller()
+        let fm = FileManager.default
+        for relative in ToolInstaller.requiredRelativePaths where !relative.contains("realcugan") {
+            let url = base.appendingPathComponent("tools/\(relative)", isDirectory: false)
+            try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            fm.createFile(atPath: url.path, contents: Data("x".utf8))
+        }
+        let models = base.appendingPathComponent("tools/upscal/models", isDirectory: true)
+        try fm.createDirectory(at: models, withIntermediateDirectories: true)
+        fm.createFile(atPath: models.appendingPathComponent("m.bin").path, contents: Data("x".utf8))
+        // Real-CUGANのバイナリが無ければ必須判定はfalse（起動時ブートストラップで補完される）。
+        #expect(!installer.isInstalled())
+        #expect(!installer.isRealCuganInstalled())
+        // Real-CUGANはバイナリ+有効なモデルペアで揃うと判定が変わる。
+        let bin = base.appendingPathComponent(
+            "tools/realcugan/bin/macos/realcugan-ncnn-vulkan", isDirectory: false)
+        try fm.createDirectory(at: bin.deletingLastPathComponent(), withIntermediateDirectories: true)
+        fm.createFile(atPath: bin.path, contents: Data("x".utf8))
+        #expect(!installer.isRealCuganInstalled(), "モデルペアが無ければ使えない")
+        let se = base.appendingPathComponent("tools/realcugan/models-se", isDirectory: true)
+        try fm.createDirectory(at: se, withIntermediateDirectories: true)
+        fm.createFile(atPath: se.appendingPathComponent("up2x-conservative.param").path, contents: Data("x".utf8))
+        #expect(!installer.isRealCuganInstalled(), ".paramだけでは使えない")
+        fm.createFile(atPath: se.appendingPathComponent("up2x-conservative.bin").path, contents: Data("x".utf8))
+        #expect(installer.isRealCuganInstalled())
+    }
+
+    @Test("展開済みReal-CUGANフォルダをtoolsへ配置できる")
+    func installsRealCuganFromExtracted() throws {
+        let (installer, base) = try makeInstaller()
+        let fm = FileManager.default
+        // Why not: 共有のNSTemporaryDirectoryは並列実行の他テストと干渉し得るため、
+        // テスト専用base配下に展開済みフォルダを作る。
+        let source = base.appendingPathComponent("extracted", isDirectory: true)
+        let bin = source.appendingPathComponent("bin/macos/realcugan-ncnn-vulkan", isDirectory: false)
+        try fm.createDirectory(at: bin.deletingLastPathComponent(), withIntermediateDirectories: true)
+        fm.createFile(atPath: bin.path, contents: Data("x".utf8))
+        let se = source.appendingPathComponent("models-se", isDirectory: true)
+        try fm.createDirectory(at: se, withIntermediateDirectories: true)
+        fm.createFile(atPath: se.appendingPathComponent("up2x-conservative.bin").path, contents: Data("x".utf8))
+        fm.createFile(atPath: se.appendingPathComponent("up2x-conservative.param").path, contents: Data("x".utf8))
+
+        try installer.installRealCugan(from: source)
+
+        #expect(fm.fileExists(atPath: bin.path))
+        #expect(fm.fileExists(atPath: se.appendingPathComponent("up2x-conservative.param").path))
+        #expect(fm.fileExists(atPath: base.appendingPathComponent("tools/realcugan/.version").path))
+        let installedBin = base.appendingPathComponent(
+            "tools/realcugan/bin/macos/realcugan-ncnn-vulkan", isDirectory: false)
+        let attrs = try fm.attributesOfItem(atPath: installedBin.path)
+        #expect((attrs[.posixPermissions] as? NSNumber)?.uint16Value == 0o755)
+        #expect(installer.isRealCuganInstalled())
+        // 再配置では既存フォルダを置き換える。
+        try installer.installRealCugan(from: source)
+        #expect(fm.fileExists(atPath: bin.path))
+    }
 }

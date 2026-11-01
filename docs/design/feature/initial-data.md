@@ -53,6 +53,15 @@
 - ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/upscal` フォルダに同梱してください。
 - モデルファイルは全ファイル同梱してください。
 
+## Real-CUGAN
+
+- 起動時に未配置なら、[GitHub Releasesの20220728タグ](https://github.com/nihui/realcugan-ncnn-vulkan/releases/tag/20220728) から `realcugan-ncnn-vulkan-20220728-macos.zip` をダウンロードし、`tools/realcugan` へ自動展開します。ユーザーによる手動配置は不要です。
+- 開発環境ではリポジトリ同梱の `tools/realcugan`（初回起動より先に存在する場合）がそのまま使われます。
+- ZIPに含まれる `models-se` / `models-pro` / `models-nose` はすべて配置します。フォルダ名はバイナリが前処理のパディング量の判定に使うため、`models-se` 等のまま変更しないでください。
+- ライセンスファイル（`LICENSE`、nihuiのMIT）はZIPから `tools/realcugan` へ配置します。
+- `tools/realcugan/.version` にバージョン（例）`realcugan-ncnn-vulkan-20220728` を書き込みます。
+- アップデートする際は、元のファイルを全削除してから更新してください。
+
 ## JPEG XL
 
 - [GitHub Releasesのlatestタグ](https://github.com/libjxl/libjxl/releases/latest) からダウンロードします。

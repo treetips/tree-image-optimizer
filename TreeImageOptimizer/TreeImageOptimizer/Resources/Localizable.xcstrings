@@ -860,6 +860,22 @@
         }
       }
     },
+    "c.help.engine" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can choose the upscaler engine."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップスケーラーのエンジンを選択することができます"
+          }
+        }
+      }
+    },
     "c.help.format" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -945,6 +961,22 @@
         }
       }
     },
+    "c.help.realcuganModel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a Real-CUGAN model. conservative removes little noise; denoiseN removes noise strongly."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real-CUGANのモデルを選択します。conservativeはノイズをあまり除去せず、denoiseNはノイズを強く除去します。"
+          }
+        }
+      }
+    },
     "c.help.scale" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -992,6 +1024,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "対象フォルダ内のファイル一覧が対象になります。"
+          }
+        }
+      }
+    },
+    "c.label.engine" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engine"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エンジン"
           }
         }
       }
@@ -1247,6 +1295,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "速度優先"
+          }
+        }
+      }
+    },
+    "c.realcugan.unavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real-CUGAN is not installed and cannot be used."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real-CUGANのツールが配置されていないため、使用できません。"
           }
         }
       }

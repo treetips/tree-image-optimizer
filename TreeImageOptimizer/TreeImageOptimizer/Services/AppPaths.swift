@@ -65,6 +65,16 @@ struct AppPaths: Sendable {
         toolsURL.appendingPathComponent("upscal/models", isDirectory: true)
     }
 
+    /// Real-CUGANのmodelsフォルダ親。`tools/realcugan`。任意ツールのため存在しないことがある。
+    var realCuganRootURL: URL {
+        toolsURL.appendingPathComponent("realcugan", isDirectory: true)
+    }
+
+    var realCuganBinURL: URL {
+        realCuganRootURL.appendingPathComponent(
+            "bin/macos/realcugan-ncnn-vulkan", isDirectory: false)
+    }
+
     var jpegoptimBinURL: URL {
         toolsURL.appendingPathComponent("jpegoptim/bin/macos/jpegoptim", isDirectory: false)
     }

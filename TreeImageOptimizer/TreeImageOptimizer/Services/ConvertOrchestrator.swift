@@ -8,6 +8,10 @@ struct ConvertConfig: Sendable {
     var optimizeType: OptimizeType
     var quality: Int
     var parallelCount: Int
+    /// アップスケーラーのエンジン。既定は従来の `upscayl-bin`。
+    var engine: UpscaleEngine = .upscayl
+    /// Real-CUGAN選択時のモデル。`model` はエンジン側のID（`models-se/...`）を持つ。
+    var realCuganModel: RealCUGANModel? = nil
 }
 
 /// 1ファイルの処理段階。
@@ -112,6 +116,17 @@ struct ConvertOrchestrator: Sendable {
         try fileManager.moveItem(at: source, to: destination)
     }
 
+    /// エンジンに応じたアップスケールの実行。Real-CUGANはモデル指定が必須で、
+    /// 無ければ従来の `upscayl-bin` へフォールバックする。
+    private func runUpscale(file: URL, upscaled: URL, config: ConvertConfig, paths: AppPaths) async throws {
+        if config.engine == .realCUGAN, let realCuganModel = config.realCuganModel {
+            try await upscale.runRealCUGAN(input: file, output: upscaled, model: realCuganModel, paths: paths)
+            return
+        }
+        try await upscale.run(
+            input: file, output: upscaled, scale: config.scale, model: config.model, paths: paths)
+    }
+
     private func processFile(
         at index: Int,
         file: URL,
@@ -130,8 +145,8 @@ struct ConvertOrchestrator: Sendable {
                 FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: false, started: true)
             )
             do {
-                try await upscale.run(
-                    input: file, output: upscaled, scale: config.scale, model: config.model, paths: paths)
+                try await runUpscale(
+                    file: file, upscaled: upscaled, config: config, paths: paths)
             } catch {
                 await onOutcome(
                     FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: true))

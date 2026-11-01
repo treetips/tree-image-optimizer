@@ -73,6 +73,32 @@ struct EasyConvertTests {
         #expect(viewModel.canRun == true)
     }
 
+    @Test("Real-CUGANモデルのプルダウン選択をsettings.jsonへ保存する")
+    @MainActor
+    func realCuganSelectionIsPersisted() throws {
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let se = base.appendingPathComponent("tools/realcugan/models-se", isDirectory: true)
+        try FileManager.default.createDirectory(at: se, withIntermediateDirectories: true)
+        for name in ["up2x-conservative", "up2x-denoise3x"] {
+            FileManager.default.createFile(
+                atPath: se.appendingPathComponent("\(name).bin").path, contents: Data("x".utf8))
+            FileManager.default.createFile(
+                atPath: se.appendingPathComponent("\(name).param").path, contents: Data("x".utf8))
+        }
+        let paths = AppPaths(baseURL: base)
+        let store = SettingsStore(paths: paths)
+        let viewModel = EasyConvertViewModel(paths: paths, store: store)
+
+        viewModel.engine = .realCUGAN
+        viewModel.selectModel(id: "models-se/up2x-denoise3x")
+        #expect(try store.load(maxParallel: 8).easy.realCuganModel == "models-se/up2x-denoise3x")
+
+        // 再生成後も選択が復元される。
+        let reloaded = EasyConvertViewModel(paths: paths, store: store)
+        #expect(reloaded.selectedModelID == "models-se/up2x-denoise3x")
+    }
+
     @Test("一括画面と設定が独立している")
     @MainActor
     func independentFromBatchSettings() throws {
