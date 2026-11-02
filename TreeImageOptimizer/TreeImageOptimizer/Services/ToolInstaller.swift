@@ -218,6 +218,22 @@ extension ToolInstaller {
         }
         try fm.copyItem(at: source, to: dest)
         let bin = paths.realCuganBinURL
+        // Why not: 上流ZIPはバイナリがルート直下のフラット構造で、アプリが想定する
+        // `bin/macos/` と一致しない。この場で正規化しないと、以降の存在チェックと
+        // 実行権付与（bin/macos/を参照）がファイル不在のエラーで失敗する。
+        let flatBin = dest.appendingPathComponent("realcugan-ncnn-vulkan", isDirectory: false)
+        if fm.fileExists(atPath: flatBin.path) {
+            if fm.fileExists(atPath: bin.path) {
+                try fm.removeItem(at: flatBin)
+            } else {
+                try fm.createDirectory(
+                    at: bin.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try fm.moveItem(at: flatBin, to: bin)
+            }
+        }
+        guard fm.fileExists(atPath: bin.path) else {
+            throw AppError.toolMissing("realcugan-ncnn-vulkan not found in \(source.lastPathComponent)")
+        }
         // Why not: unzipの権限は保持されるが、環境差で実行権が落ちると起動を妨げるため明示する。
         try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: bin.path)
         try Self.realcuganFullVersion
