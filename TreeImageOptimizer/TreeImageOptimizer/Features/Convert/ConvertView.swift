@@ -7,10 +7,12 @@ import SwiftUI
 struct ConvertView: View {
     @State private var viewModel: ConvertViewModel
     private let jobStore: ConvertJobStore
+    private let toolsReady: Bool
     @Environment(\.locale) private var locale
 
-    init(jobStore: ConvertJobStore) {
+    init(jobStore: ConvertJobStore, toolsReady: Bool = true) {
         self.jobStore = jobStore
+        self.toolsReady = toolsReady
         _viewModel = State(initialValue: ConvertViewModel(jobStore: jobStore))
     }
 
@@ -353,6 +355,11 @@ struct ConvertView: View {
             }
         }
         .navigationTitle(t("c.navTitle"))
+        .onChange(of: toolsReady) { _, ready in
+            // Why not: ViewModelの初期化はツール展開の完了前に走るため、
+            // 完了後の再読込を欠かすと配置済みでも未配置表示のままになる。
+            if ready { viewModel.reloadTools() }
+        }
     }
 }
 

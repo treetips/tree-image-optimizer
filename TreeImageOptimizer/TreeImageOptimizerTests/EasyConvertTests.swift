@@ -122,4 +122,35 @@ struct EasyConvertTests {
         #expect(reloaded.batch.inputFolderPath == "/tmp/batch-input")
         #expect(reloaded.batch.outputFolderPath == "/tmp/batch-output")
     }
+
+    @Test("ツール展開完了後の再読込でReal-CUGANの利用可否が反映される")
+    @MainActor
+    func reloadToolsReflectsInstalledTools() throws {
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        let paths = AppPaths(baseURL: base)
+        let viewModel = EasyConvertViewModel(paths: paths, store: SettingsStore(paths: paths))
+        // 初期化はブートストラップの完了前に走るため、この時点では未配置扱い。
+        #expect(!viewModel.realCuganAvailable)
+
+        // 展開完了を再現して配置し、再読込する。
+        let se = base.appendingPathComponent("tools/realcugan/models-se", isDirectory: true)
+        try FileManager.default.createDirectory(at: se, withIntermediateDirectories: true)
+        for name in ["up2x-conservative", "up2x-denoise3x"] {
+            FileManager.default.createFile(
+                atPath: se.appendingPathComponent("\(name).bin").path, contents: Data("x".utf8))
+            FileManager.default.createFile(
+                atPath: se.appendingPathComponent("\(name).param").path, contents: Data("x".utf8))
+        }
+        let bin = base.appendingPathComponent(
+            "tools/realcugan/bin/macos/realcugan-ncnn-vulkan", isDirectory: false)
+        try FileManager.default.createDirectory(
+            at: bin.deletingLastPathComponent(), withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: bin.path, contents: Data("x".utf8))
+        viewModel.reloadTools()
+
+        #expect(viewModel.realCuganAvailable)
+        #expect(viewModel.realCuganModels.count == 2)
+    }
 }
