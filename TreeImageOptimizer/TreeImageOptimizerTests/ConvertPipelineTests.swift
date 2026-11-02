@@ -190,6 +190,17 @@ struct ConvertPipelineTests {
         #expect(peak == 3, "余りが出るまで並列数を満たし続けること: \(peak)")
     }
 
+    @Test("ステージ別ワーカー数はGPUを最大3にし、残りを圧縮へ回す")
+    func stageWorkers() {
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 1) == StageWorkers(upscale: 1, compression: 1))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 2) == StageWorkers(upscale: 1, compression: 1))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 3) == StageWorkers(upscale: 1, compression: 2))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 6) == StageWorkers(upscale: 2, compression: 4))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 7) == StageWorkers(upscale: 2, compression: 5))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 15) == StageWorkers(upscale: 3, compression: 12))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 30) == StageWorkers(upscale: 3, compression: 27))
+    }
+
     @Test("出力確定（同一ボリュームではrename・既存は上書き・元のファイルは残らない）")
     func installOutput() throws {
         let fileManager = FileManager.default

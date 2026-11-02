@@ -31,9 +31,23 @@ struct FileOutcome: Sendable {
     var started: Bool = false
 }
 
+/// ステージ別ワーカー数。GPU側のアップスケールとCPU側の圧縮を分けて動かす。
+struct StageWorkers: Sendable, Equatable {
+    var upscale: Int
+    var compression: Int
+}
+
 /// 1ファイル単位でアップスケール→圧縮→出力を並列実行する。
 /// Flutter版 `ConvertViewModel._processParallel/_processFile` に対応する。
+///
+/// アップスケール（GPUバウンド）と圧縮（CPUバウンド）を別々のワーカー群で動かし、
+/// キューでつなぐ。片方が終わるのを待たずにもう片方が次々と処理できる（ADR 0034）。
+/// アップスケールはディレクトリ一括実行でプロセス起動の固定費を抑える（ADR 0035）。
 struct ConvertOrchestrator: Sendable {
+    /// 1プロセスでまとめてアップスケールするファイル数。
+    /// 大きくするほど起動固定費は減るが、後段の圧縮が動き出すまでの待ち時間が増える。
+    static let upscaleBatchSize = 4
+
     let upscale: UpscaleService
     let compression: CompressionService
 
@@ -43,6 +57,18 @@ struct ConvertOrchestrator: Sendable {
     ) {
         self.upscale = upscale
         self.compression = compression
+    }
+
+    /// 並列数をGPU（アップスケール）とCPU（圧縮）に配分する。
+    /// GPUは最大3ワーカーに抑え、残りを圧縮へ回す。小さな並列数でも
+    /// 両ステージが同時に動くよう、最低1ずつ確保する。
+    static func stageWorkerCounts(parallelCount: Int) -> StageWorkers {
+        let total = max(1, parallelCount)
+        let upscale = max(1, min(3, total / 3))
+        return StageWorkers(
+            upscale: upscale,
+            compression: max(1, total - upscale)
+        )
     }
 
     /// 出力ファイル名を組み立てる。拡張子直前の `.` ではなく最初の `.` で切る（Flutter版踏襲）。
@@ -95,18 +121,55 @@ struct ConvertOrchestrator: Sendable {
         paths: AppPaths,
         onOutcome: @Sendable @escaping (FileOutcome) async -> Void
     ) async -> (success: Int, failure: Int) {
-        let workers = max(1, min(config.parallelCount, files.count))
-        // 実際に起動するワーカー数からスレッド配分を決める。
-        // Why not: config.parallelCount をそのまま使うと、対象が少ないときに
-        // エンコーダへ過剰なスレッドを渡してしまう。
-        let encoderThreads = CompressionService.encoderThreads(parallelCount: workers)
-        return await Self.runParallel(count: files.count, workers: workers) { index in
-            await self.processFile(
-                at: index, file: files[index], config: config,
-                encoderThreads: encoderThreads,
-                outputDirectory: outputDirectory, paths: paths, onOutcome: onOutcome
-            )
+        guard !files.isEmpty else { return (0, 0) }
+
+        let workers = Self.stageWorkerCounts(parallelCount: config.parallelCount)
+        let batchCount = (files.count + Self.upscaleBatchSize - 1) / Self.upscaleBatchSize
+        let upscaleWorkers = min(workers.upscale, batchCount, files.count)
+        let compressionWorkers = min(workers.compression, files.count)
+        // 圧縮ワーカー数からエンコーダのスレッド配分を決める。
+        let encoderThreads = CompressionService.encoderThreads(parallelCount: compressionWorkers)
+
+        let queue = UpscaledQueue()
+        let batcher = FileBatcher(count: files.count, batchSize: Self.upscaleBatchSize)
+        let upscaleContext = UpscaleBatchContext(
+            files: files, config: config, paths: paths, queue: queue, onOutcome: onOutcome)
+        let compressionContext = CompressionContext(
+            config: config, encoderThreads: encoderThreads, outputDirectory: outputDirectory,
+            paths: paths, onOutcome: onOutcome)
+
+        // アップスケール群が終わったらキューを閉じ、圧縮群を排水する。
+        let upscaleTask = Task { () -> RunCounts in
+            let counts = await withTaskGroup(of: RunCounts.self) { group in
+                for _ in 0..<upscaleWorkers {
+                    group.addTask {
+                        await self.upscaleWorker(batcher: batcher, context: upscaleContext)
+                    }
+                }
+                var total = RunCounts()
+                for await counts in group {
+                    total.merge(counts)
+                }
+                return total
+            }
+            await queue.finish()
+            return counts
         }
+
+        var total = RunCounts()
+        await withTaskGroup(of: RunCounts.self) { group in
+            for _ in 0..<compressionWorkers {
+                group.addTask {
+                    await self.compressionWorker(queue: queue, context: compressionContext)
+                }
+            }
+            for await counts in group {
+                total.merge(counts)
+            }
+        }
+        let upscaleCounts = await upscaleTask.value
+        total.merge(upscaleCounts)
+        return (total.success, total.failure)
     }
 
     /// 中間ファイルを出力先へ確定する。同一ボリュームならコピーではなくrenameで移動する。
@@ -119,73 +182,5 @@ struct ConvertOrchestrator: Sendable {
             try fileManager.removeItem(at: destination)
         }
         try fileManager.moveItem(at: source, to: destination)
-    }
-
-    /// エンジンに応じたアップスケールの実行。Real-CUGANはモデル指定が必須で、
-    /// 無ければ従来の `upscayl-bin` へフォールバックする。
-    private func runUpscale(file: URL, upscaled: URL, config: ConvertConfig, paths: AppPaths) async throws {
-        if config.engine == .realCUGAN, let realCuganModel = config.realCuganModel {
-            try await upscale.runRealCUGAN(input: file, output: upscaled, model: realCuganModel, paths: paths)
-            return
-        }
-        try await upscale.run(
-            input: file, output: upscaled, scale: config.scale, model: config.model, paths: paths)
-    }
-
-    private func processFile(
-        at index: Int,
-        file: URL,
-        config: ConvertConfig,
-        encoderThreads: Int,
-        outputDirectory: URL,
-        paths: AppPaths,
-        onOutcome: @Sendable @escaping (FileOutcome) async -> Void
-    ) async -> Bool {
-        let fm = FileManager.default
-        let tempDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        do {
-            try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
-            defer { try? fm.removeItem(at: tempDir) }
-            let upscaled = tempDir.appendingPathComponent("upscaled.png", isDirectory: false)
-            await onOutcome(
-                FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: false, started: true)
-            )
-            do {
-                try await runUpscale(
-                    file: file, upscaled: upscaled, config: config, paths: paths)
-            } catch {
-                await onOutcome(
-                    FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: true))
-                return false
-            }
-            await onOutcome(FileOutcome(index: index, stage: .upscale, succeeded: true, fileDone: false))
-            await onOutcome(
-                FileOutcome(
-                    index: index, stage: .compress, succeeded: false, fileDone: false, started: true))
-            let outName = Self.outputFileName(for: file.lastPathComponent, format: config.format)
-            let compressed = tempDir.appendingPathComponent(outName, isDirectory: false)
-            do {
-                try await compression.run(
-                    input: upscaled, output: compressed,
-                    format: config.format, optimizeType: config.optimizeType,
-                    quality: config.quality, threads: encoderThreads, paths: paths
-                )
-            } catch {
-                await onOutcome(
-                    FileOutcome(index: index, stage: .compress, succeeded: false, fileDone: true))
-                return false
-            }
-            await onOutcome(FileOutcome(index: index, stage: .compress, succeeded: true, fileDone: false))
-            await onOutcome(
-                FileOutcome(index: index, stage: .output, succeeded: false, fileDone: false, started: true))
-            try Self.installOutput(
-                from: compressed, to: outputDirectory.appendingPathComponent(outName, isDirectory: false)
-            )
-            await onOutcome(FileOutcome(index: index, stage: .output, succeeded: true, fileDone: true))
-            return true
-        } catch {
-            await onOutcome(FileOutcome(index: index, stage: .output, succeeded: false, fileDone: true))
-            return false
-        }
     }
 }
