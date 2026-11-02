@@ -248,10 +248,11 @@ Mutually exclusive with --quality.
 
 ```shell
 avifenc \
+  -c "${AVIF_CODEC}" \
   --speed "${AVIF_SPEED}" \
   -q "${AVIF_QUALITY}" \
   -y "${AVIF_YUV}" \
-  "${AOM_OPTS[@]}" \
+  "${ENC_OPTS[@]}" \
   "$input" \
   "$output"
 ```
@@ -259,12 +260,18 @@ avifenc \
 拡張子は固定で `.avif` とします。
 `最適化種別` 毎のパラメータは以下で固定します。
 
-| 最適化種別    | AVIF_SPEED | AVIF_QUALITY | AVIF_YUV | AOM_OPTS                                |
-|----------|------------|--------------|----------|-----------------------------------------|
-| アニメ・イラスト | 3          | 90           | 444      | ("-a" "end-usage=q" "-a" "cq-level=20") |
-| 実写・写真    | 4          | 85           | 420      | ("-a" "end-usage=q" "-a" "cq-level=22") |
-| 速度優先     | 8          | 70           | 420      |                                         |
-| 画質最優先    | 4          | 90           | 444      | ("-a" "end-usage=q" "-a" "cq-level=16") |
+| 最適化種別    | CODEC | AVIF_SPEED | AVIF_QUALITY | AVIF_YUV | ENC_OPTS                               |
+|----------|-------|------------|--------------|----------|----------------------------------------|
+| アニメ・イラスト | aom   | 3          | 90           | 444      | ("-a" "end-usage=q" "-a" "cq-level=20") |
+| 実写・写真    | svt   | 4          | 85           | 420      | ("-a" "crf=11")                        |
+| 速度優先     | svt   | 8          | 70           | 420      |                                        |
+| 画質最優先    | aom   | 4          | 90           | 444      | ("-a" "end-usage=q" "-a" "cq-level=16") |
+
+- 同梱の `avifenc` は libaom と SVT-AV1 の両方を静的リンクしているため、
+  `-c` でエンコーダを選択します。
+- SVT-AV1 は 4:2:0 しか受け付けないため、4:4:4 を指定する種別は libaom を使います。
+  SVT は CRF で品質を決めるため、libaom の `cq-level` とは値の意味が異なります。
+  詳細は [ADR 0037](../../adr/0037-hybrid-av1-encoder.md) を参照してください。
 
 ### ✏️ help
 
@@ -367,8 +374,8 @@ aom-specific advanced options:
     film-grain-test=TEST              : Film grain test vectors in 0..16. 0=none (default), 1=test1, 2=test2, ... 16=test16
     film-grain-table=FILENAME         : Path to file containing film grain parameters
 
-Version: 1.4.2 (dav1d [dec]:1.5.4, aom [enc/dec]:3.14.1)
-libyuv : unavailable
+Version: 1.4.2 (aom [enc/dec]:3.14.1, svt [enc]:v4.1.0)
+libyuv : available (1924)
 ```
 
 ## ✳️ WebP

@@ -36,8 +36,16 @@ struct CompressionService: Sendable {
         .anime: 3, .photo: 4, .speed: 8, .quality: 4
     ]
 
+    /// 出力のクロマサブサンプリング。SVT-AV1が4:2:0のみ対応のため、
+    /// SVTを使う種別は必ず420にする（ADR 0037）。
     static let avifYuv: [OptimizeType: Int] = [
         .anime: 444, .photo: 420, .speed: 420, .quality: 444
+    ]
+
+    /// AVIFのエンコーダ選択。SVT-AV1は4:2:0しか受け付けないため、
+    /// 4:4:4を指定する種別はlibaomのままにする（ADR 0037）。
+    static let avifCodec: [OptimizeType: String] = [
+        .anime: "aom", .photo: "svt", .speed: "svt", .quality: "aom"
     ]
 
     static let avifAomOpts: [OptimizeType: [String]] = [
@@ -45,6 +53,15 @@ struct CompressionService: Sendable {
         .photo: ["-a", "end-usage=q", "-a", "cq-level=22"],
         .speed: [],
         .quality: ["-a", "end-usage=q", "-a", "cq-level=16"]
+    ]
+
+    /// SVT-AV1のadvanced option。品質はCRFで決めるため、libaomの `cq-level` とは
+    /// 値の意味が違う。photoの `crf=11` は実測でlibaomの `cq-level=22` と
+    /// VMAF・ファイルサイズがほぼ同じになる値（ADR 0037）。
+    /// 速度優先はlibaomと同じくadvanced optionを渡さず `-q` に従わせる。
+    static let avifSvtOpts: [OptimizeType: [String]] = [
+        .photo: ["-a", "crf=11"],
+        .speed: []
     ]
 
     static let webpPreset: [OptimizeType: String] = [
@@ -101,12 +118,16 @@ struct CompressionService: Sendable {
     static func avifencArguments(
         input: String, output: String, optimizeType: OptimizeType, quality: Int, threads: Int
     ) -> [String] {
-        [
+        let codec = avifCodec[optimizeType, default: "aom"]
+        let advanced =
+            codec == "svt" ? (avifSvtOpts[optimizeType] ?? []) : (avifAomOpts[optimizeType] ?? [])
+        return [
+            "-c", codec,
             "--speed", "\(avifSpeed[optimizeType, default: 6])",
             "-q", "\(quality)",
             "-y", "\(avifYuv[optimizeType, default: 420])",
             "-j", "\(threads)"
-        ] + (avifAomOpts[optimizeType] ?? []) + [input, output]
+        ] + advanced + [input, output]
     }
 
     static func cwebpArguments(input: String, output: String, optimizeType: OptimizeType, quality: Int) -> [String] {

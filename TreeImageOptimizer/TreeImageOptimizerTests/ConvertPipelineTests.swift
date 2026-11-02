@@ -55,26 +55,43 @@ struct ConvertPipelineTests {
         #expect(CompressionService.encoderThreads(parallelCount: 0, processorCount: 10) == 10)
     }
 
-    @Test("avifenc引数")
+    @Test("avifenc引数（4:4:4種別はlibaom、4:2:0種別はSVT-AV1）")
     func avifencArgs() {
         #expect(
             CompressionService.avifencArguments(
                 input: "i.png", output: "o.avif", optimizeType: .anime, quality: 90, threads: 2)
                 == [
-                    "--speed", "3", "-q", "90", "-y", "444", "-j", "2", "-a", "end-usage=q", "-a",
-                    "cq-level=20", "i.png", "o.avif"
+                    "-c", "aom", "--speed", "3", "-q", "90", "-y", "444", "-j", "2", "-a",
+                    "end-usage=q", "-a", "cq-level=20", "i.png", "o.avif"
+                ])
+        #expect(
+            CompressionService.avifencArguments(
+                input: "i.png", output: "o.avif", optimizeType: .photo, quality: 85, threads: 4)
+                == [
+                    "-c", "svt", "--speed", "4", "-q", "85", "-y", "420", "-j", "4", "-a",
+                    "crf=11", "i.png", "o.avif"
                 ])
         #expect(
             CompressionService.avifencArguments(
                 input: "i.png", output: "o.avif", optimizeType: .speed, quality: 70, threads: 1)
-                == ["--speed", "8", "-q", "70", "-y", "420", "-j", "1", "i.png", "o.avif"])
+                == ["-c", "svt", "--speed", "8", "-q", "70", "-y", "420", "-j", "1", "i.png", "o.avif"])
         #expect(
             CompressionService.avifencArguments(
                 input: "i.png", output: "o.avif", optimizeType: .quality, quality: 90, threads: 3)
                 == [
-                    "--speed", "4", "-q", "90", "-y", "444", "-j", "3", "-a", "end-usage=q", "-a",
-                    "cq-level=16", "i.png", "o.avif"
+                    "-c", "aom", "--speed", "4", "-q", "90", "-y", "444", "-j", "3", "-a",
+                    "end-usage=q", "-a", "cq-level=16", "i.png", "o.avif"
                 ])
+    }
+
+    @Test("SVT-AV1を使う種別は4:2:0のみ（4:4:4はエンコードに失敗する）")
+    func avifCodecMatchesYuv() {
+        for (optimizeType, codec) in CompressionService.avifCodec {
+            let yuv = CompressionService.avifYuv[optimizeType, default: 420]
+            if codec == "svt" {
+                #expect(yuv == 420, "\(optimizeType) はSVT-AV1を使うため420である必要がある")
+            }
+        }
     }
 
     @Test("cwebp引数")
