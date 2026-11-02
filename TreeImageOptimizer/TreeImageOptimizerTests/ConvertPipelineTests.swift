@@ -256,10 +256,11 @@ struct ConvertPipelineRealCUGANTests {
         ].map { RealCUGANModel(folder: "models-se", name: $0) }
         let ordered = RealCUGANModels.models(models: models, scale: 2)
         // 除去しない no-denoise が先頭。conservative は「除去しないが最低限の抑制あり」で次。
-        #expect(ordered.map(\.name) == [
-            "up2x-no-denoise", "up2x-conservative", "up2x-denoise1x", "up2x-denoise2x",
-            "up2x-denoise3x"
-        ])
+        #expect(
+            ordered.map(\.name) == [
+                "up2x-no-denoise", "up2x-conservative", "up2x-denoise1x", "up2x-denoise2x",
+                "up2x-denoise3x"
+            ])
         // ノイズ除去が同じ場合はID順で確定的に並べる（ProがSEより先）。
         let mixed = [
             RealCUGANModel(folder: "models-se", name: "up2x-conservative"),
