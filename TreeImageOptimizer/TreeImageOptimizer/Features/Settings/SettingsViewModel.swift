@@ -209,7 +209,7 @@ final class SettingsViewModel {
     }
 
     private func load() {
-        guard let file = try? store.load(maxParallel: ProcessInfo.processInfo.processorCount) else { return }
+        guard let file = try? store.load(maxParallel: HardwareInfo.performanceCoreCount()) else { return }
         let s = file.settings
         showOsNotification = s.showOsNotification
         playSound = s.playSound
@@ -248,7 +248,7 @@ final class SettingsViewModel {
     }
 
     private func save() {
-        guard let file = try? store.load(maxParallel: ProcessInfo.processInfo.processorCount) else { return }
+        guard let file = try? store.load(maxParallel: HardwareInfo.performanceCoreCount()) else { return }
         var updated = file
         updated.settings.showOsNotification = showOsNotification
         updated.settings.playSound = playSound

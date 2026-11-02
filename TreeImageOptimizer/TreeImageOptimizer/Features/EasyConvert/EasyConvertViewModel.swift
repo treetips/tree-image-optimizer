@@ -82,7 +82,7 @@ final class EasyConvertViewModel {
         }
     }
     var outputFolderHasError: Bool = false
-    var maxParallel: Double = Double(max(1, ProcessInfo.processInfo.processorCount))
+    var maxParallel: Double = Double(max(1, HardwareInfo.performanceCoreCount()))
 
     /// 共有の実行状態。アプリ層で生成し、`EasyConvertView` 経由で注入する。
     let jobStore: EasyConvertJobStore
@@ -116,7 +116,7 @@ final class EasyConvertViewModel {
         self.paths = paths
         self.store = store ?? SettingsStore(paths: paths)
         self.jobStore = jobStore ?? EasyConvertJobStore(paths: paths, store: self.store)
-        maxParallel = Double(max(1, ProcessInfo.processInfo.processorCount))
+        maxParallel = Double(max(1, HardwareInfo.performanceCoreCount()))
         loadRealCuganCatalog()
         loadPersisted()
         reloadTools()

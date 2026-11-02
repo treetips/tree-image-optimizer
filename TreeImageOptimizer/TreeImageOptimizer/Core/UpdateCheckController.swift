@@ -33,7 +33,7 @@ final class UpdateCheckController {
 
     private func language() -> String {
         let paths = AppPaths()
-        let maxParallel = max(1, ProcessInfo.processInfo.processorCount)
+        let maxParallel = max(1, HardwareInfo.performanceCoreCount())
         return (try? SettingsStore(paths: paths).load(maxParallel: maxParallel).settings.language) ?? ""
     }
 

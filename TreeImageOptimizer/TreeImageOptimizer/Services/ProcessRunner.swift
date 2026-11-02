@@ -20,6 +20,10 @@ struct ProcessRunner: Sendable {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: executable)
             process.arguments = args
+            // 変換はユーザーが明示的に開始した前景処理なので、QoSを上げて
+            // Eコアへ回されにくくする。既定のままではバックグラウンド扱いになり、
+            // エンコードが遅いコアに配置されることがある。
+            process.qualityOfService = .userInitiated
             if let workingDirectory {
                 process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory, isDirectory: true)
             }

@@ -68,7 +68,7 @@ struct CompressionService: Sendable {
     /// コアを取り合い、コンテキストスイッチでかえって遅くなる。
     static func encoderThreads(
         parallelCount: Int,
-        processorCount: Int = ProcessInfo.processInfo.processorCount
+        processorCount: Int = HardwareInfo.performanceCoreCount()
     ) -> Int {
         let workers = max(1, parallelCount)
         let cores = max(1, processorCount)

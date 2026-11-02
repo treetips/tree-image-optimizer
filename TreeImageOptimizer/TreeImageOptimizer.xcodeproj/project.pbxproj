@@ -34,6 +34,7 @@
 		E30000000000000000000022 /* SettingsStoreValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000022 /* SettingsStoreValues.swift */; };
 		E30000000000000000000023 /* RealCUGANModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000023 /* RealCUGANModels.swift */; };
 		E30000000000000000000024 /* ConvertOrchestratorWorkers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000024 /* ConvertOrchestratorWorkers.swift */; };
+		E30000000000000000000025 /* HardwareInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000025 /* HardwareInfo.swift */; };
 		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
 		E40000000000000000000009 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000009 /* AppThemeTests.swift */; };
 		E40000000000000000000011 /* SliderLoadLevelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000011 /* SliderLoadLevelTests.swift */; };
@@ -98,6 +99,7 @@
 		F30000000000000000000022 /* SettingsStoreValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreValues.swift; sourceTree = "<group>"; };
 		F30000000000000000000023 /* RealCUGANModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealCUGANModels.swift; sourceTree = "<group>"; };
 		F30000000000000000000024 /* ConvertOrchestratorWorkers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertOrchestratorWorkers.swift; sourceTree = "<group>"; };
+		F30000000000000000000025 /* HardwareInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareInfo.swift; sourceTree = "<group>"; };
 		F40000000000000000000007 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000011 /* SliderLoadLevelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderLoadLevelTests.swift; sourceTree = "<group>"; };
@@ -243,6 +245,7 @@
 				F30000000000000000000019 /* HelpPopover.swift */,
 				F30000000000000000000020 /* SliderLoadLevel.swift */,
 				F30000000000000000000021 /* GlassCard.swift */,
+				F30000000000000000000025 /* HardwareInfo.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -459,6 +462,7 @@
 				E30000000000000000000019 /* HelpPopover.swift in Sources */,
 				E30000000000000000000020 /* SliderLoadLevel.swift in Sources */,
 				E30000000000000000000021 /* GlassCard.swift in Sources */,
+				E30000000000000000000025 /* HardwareInfo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -201,6 +201,13 @@ struct ConvertPipelineTests {
         #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 30) == StageWorkers(upscale: 3, compression: 27))
     }
 
+    @Test("Pコア数は1以上で全論理コア以下")
+    func performanceCoreCount() {
+        let performance = HardwareInfo.performanceCoreCount()
+        #expect(performance >= 1)
+        #expect(performance <= ProcessInfo.processInfo.processorCount)
+    }
+
     @Test("出力確定（同一ボリュームではrename・既存は上書き・元のファイルは残らない）")
     func installOutput() throws {
         let fileManager = FileManager.default
