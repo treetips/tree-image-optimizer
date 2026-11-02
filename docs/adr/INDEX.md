@@ -33,6 +33,7 @@
 | 0030 | サイドナビ下部の更新カードを更新の有無で表示し分ける | Accepted | アップデート機能 |
 | 0031 | Real-CUGANをncnnバイナリで追加する | Accepted | アップスケール機能・配布 |
 | 0032 | VideoToolbox Super Resolutionを速度重視エンジンとして追加する | Rejected | アップスケール機能 |
+| 0033 | エンコードのスレッド配分をコア数と並列数から決める | Accepted | 一括変換・かんたん変換 |
 
 - ステータス凡例
     - 提案済み (Proposed)

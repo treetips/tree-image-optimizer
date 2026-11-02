@@ -46,25 +46,34 @@ struct ConvertPipelineTests {
                 == ["i.png", "o.jxl", "--distance=0.0", "-e", "7", "--num_threads=1", "--lossless_jpeg=0"])
     }
 
+    @Test("エンコーダのスレッド配分はコア数を並列数で割る")
+    func encoderThreads() {
+        #expect(CompressionService.encoderThreads(parallelCount: 1, processorCount: 10) == 10)
+        #expect(CompressionService.encoderThreads(parallelCount: 4, processorCount: 10) == 2)
+        #expect(CompressionService.encoderThreads(parallelCount: 10, processorCount: 10) == 1)
+        #expect(CompressionService.encoderThreads(parallelCount: 20, processorCount: 10) == 1)
+        #expect(CompressionService.encoderThreads(parallelCount: 0, processorCount: 10) == 10)
+    }
+
     @Test("avifenc引数")
     func avifencArgs() {
         #expect(
             CompressionService.avifencArguments(
-                input: "i.png", output: "o.avif", optimizeType: .anime, quality: 90)
+                input: "i.png", output: "o.avif", optimizeType: .anime, quality: 90, threads: 2)
                 == [
-                    "--speed", "3", "-q", "90", "-y", "444", "-a", "end-usage=q", "-a", "cq-level=20",
-                    "i.png", "o.avif"
+                    "--speed", "3", "-q", "90", "-y", "444", "-j", "2", "-a", "end-usage=q", "-a",
+                    "cq-level=20", "i.png", "o.avif"
                 ])
         #expect(
             CompressionService.avifencArguments(
-                input: "i.png", output: "o.avif", optimizeType: .speed, quality: 70)
-                == ["--speed", "8", "-q", "70", "-y", "420", "i.png", "o.avif"])
+                input: "i.png", output: "o.avif", optimizeType: .speed, quality: 70, threads: 1)
+                == ["--speed", "8", "-q", "70", "-y", "420", "-j", "1", "i.png", "o.avif"])
         #expect(
             CompressionService.avifencArguments(
-                input: "i.png", output: "o.avif", optimizeType: .quality, quality: 90)
+                input: "i.png", output: "o.avif", optimizeType: .quality, quality: 90, threads: 3)
                 == [
-                    "--speed", "4", "-q", "90", "-y", "444", "-a", "end-usage=q", "-a", "cq-level=16",
-                    "i.png", "o.avif"
+                    "--speed", "4", "-q", "90", "-y", "444", "-j", "3", "-a", "end-usage=q", "-a",
+                    "cq-level=16", "i.png", "o.avif"
                 ])
     }
 

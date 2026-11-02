@@ -96,9 +96,14 @@ struct ConvertOrchestrator: Sendable {
         onOutcome: @Sendable @escaping (FileOutcome) async -> Void
     ) async -> (success: Int, failure: Int) {
         let workers = max(1, min(config.parallelCount, files.count))
+        // 実際に起動するワーカー数からスレッド配分を決める。
+        // Why not: config.parallelCount をそのまま使うと、対象が少ないときに
+        // エンコーダへ過剰なスレッドを渡してしまう。
+        let encoderThreads = CompressionService.encoderThreads(parallelCount: workers)
         return await Self.runParallel(count: files.count, workers: workers) { index in
             await self.processFile(
                 at: index, file: files[index], config: config,
+                encoderThreads: encoderThreads,
                 outputDirectory: outputDirectory, paths: paths, onOutcome: onOutcome
             )
         }
@@ -131,6 +136,7 @@ struct ConvertOrchestrator: Sendable {
         at index: Int,
         file: URL,
         config: ConvertConfig,
+        encoderThreads: Int,
         outputDirectory: URL,
         paths: AppPaths,
         onOutcome: @Sendable @escaping (FileOutcome) async -> Void
@@ -162,7 +168,7 @@ struct ConvertOrchestrator: Sendable {
                 try await compression.run(
                     input: upscaled, output: compressed,
                     format: config.format, optimizeType: config.optimizeType,
-                    quality: config.quality, threads: config.parallelCount, paths: paths
+                    quality: config.quality, threads: encoderThreads, paths: paths
                 )
             } catch {
                 await onOutcome(

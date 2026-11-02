@@ -235,7 +235,7 @@ final class EasyConvertViewModel {
             format: format,
             optimizeType: optimizeType,
             quality: Int(quality),
-            parallelCount: storedParallel ?? max(1, Int(maxParallel) / 2 - 1),
+            parallelCount: storedParallel ?? max(1, Int(maxParallel) - 1),
             engine: engine,
             realCuganModel: engine == .realCUGAN ? realCuganModel : nil
         )

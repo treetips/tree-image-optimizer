@@ -62,6 +62,19 @@ struct CompressionService: Sendable {
         return Double(100 - q) * 0.1
     }
 
+    /// エンコーダ1プロセスに割り当てるスレッド数。
+    /// 同時実行数との積が論理コア数を超えないよう、コア数を並列数で割った値にする。
+    /// Why not: 並列数をそのまま `--num_threads` に渡すと、N並列時にN²のスレッドが
+    /// コアを取り合い、コンテキストスイッチでかえって遅くなる。
+    static func encoderThreads(
+        parallelCount: Int,
+        processorCount: Int = ProcessInfo.processInfo.processorCount
+    ) -> Int {
+        let workers = max(1, parallelCount)
+        let cores = max(1, processorCount)
+        return max(1, cores / workers)
+    }
+
     // MARK: - Argument builders (pure, testable)
 
     static func jpegoptimArguments(output: String, quality: Int) -> [String] {
@@ -85,11 +98,14 @@ struct CompressionService: Sendable {
         ] + (jxlExtraOpts[optimizeType] ?? [])
     }
 
-    static func avifencArguments(input: String, output: String, optimizeType: OptimizeType, quality: Int) -> [String] {
+    static func avifencArguments(
+        input: String, output: String, optimizeType: OptimizeType, quality: Int, threads: Int
+    ) -> [String] {
         [
             "--speed", "\(avifSpeed[optimizeType, default: 6])",
             "-q", "\(quality)",
-            "-y", "\(avifYuv[optimizeType, default: 420])"
+            "-y", "\(avifYuv[optimizeType, default: 420])",
+            "-j", "\(threads)"
         ] + (avifAomOpts[optimizeType] ?? []) + [input, output]
     }
 
@@ -135,7 +151,7 @@ struct CompressionService: Sendable {
                 bin,
                 args: Self.avifencArguments(
                     input: input.path, output: output.path,
-                    optimizeType: optimizeType, quality: quality
+                    optimizeType: optimizeType, quality: quality, threads: threads
                 ), workingDirectory: bin.deletingLastPathComponent().path)
         case .webp:
             let bin = paths.cwebpBinURL
