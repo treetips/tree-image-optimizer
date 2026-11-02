@@ -202,4 +202,31 @@ struct ToolInstallerTests {
         try installer.installRealCugan(from: source)
         #expect(fm.fileExists(atPath: bin.path))
     }
+
+    @Test("上流ZIPのフラット配置からもbin/macosへ正規化して配置できる")
+    func installsRealCuganFromFlatLayout() throws {
+        let (installer, base) = try makeInstaller()
+        let fm = FileManager.default
+        // Why not: 上流ZIPはバイナリがルート直下にある（bin/macosを持たない）ため、
+        // その構造のまま配置するとbin/macos参照が失敗するのを再現する。
+        let source = base.appendingPathComponent("extracted", isDirectory: true)
+        try fm.createDirectory(at: source, withIntermediateDirectories: true)
+        fm.createFile(
+            atPath: source.appendingPathComponent("realcugan-ncnn-vulkan").path,
+            contents: Data("x".utf8))
+        let se = source.appendingPathComponent("models-se", isDirectory: true)
+        try fm.createDirectory(at: se, withIntermediateDirectories: true)
+        fm.createFile(atPath: se.appendingPathComponent("up2x-conservative.bin").path, contents: Data("x".utf8))
+        fm.createFile(atPath: se.appendingPathComponent("up2x-conservative.param").path, contents: Data("x".utf8))
+
+        try installer.installRealCugan(from: source)
+
+        let installedBin = base.appendingPathComponent(
+            "tools/realcugan/bin/macos/realcugan-ncnn-vulkan", isDirectory: false)
+        #expect(fm.fileExists(atPath: installedBin.path))
+        #expect(!fm.fileExists(atPath: base.appendingPathComponent("tools/realcugan/realcugan-ncnn-vulkan").path))
+        let attrs = try fm.attributesOfItem(atPath: installedBin.path)
+        #expect((attrs[.posixPermissions] as? NSNumber)?.uint16Value == 0o755)
+        #expect(installer.isRealCuganInstalled())
+    }
 }

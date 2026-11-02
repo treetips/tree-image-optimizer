@@ -119,6 +119,14 @@ final class EasyConvertViewModel {
         maxParallel = Double(max(1, ProcessInfo.processInfo.processorCount))
         loadRealCuganCatalog()
         loadPersisted()
+        reloadTools()
+    }
+
+    /// ツール配置の変化にカタログ・利用可否・モデル一覧を追従させる。
+    /// Why not: 初期化時のみの読込では、ブートストラップのダウンロード完了前に
+    /// 作られた「未配置」の状態が残り、配置済みでも未配置表示が消えないため。
+    func reloadTools() {
+        loadRealCuganCatalog()
         models = TargetFiles.listModels(in: paths.upscalModelsURL)
         if !models.contains(selectedModel), let first = models.first {
             selectedModel = first

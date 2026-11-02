@@ -7,11 +7,13 @@ import SwiftUI
 struct EasyConvertView: View {
     @State private var viewModel: EasyConvertViewModel
     private let jobStore: EasyConvertJobStore
+    private let toolsReady: Bool
     @State private var isDropTargeted = false
     @Environment(\.locale) private var locale
 
-    init(jobStore: EasyConvertJobStore) {
+    init(jobStore: EasyConvertJobStore, toolsReady: Bool = true) {
         self.jobStore = jobStore
+        self.toolsReady = toolsReady
         _viewModel = State(initialValue: EasyConvertViewModel(jobStore: jobStore))
     }
 
@@ -255,6 +257,11 @@ struct EasyConvertView: View {
             .padding(.bottom, 0)
         }
         .navigationTitle(t("e.navTitle"))
+        .onChange(of: toolsReady) { _, ready in
+            // Why not: ViewModelの初期化はツール展開の完了前に走るため、
+            // 完了後の再読込を欠かすと配置済みでも未配置表示のままになる。
+            if ready { viewModel.reloadTools() }
+        }
     }
 }
 

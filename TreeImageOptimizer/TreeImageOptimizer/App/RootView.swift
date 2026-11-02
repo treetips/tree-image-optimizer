@@ -156,9 +156,9 @@ struct RootView: View {
                     backgroundImage
                     switch navigation.selection {
                     case .convert:
-                        ConvertView(jobStore: convertJobStore)
+                        ConvertView(jobStore: convertJobStore, toolsReady: bootstrap.isReady)
                     case .easyConvert:
-                        EasyConvertView(jobStore: easyConvertJobStore)
+                        EasyConvertView(jobStore: easyConvertJobStore, toolsReady: bootstrap.isReady)
                     case .settings:
                         SettingsView(viewModel: settings)
                     case .about:

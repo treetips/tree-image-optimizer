@@ -32,6 +32,7 @@
 | 0029 | 成功時・失敗時サウンドのランダム再生 | Accepted | 設定画面・変換画面 |
 | 0030 | サイドナビ下部の更新カードを更新の有無で表示し分ける | Accepted | アップデート機能 |
 | 0031 | Real-CUGANをncnnバイナリで追加する | Accepted | アップスケール機能・配布 |
+| 0032 | VideoToolbox Super Resolutionを速度重視エンジンとして追加する | Rejected | アップスケール機能 |
 
 - ステータス凡例
     - 提案済み (Proposed)

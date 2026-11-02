@@ -152,4 +152,26 @@ struct ConvertViewModelRealCUGANTests {
         #expect(reloaded.batch.engine == "realCUGAN")
         #expect(reloaded.batch.realCuganModel == "models-se/up2x-denoise1x")
     }
+
+    @Test("ツール展開完了後の再読込で利用可否とモデル一覧が反映される")
+    @MainActor
+    func reloadToolsReflectsInstalledTools() throws {
+        let base = try makeBase()
+        let viewModel = try makeViewModel(base: base)
+        // 初期化はブートストラップの完了前に走るため、この時点では未配置扱い。
+        #expect(!viewModel.realCuganAvailable)
+        #expect(viewModel.models == ["realesr-animevideov3-x4"])
+
+        // 展開完了を再現して配置し、再読込する。
+        try makeRealCuganTools(base: base, names: ["up2x-conservative", "up4x-conservative"])
+        let models = base.appendingPathComponent("tools/upscal/models", isDirectory: true)
+        try FileManager.default.createDirectory(at: models, withIntermediateDirectories: true)
+        FileManager.default.createFile(
+            atPath: models.appendingPathComponent("m.bin").path, contents: Data("x".utf8))
+        viewModel.reloadTools()
+
+        #expect(viewModel.realCuganAvailable)
+        #expect(viewModel.realCuganModels.count == 2)
+        #expect(viewModel.models == ["m"])
+    }
 }
