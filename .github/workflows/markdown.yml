@@ -1,0 +1,41 @@
+name: Markdown
+
+# Markdownの変更時だけ実行する。pull_requestはブランチを絞らない。
+# 積み上げPR（ベースがfeatureブランチ）でも検査を通すためmainに限定しない。
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.md'
+      - '.rumdl.toml'
+      - '.github/workflows/markdown.yml'
+  pull_request:
+    paths:
+      - '**.md'
+      - '.rumdl.toml'
+      - '.github/workflows/markdown.yml'
+
+jobs:
+  check:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # バージョンを固定してローカルとCIで検査結果が変わらないようにする。
+      # PRのFiles changedタブに違反箇所をアノテーション表示する。
+      - name: Lint Markdown
+        uses: rvben/rumdl@v0
+        with:
+          version: '0.3.2'
+          report-type: annotations
+
+      # フォーマット崩れ（`rumdl fmt` で変わる差分の有無）も検査する。
+      - name: Check formatting
+        uses: rvben/rumdl@v0
+        with:
+          version: '0.3.2'
+          command: fmt-check

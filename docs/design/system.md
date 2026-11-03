@@ -45,6 +45,9 @@
   1. `swiftlint` で規約違反を検出・修正する（自動修正は `swiftlint --fix`）。
   2. `swift format format -i -r TreeImageOptimizer` でフォーマットする（確認のみは `swift format lint -r TreeImageOptimizer`）。
   3. フォーマット後は `xcodebuild` でビルドし、コンパイルエラーが無いことを確認する。
+- MarkdownのLinter・Formatterは [rumdl](https://rumdl.dev/) を使う。設定はリポジトリ直下の `.rumdl.toml` で管理する。導入はHomebrew（`brew install rumdl`）。
+  - Markdownを修正した場合は `rumdl fmt` でフォーマットし、`rumdl check` でlintチェックして違反があれば修正する。
+  - GitHub Actions（`.github/workflows/markdown.yml`）でも `rumdl check` と `rumdl fmt --check` を実行し、違反があるとCIに失敗する。対象は `.opencode`（同梱スキル文書）と `tools`（同梱ツールの付属文書）を除くすべてのMarkdown。
 
 ## アップデート
 
