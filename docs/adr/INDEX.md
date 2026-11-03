@@ -46,6 +46,7 @@
 | 0043 | Markdownのlint・フォーマットをrumdlで行いCIでチェックする | Accepted | ドキュメント・CI |
 | 0044 | commit時にprekでrumdlのフォーマットとBetterleaksの漏洩チェックを行う | Accepted | 開発環境・git hooks |
 | 0045 | setup.shで.vscode/extensions.jsonからVSCode拡張を導入する | Accepted | 開発環境 |
+| 0046 | MarkdownのCIをpushに一本化して2重実行をなくす | Accepted | ドキュメント・CI |
 
 - ステータス凡例
   - 提案済み (Proposed)
