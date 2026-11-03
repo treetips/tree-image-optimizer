@@ -25,7 +25,7 @@ final class UpdateCheckController {
     var latestDialog = false
     var availableInfo: UpdateInfo?
     var errorDialog: String?
-    /// サイドナビ下部の更新カード。起動時のサイレント確認結果を反映する。
+    /// サイドナビ下部の更新カード。起動時のサイレント確認と手動確認の結果を反映する。
     var card: UpdateCard?
 
     private var hideCardTask: Task<Void, Never>?
@@ -58,10 +58,20 @@ final class UpdateCheckController {
     }
 
     /// 確認結果をカード状態に解決する。更新の有無に応じて表示文言が変わる。
-    // テストから直接検証できるよう純粋関数として切り出す。
+    /// テストから直接検証できるよう純粋関数として切り出す。
     static func resolveCard(for result: UpdateCheckResult) -> UpdateCard {
         if case .available(let info) = result { return .available(info) }
         return .noUpdate
+    }
+
+    /// 手動確認（About画面のボタン・メニューバー）の結果をカード状態に解決する。
+    /// 失敗時は更新の有無が分からないためnilとし、カードを現状のままにする。
+    /// 「更新なし」カードを出すと、同時に表示される失敗アラートと食い違って
+    /// 「更新が無い」と誤解されるため。
+    /// テストから直接検証できるよう純粋関数として切り出す。
+    static func resolveManualCard(for result: UpdateCheckResult) -> UpdateCard? {
+        if case .failed = result { return nil }
+        return resolveCard(for: result)
     }
 
     /// カードを差し替える。更新なしカードは10秒後に自動で非表示化する。
@@ -96,6 +106,8 @@ final class UpdateCheckController {
         card = nil
     }
 
+    /// About画面のボタンとメニューバーの手動確認。
+    /// 結果はメッセージ・ダイアログとサイドナビ下部の更新カードの双方に反映する。
     func checkForUpdate(language: String? = nil) {
         guard !isChecking else { return }
         isChecking = true
@@ -119,6 +131,11 @@ final class UpdateCheckController {
             case .failed(let reason):
                 message = "\(L10n.string("a.checkFailed", language: lang)): \(reason)"
                 errorDialog = reason
+            }
+            // 手動確認の結果をサイドナビ下部の更新カードにも反映する。
+            // 失敗時はnilのためカードを触らず、直前の確認結果を表示したままにする。
+            if let card = Self.resolveManualCard(for: result) {
+                setCard(card)
             }
             isChecking = false
         }

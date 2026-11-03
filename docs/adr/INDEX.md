@@ -42,10 +42,11 @@
 | 0039 | 並列数をエンコーダの負荷予算として扱う | Accepted | 一括変換・かんたん変換 |
 | 0040 | AVIFの速度プリセットとクオリティ指定を実測で詰める | Accepted | 圧縮機能 |
 | 0041 | 実行結果の絞り込み選択を保存して復元する | Accepted | 一括変換 |
+| 0042 | 手動更新確認の結果をサイドナビ下部の更新カードにも反映する | Accepted | アップデート機能 |
 
 - ステータス凡例
-    - 提案済み (Proposed)
-    - 承認済み (Accepted)
-    - 代替済み (Superseded)
-    - 非推奨 (Deprecated)
-    - 棄却 (Rejected)
+  - 提案済み (Proposed)
+  - 承認済み (Accepted)
+  - 代替済み (Superseded)
+  - 非推奨 (Deprecated)
+  - 棄却 (Rejected)
