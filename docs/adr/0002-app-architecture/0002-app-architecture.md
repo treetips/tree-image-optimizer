@@ -8,7 +8,7 @@
 
 以下の `レイヤードアーキテクチャ` を採用します。
 
-```
+```text
 ┏━━━━━┓ <-------- ┏━━━━━━━┓ <--State-- ┏━━━━━━┓
 ┃ UI Layer ┃           ┃ Logic Layer  ┃            ┃ Data Layer ┃
 ┗━━━━━┛--Event--> ┗━━━━━━━┛ ---------> ┗━━━━━━┛
@@ -16,7 +16,7 @@
 
 依存関係は `UI Layer` -> `Logic Layer` -> `Data Lanyer` の一方向です。
 
-##  階層型アーキテクチャ
+## 階層型アーキテクチャ
 
 [アプリアーキテクチャガイド](https://docs.flutter.dev/app-architecture/guide)
 

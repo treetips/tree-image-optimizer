@@ -271,9 +271,9 @@ avifenc \
   `-c` でエンコーダを選択します。
 - SVT-AV1 は 4:2:0 しか受け付けないため、4:4:4 を指定する種別は libaom を使います。
   SVT は CRF で品質を決めるため、libaom の `cq-level` とは値の意味が異なります。
-  詳細は [ADR 0037](../../adr/0037-hybrid-av1-encoder.md) を参照してください。
+  詳細は [ADR 0037](../../../adr/0037-hybrid-av1-encoder.md) を参照してください。
 - 速度プリセットとクオリティ指定は実測で決めています。詳細は
-  [ADR 0040](../../adr/0040-avif-speed-tuning.md) を参照してください。
+  [ADR 0040](../../../adr/0040-avif-speed-tuning.md) を参照してください。
 
 ### ✏️ help
 

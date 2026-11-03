@@ -16,7 +16,7 @@ upscayl-bin \
 
 ### ✏️ help
 
-```
+```text
 ❯ ./upscayl-bin -h
 🚀 Starting Upscayl - Copyright © 2024
 Usage: upscayl-bin -i infile -o outfile [options]...
@@ -70,11 +70,11 @@ realcugan-ncnn-vulkan \
 - シンボリックリンクは `upscayl-bin` のディレクトリ走査で無視されるため使いません。
 - プロセスの終了コードだけでなく、出力ファイルごとに存在と寸法を検証します。
 
-詳細は [ADR 0035](../../adr/0035-upscale-directory-batch.md) を参照してください。
+詳細は [ADR 0035](../../../adr/0035-upscale-directory-batch.md) を参照してください。
 
 ### ✏️ help
 
-```
+```text
 ❯ ./realcugan-ncnn-vulkan -h
 Usage: realcugan-ncnn-vulkan -i infile -o outfile [options]...
 
