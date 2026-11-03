@@ -3,6 +3,7 @@
 ## ステータス
 
 - 承認済み (Accepted)
+- 実行トリガーに関する決定は [ADR 0046](0046-markdown-ci-push-only.md) で変更した。
 
 ## 背景・課題
 
