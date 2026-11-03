@@ -1,20 +1,9 @@
 name: Markdown
 
-# Markdownの変更時だけ実行する。pull_requestはブランチを絞らない。
-# 積み上げPR（ベースがfeatureブランチ）でも検査を通すためmainに限定しない。
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - '**.md'
-      - '.rumdl.toml'
-      - '.github/workflows/markdown.yml'
-  pull_request:
-    paths:
-      - '**.md'
-      - '.rumdl.toml'
-      - '.github/workflows/markdown.yml'
+# 全ブランチのpushとすべてのPRで毎回実行する。
+# 変更ファイルで絞らないのは、Markdown以外の変更でも検査を素通りさせず、
+# どのブランチでも違反が残らないことを常に確認するため（実行は数秒で終わる）。
+on: [push, pull_request]
 
 jobs:
   check:
