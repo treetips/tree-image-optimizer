@@ -43,6 +43,7 @@ struct StageWorkers: Sendable, Equatable {
 /// アップスケール（GPUバウンド）と圧縮（CPUバウンド）を別々のワーカー群で動かし、
 /// キューでつなぐ。片方が終わるのを待たずにもう片方が次々と処理できる（ADR 0034）。
 /// アップスケールはディレクトリ一括実行でプロセス起動の固定費を抑える（ADR 0035）。
+/// 処理枠（並列数）は出力が完了したファイルだけが返す（ADR 0038）。
 struct ConvertOrchestrator: Sendable {
     /// 1プロセスでまとめてアップスケールするファイル数。
     /// 大きくするほど起動固定費は減るが、後段の圧縮が動き出すまでの待ち時間が増える。
@@ -113,6 +114,21 @@ struct ConvertOrchestrator: Sendable {
         return (success, failure)
     }
 
+    /// 出力の完了（`fileDone`）を処理枠の解放に結び付ける完了通知を作る。
+    /// Why not: 各処理箇所から直接解放を呼ぶと、1ファイルで二重に返す（または
+    /// 取りこぼして枠が減り続ける）危険があるため、通知1件につき1枠に一本化する。
+    static func trackingOutcome(
+        deliver: @Sendable @escaping (FileOutcome) async -> Void,
+        release: @Sendable @escaping () async -> Void
+    ) -> @Sendable (FileOutcome) async -> Void {
+        { outcome in
+            await deliver(outcome)
+            if outcome.fileDone {
+                await release()
+            }
+        }
+    }
+
     /// - Returns: (成功件数, 失敗件数)
     func run(
         files: [URL],
@@ -130,13 +146,18 @@ struct ConvertOrchestrator: Sendable {
         // 圧縮ワーカー数からエンコーダのスレッド配分を決める。
         let encoderThreads = CompressionService.encoderThreads(parallelCount: compressionWorkers)
 
+        // 処理枠は並列数ぶん。出力が完了したファイルだけが枠を返す（ADR 0038）。
+        let batcher = FileBatcher(
+            count: files.count, batchSize: Self.upscaleBatchSize, capacity: config.parallelCount)
+        let trackedOutcome = Self.trackingOutcome(deliver: onOutcome) {
+            await batcher.release()
+        }
         let queue = UpscaledQueue()
-        let batcher = FileBatcher(count: files.count, batchSize: Self.upscaleBatchSize)
         let upscaleContext = UpscaleBatchContext(
-            files: files, config: config, paths: paths, queue: queue, onOutcome: onOutcome)
+            files: files, config: config, paths: paths, queue: queue, onOutcome: trackedOutcome)
         let compressionContext = CompressionContext(
             config: config, encoderThreads: encoderThreads, outputDirectory: outputDirectory,
-            paths: paths, onOutcome: onOutcome)
+            paths: paths, onOutcome: trackedOutcome)
 
         // アップスケール群が終わったらキューを閉じ、圧縮群を排水する。
         let upscaleTask = Task { () -> RunCounts in

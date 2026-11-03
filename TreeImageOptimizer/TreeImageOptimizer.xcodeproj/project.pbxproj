@@ -61,6 +61,7 @@
 		E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000003 /* ProcessRunnerTests.swift */; };
 		E40000000000000000000004 /* ToolInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* ToolInstallerTests.swift */; };
 		E40000000000000000000005 /* ConvertPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000005 /* ConvertPipelineTests.swift */; };
+		E40000000000000000000016 /* ConvertWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000016 /* ConvertWindowTests.swift */; };
 		E40000000000000000000006 /* MediaServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000006 /* MediaServicesTests.swift */; };
 		E50000000000000000000001 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000001 /* assets */; };
 		E50000000000000000000002 /* TreeImageOptimizer.icns in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* TreeImageOptimizer.icns */; };
@@ -124,6 +125,7 @@
 		F40000000000000000000003 /* ProcessRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunnerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000004 /* ToolInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolInstallerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000005 /* ConvertPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPipelineTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000016 /* ConvertWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertWindowTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000006 /* MediaServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServicesTests.swift; sourceTree = "<group>"; };
 		F50000000000000000000001 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -195,6 +197,7 @@
 				F40000000000000000000013 /* ConvertJobStoreTests.swift */,
 				F40000000000000000000014 /* SettingsViewModelTests.swift */,
 				F40000000000000000000015 /* ConvertViewModelTests.swift */,
+				F40000000000000000000016 /* ConvertWindowTests.swift */,
 			);
 			path = TreeImageOptimizerTests;
 			sourceTree = "<group>";
@@ -417,6 +420,7 @@
 				E40000000000000000000013 /* ConvertJobStoreTests.swift in Sources */,
 				E40000000000000000000014 /* SettingsViewModelTests.swift in Sources */,
 				E40000000000000000000015 /* ConvertViewModelTests.swift in Sources */,
+				E40000000000000000000016 /* ConvertWindowTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

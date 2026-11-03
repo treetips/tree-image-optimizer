@@ -249,23 +249,48 @@ actor UpscaledQueue {
     }
 }
 
-/// 次に処理するファイル範囲を配る。バッチ単位で取り出す。
+/// 次に処理するファイル範囲を配る。処理枠（並列数）を超えないようにする。
+///
+/// スロットは `release` で返す。アップスケールの完了では返さないため、
+/// 「1ファイルの出力が終わるまで次のファイルを開始しない」が守られる（ADR 0038）。
 actor FileBatcher {
     private let count: Int
     private let batchSize: Int
+    private let capacity: Int
     private var nextIndex = 0
+    private var inFlight = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
 
-    init(count: Int, batchSize: Int) {
+    init(count: Int, batchSize: Int, capacity: Int) {
         self.count = count
         self.batchSize = max(1, batchSize)
+        self.capacity = max(1, capacity)
     }
 
-    func next() -> Range<Int>? {
+    /// 空き枠の数だけ次のバッチ範囲を返す。空きが1件も無いと空きが出来るまで待つ。
+    /// ファイルが尽きたら nil を返す。
+    /// Why not: 必ず `batchSize` 件そろえると空き1件で次が始まらないため、
+    /// 「1件完了ごとに次を開始する」を満たせない。
+    func next() async -> Range<Int>? {
         guard nextIndex < count else { return nil }
-        let start = nextIndex
-        let end = min(start + batchSize, count)
-        nextIndex = end
-        return start..<end
+        while inFlight >= capacity {
+            await withCheckedContinuation { waiters.append($0) }
+        }
+        let take = min(batchSize, capacity - inFlight, count - nextIndex)
+        let range = nextIndex..<(nextIndex + take)
+        nextIndex += take
+        inFlight += take
+        return range
+    }
+
+    /// 出力が完了したファイルの分だけ処理枠を返す。
+    func release(_ files: Int = 1) {
+        inFlight = max(0, inFlight - files)
+        let pending = waiters
+        waiters.removeAll()
+        for waiter in pending {
+            waiter.resume()
+        }
     }
 }
 
