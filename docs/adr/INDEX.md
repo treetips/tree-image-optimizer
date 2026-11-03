@@ -44,6 +44,8 @@
 | 0041 | 実行結果の絞り込み選択を保存して復元する | Accepted | 一括変換 |
 | 0042 | 手動更新確認の結果をサイドナビ下部の更新カードにも反映する | Accepted | アップデート機能 |
 | 0043 | Markdownのlint・フォーマットをrumdlで行いCIでチェックする | Accepted | ドキュメント・CI |
+| 0044 | commit時にprekでrumdlのフォーマットとBetterleaksの漏洩チェックを行う | Accepted | 開発環境・git hooks |
+| 0045 | setup.shで.vscode/extensions.jsonからVSCode拡張を導入する | Accepted | 開発環境 |
 
 - ステータス凡例
   - 提案済み (Proposed)
