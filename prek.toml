@@ -1,0 +1,37 @@
+# git hooks 設定（prek: https://prek.j178.dev/）
+#
+# Why not フックからツールを直接呼ぶか: GitHub Desktop 等の GUI から commit する
+# と hook プロセスの PATH に Homebrew の bin が含まれず、ツールが起動できない。
+# そのため tools/ 配下のラッパースクリプトを経由し、GUI・ターミナルのどちらから
+# 呼ばれても同じように動くようにする。
+#
+# 実行にはリポジトリごとに `prek install` で Git shim を設置しておく必要がある。
+
+# commit 時（pre-commit）だけを対象にする。
+default_stages = ["pre-commit"]
+
+[[repos]]
+repo = "local"
+
+# Markdown をフォーマットする。整形で差分が出た場合は commit が中断され、
+# 変更を確認して再ステージするよう促される（prek の formatter 前提の挙動）。
+[[repos.hooks]]
+id = "rumdl-format"
+name = "rumdl format"
+description = "Markdown を rumdl でフォーマットする"
+language = "script"
+entry = "tools/rumdl.sh"
+args = ["fmt"]
+types = ["markdown"]
+
+# ステージ済みの差分に機密情報が含まれないか Betterleaks でチェックする。
+# ステージ差分の検査は Betterleaks v1 の `git --pre-commit --staged` が一括で行う
+# （v1 の公式 pre-commit 連携と同じ形式）。導入は `./setup.sh`（Brewfile 経由）。
+[[repos.hooks]]
+id = "betterleaks"
+name = "Betterleaks"
+description = "ステージ済みの差分に機密情報が含まれないかチェックする"
+language = "script"
+entry = "tools/betterleaks.sh"
+args = ["git", "--pre-commit", "--redact", "--staged", "--verbose"]
+pass_filenames = false
