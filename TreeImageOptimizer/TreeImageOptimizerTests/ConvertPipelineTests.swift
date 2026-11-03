@@ -46,13 +46,28 @@ struct ConvertPipelineTests {
                 == ["i.png", "o.jxl", "--distance=0.0", "-e", "7", "--num_threads=1", "--lossless_jpeg=0"])
     }
 
-    @Test("エンコーダのスレッド配分はコア数を並列数で割る")
+    @Test("エンコーダのスレッド配分は並列数を予算にワーカー数で割る")
     func encoderThreads() {
-        #expect(CompressionService.encoderThreads(parallelCount: 1, processorCount: 10) == 10)
-        #expect(CompressionService.encoderThreads(parallelCount: 4, processorCount: 10) == 2)
-        #expect(CompressionService.encoderThreads(parallelCount: 10, processorCount: 10) == 1)
-        #expect(CompressionService.encoderThreads(parallelCount: 20, processorCount: 10) == 1)
-        #expect(CompressionService.encoderThreads(parallelCount: 0, processorCount: 10) == 10)
+        #expect(CompressionService.encoderThreads(parallelCount: 6, workers: 4, processorCount: 12) == 1)
+        #expect(CompressionService.encoderThreads(parallelCount: 6, workers: 2, processorCount: 12) == 3)
+        #expect(CompressionService.encoderThreads(parallelCount: 2, workers: 1, processorCount: 12) == 2)
+        #expect(CompressionService.encoderThreads(parallelCount: 0, workers: 1, processorCount: 12) == 1)
+        #expect(CompressionService.encoderThreads(parallelCount: 20, workers: 4, processorCount: 12) == 3)
+    }
+
+    @Test("エンコーダの総スレッド数は並列数を超えないで、下げるほど減る")
+    func encoderThreadBudgetIsMonotonic() {
+        let processorCount = 12
+        var previous = 0
+        for parallel in 1...processorCount {
+            let workers = ConvertOrchestrator.stageWorkerCounts(parallelCount: parallel).compression
+            let threads = CompressionService.encoderThreads(
+                parallelCount: parallel, workers: workers, processorCount: processorCount)
+            let total = workers * threads
+            #expect(total <= parallel, "並列\(parallel): \(workers)ワーカー×\(threads)=\(total)が並列数を超えること")
+            #expect(total >= previous, "並列を下げると総スレッド数も下がること: 並列\(parallel)で\(total)、前は\(previous)")
+            previous = total
+        }
     }
 
     @Test("avifenc引数（4:4:4種別はlibaom、4:2:0種別はSVT-AV1）")

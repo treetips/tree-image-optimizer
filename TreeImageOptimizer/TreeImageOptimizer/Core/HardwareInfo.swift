@@ -16,4 +16,11 @@ enum HardwareInfo {
         }
         return max(1, ProcessInfo.processInfo.processorCount)
     }
+
+    /// 並列数の初期値。最大の半分（端数切り捨て）にする。
+    /// 動画視聴やブラウジングを妨げない負荷を既定にしたいので、最大まで使わない（ADR 0039）。
+    /// 最大値がPコア数から決まるため、取得処理と同じ場所に置く。
+    static func defaultParallelCount(maxParallel: Int = HardwareInfo.performanceCoreCount()) -> Int {
+        max(1, max(1, maxParallel) / 2)
+    }
 }

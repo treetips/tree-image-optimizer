@@ -84,7 +84,7 @@ final class ConvertViewModel {
     var quality: Double = 80 {
         didSet { saveConvert() }
     }
-    var parallelCount: Double = Double(max(1, HardwareInfo.performanceCoreCount() - 1)) {
+    var parallelCount: Double = Double(HardwareInfo.defaultParallelCount()) {
         didSet { saveConvert() }
     }
     var maxParallel: Double = Double(max(1, HardwareInfo.performanceCoreCount()))

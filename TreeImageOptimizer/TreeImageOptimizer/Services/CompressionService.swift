@@ -80,16 +80,18 @@ struct CompressionService: Sendable {
     }
 
     /// エンコーダ1プロセスに割り当てるスレッド数。
-    /// 同時実行数との積が論理コア数を超えないよう、コア数を並列数で割った値にする。
-    /// Why not: 並列数をそのまま `--num_threads` に渡すと、N並列時にN²のスレッドが
-    /// コアを取り合い、コンテキストスイッチでかえって遅くなる。
+    /// 予算は並列数そのもの（Pコア数で頭打ち）にし、ワーカー数で割って切り捨てる。
+    /// 合計が予算を超えないため、スライダーの位置がそのまま負荷の目安になる（ADR 0039）。
+    /// Why not: コア数をワーカー数で割ると、ワーカー数×スレッド数の積が常にコア数になり、
+    /// 並列数を下げてもCPU負荷が下がらない（並列1〜9がいずれもコア数ぶん）うえ、
+    /// 除算の端数で負荷が並列数に対して単調にならなかった。
     static func encoderThreads(
         parallelCount: Int,
+        workers: Int,
         processorCount: Int = HardwareInfo.performanceCoreCount()
     ) -> Int {
-        let workers = max(1, parallelCount)
-        let cores = max(1, processorCount)
-        return max(1, cores / workers)
+        let budget = max(1, min(max(1, parallelCount), max(1, processorCount)))
+        return max(1, budget / max(1, workers))
     }
 
     // MARK: - Argument builders (pure, testable)

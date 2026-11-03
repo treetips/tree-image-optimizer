@@ -143,8 +143,9 @@ struct ConvertOrchestrator: Sendable {
         let batchCount = (files.count + Self.upscaleBatchSize - 1) / Self.upscaleBatchSize
         let upscaleWorkers = min(workers.upscale, batchCount, files.count)
         let compressionWorkers = min(workers.compression, files.count)
-        // 圧縮ワーカー数からエンコーダのスレッド配分を決める。
-        let encoderThreads = CompressionService.encoderThreads(parallelCount: compressionWorkers)
+        // エンコーダの総スレッド数は並列数ぶん。それをワーカー数で割って各プロセスに配る（ADR 0039）。
+        let encoderThreads = CompressionService.encoderThreads(
+            parallelCount: config.parallelCount, workers: compressionWorkers)
 
         // 処理枠は並列数ぶん。出力が完了したファイルだけが枠を返す（ADR 0038）。
         let batcher = FileBatcher(
