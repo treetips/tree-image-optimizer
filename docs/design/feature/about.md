@@ -51,11 +51,8 @@
 
 #### 静的ラベル
 
-- 固定で `Copyright` と表示。
-
-#### 静的ラベル
-
-- 固定で `Copyright @2026 treetips555` と表示。
+- 行見出しに固定で `Copyright` と表示。
+- 行の値に固定で `Copyright @2026 treetips555` と表示。
 
 ### ✏️ アップデートを確認
 

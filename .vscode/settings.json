@@ -1,0 +1,20 @@
+{
+  "editor.defaultFormatter": "rvben.rumdl",
+  "editor.formatOnSave": true,
+  "editor.fontSize": 16,
+  "editor.fontFamily": "PlemolJP",
+  "files.exclude": {
+    "**/.pytest_cache": true,
+    "**/.swiftpm": true,
+    "**/__pycache__": true,
+    "**/build": true,
+  },
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "rumdl.enable": true,
+  "search.exclude": {
+      "**/.swiftpm": true,
+      "**/build": true,
+  },
+  "workbench.tree.indent": 20,
+}

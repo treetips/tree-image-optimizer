@@ -23,8 +23,8 @@
 
 - ユーザーが自分で用意した音声ファイルも使えるようにしたい。
 - 以下にファイルが配置されている場合、設定画面のプルダウンに表示して選択できるようにしたい。
-    - 成功サウンド: `.config/tree-image-optimizer/sounds/success`
-    - 失敗サウンド: `.config/tree-image-optimizer/sounds/error`
+  - 成功サウンド: `.config/tree-image-optimizer/sounds/success`
+  - 失敗サウンド: `.config/tree-image-optimizer/sounds/error`
 
 ## 通知の注意点
 

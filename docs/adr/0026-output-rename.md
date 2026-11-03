@@ -15,23 +15,23 @@
 ## 決定
 
 - `ConvertOrchestrator.installOutput(from:to:)` を新設し、確定方法を1箇所に集約する。
-    - 出力先フォルダが無ければ作成する。
-    - 同名出力が既にあれば削除する（既存の上書き仕様を維持）。
-    - `FileManager.moveItem` で移動する。同一ボリュームなら rename(2) で O(1) で完了する。
+  - 出力先フォルダが無ければ作成する。
+  - 同名出力が既にあれば削除する（既存の上書き仕様を維持）。
+  - `FileManager.moveItem` で移動する。同一ボリュームなら rename(2) で O(1) で完了する。
 - `processFile` の出力段階は `installOutput` を呼び出すのみにし、
   copy + remove の手順書きを廃止する。
 
 ## 代替案
 
 - `posix_spawn` の `rename(2)` を直接呼ぶ
-    - 却下: `FileManager.moveItem` が rename を internal に使用するため不要。
-      Foundation の皮に済ませたほうがエラー処理が ResourceKit 的にも素直。
+  - 却下: `FileManager.moveItem` が rename を internal に使用するため不要。
+    Foundation の皮に済ませたほうがエラー処理が ResourceKit 的にも素直。
 - 別ボリューム出力のために `copyItem` への明示フォールバックを残す
-    - 却下: 実機 (APFS dmg + 別ボリューム) で検証した範囲では、
-      `FileManager.moveItem` は別ボリューム間でもコピー相当で完了し、
-      移動元を残さないことを確認済み。明示フォールバックは無用な分岐になる。
+  - 却下: 実機 (APFS dmg + 別ボリューム) で検証した範囲では、
+    `FileManager.moveItem` は別ボリューム間でもコピー相当で完了し、
+    移動元を残さないことを確認済み。明示フォールバックは無用な分岐になる。
 - 既存同名出力を残して名前にサ番号を付けた別ファイルで書き出す（重複回避）
-    - 却下: 既存 Flutter 版からの上書き仕様を変える要件変更。
+  - 却下: 既存 Flutter 版からの上書き仕様を変える要件変更。
 
 ## 結果
 

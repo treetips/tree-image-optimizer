@@ -1,7 +1,7 @@
 # 変換処理フロー
 
 1. [対象ファイル一覧を選定](./input-folder-selection.md)
-1. [変換実行](./execute-convert.md)
+1. 変換実行
   1. [アップスケール](./upscale.md)
   1. [画像圧縮](./compression.md)
 1. [ファイル出力](./output-folder-selection.md)
@@ -17,10 +17,10 @@
 
 並列数 `3` の場合、アップスケールに `1`、圧縮に `2` のワーカーを割り当てます。
 アップスケールの完了を待たずに圧縮が動くため、GPUとCPUが同時に使われます。
-詳細は [ADR 0034](../../adr/0034-stage-separated-workers.md) を参照してください。
+詳細は [ADR 0034](../../../adr/0034-stage-separated-workers.md) を参照してください。
 
 アップスケールは最大4ファイルをまとめて1プロセスで実行します。
-詳細は [ADR 0035](../../adr/0035-upscale-directory-batch.md) を参照してください。
+詳細は [ADR 0035](../../../adr/0035-upscale-directory-batch.md) を参照してください。
 
 ### 処理枠
 
@@ -34,4 +34,4 @@
 
 つまり `並列数 6` のときは開始済みで未完了のファイルが6件を超えず、
 1件の `出力` が終わるたびに次の1件が開始されます。
-詳細は [ADR 0038](../../adr/0038-completion-releases-slot.md) を参照してください。
+詳細は [ADR 0038](../../../adr/0038-completion-releases-slot.md) を参照してください。

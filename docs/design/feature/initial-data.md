@@ -18,7 +18,8 @@
 - [Gitプロジェクトのzipファイル](https://github.com/upscayl/custom-models/archive/refs/heads/main.zip) からダウンロードし、解凍したものを配置します。
 - `~/Library/Application Support/tree-image-optimizer/tools/upscal/models` 配下にバイナリを配置してください。（例）`~/Library/Application Support/tree-image-optimizer/tools/upscal/models/realesr-animevideov3-x4.bin`
 - `models` は、例えば以下のようなファイルが含まれます。
-  ```
+
+  ```text
   ❯ ll
   Permissions Size User   Date Modified Git Name
   .rw-r--r--@  67M tester  2 Aug 01:03   --  4x_NMKD-Siax_200k.bin
@@ -50,6 +51,7 @@
   .rw-r--r--@  33M tester  2 Aug 01:03   --  unknown-2.0.1.bin
   .rw-r--r--@ 140k tester  2 Aug 01:03   --  unknown-2.0.1.param
   ```
+
 - ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/upscal` フォルダに同梱してください。
 - モデルファイルは全ファイル同梱してください。
 

@@ -82,7 +82,8 @@
 
 - アップスケールのモデルによって、得意な画像の種類が異なります。
 - 選択肢は [upscale models](./initial-data.md) を表示します。
-  ```
+
+  ```text
   .rw-r--r--@  67M tester  2 Aug 01:03   --  4x_NMKD-Siax_200k.bin
   .rw-r--r--@ 108k tester  2 Aug 01:03   --  4x_NMKD-Siax_200k.param
   .rw-r--r--@  67M tester  2 Aug 01:03   --  4x_NMKD-Superscale-SP_178000_G.bin
@@ -90,10 +91,11 @@
   .rw-r--r--@  33M tester  2 Aug 01:03   --  4xHFA2k.bin
   .rw-r--r--@ 108k tester  2 Aug 01:03   --  4xHFA2k.param
   ```
+
   例えば上記の場合、以下を選択肢として表示してください。
-    - 4x_NMKD-Siax_200k
-    - 4x_NMKD-Superscale-SP_178000_G
-    - 4xHFA2k
+  - 4x_NMKD-Siax_200k
+  - 4x_NMKD-Superscale-SP_178000_G
+  - 4xHFA2k
 - 初期値はアニメに強い `realesr-animevideov3-x4` です。
 
 #### ℹ️
@@ -226,6 +228,7 @@
   - 存在する場合、テキストボックスのボーダーを通常に戻します。
 
 #### ℹ️
+
 - ホバーするとpopoverに説明が表示される。
 - 「出力先に既に同一のファイル名が存在する場合、上書きコピーされます。」というテキストが記述されていること。
 
