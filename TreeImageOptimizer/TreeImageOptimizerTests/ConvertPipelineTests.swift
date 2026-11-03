@@ -77,14 +77,14 @@ struct ConvertPipelineTests {
                 input: "i.png", output: "o.avif", optimizeType: .anime, quality: 90, threads: 2)
                 == [
                     "-c", "aom", "--speed", "3", "-q", "90", "-y", "444", "-j", "2", "-a",
-                    "end-usage=q", "-a", "cq-level=20", "i.png", "o.avif"
+                    "end-usage=q", "-a", "cq-level=22", "i.png", "o.avif"
                 ])
         #expect(
             CompressionService.avifencArguments(
                 input: "i.png", output: "o.avif", optimizeType: .photo, quality: 85, threads: 4)
                 == [
-                    "-c", "svt", "--speed", "4", "-q", "85", "-y", "420", "-j", "4", "-a",
-                    "crf=11", "i.png", "o.avif"
+                    "-c", "svt", "--speed", "6", "-q", "85", "-y", "420", "-j", "4", "-a",
+                    "crf=12", "i.png", "o.avif"
                 ])
         #expect(
             CompressionService.avifencArguments(
@@ -95,7 +95,7 @@ struct ConvertPipelineTests {
                 input: "i.png", output: "o.avif", optimizeType: .quality, quality: 90, threads: 3)
                 == [
                     "-c", "aom", "--speed", "4", "-q", "90", "-y", "444", "-j", "3", "-a",
-                    "end-usage=q", "-a", "cq-level=16", "i.png", "o.avif"
+                    "end-usage=q", "-a", "cq-level=18", "i.png", "o.avif"
                 ])
     }
 

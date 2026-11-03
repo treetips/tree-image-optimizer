@@ -32,8 +32,11 @@ struct CompressionService: Sendable {
         .quality: ["--lossless_jpeg=0"]
     ]
 
+    /// 速度プリセット。アニメ・画質最優先はlibaom、実写・速度優先はSVT-AV1を使う。
+    /// 実写を4→6に上げ、AVIFとJPEG XLの速度差を広げた（ADR 0040）。
+    /// libaom側は画質優先のため据え置く。
     static let avifSpeed: [OptimizeType: Int] = [
-        .anime: 3, .photo: 4, .speed: 8, .quality: 4
+        .anime: 3, .photo: 6, .speed: 8, .quality: 4
     ]
 
     /// 出力のクロマサブサンプリング。SVT-AV1が4:2:0のみ対応のため、
@@ -48,19 +51,21 @@ struct CompressionService: Sendable {
         .anime: "aom", .photo: "svt", .speed: "svt", .quality: "aom"
     ]
 
+    /// libaomのadvanced option。速度を上げた分のサイズ増を抑えるため、
+    /// クオリティ指定を一段下げた（アニメ20→22、画質16→18）。VMAFは実測で不変（ADR 0040）。
     static let avifAomOpts: [OptimizeType: [String]] = [
-        .anime: ["-a", "end-usage=q", "-a", "cq-level=20"],
+        .anime: ["-a", "end-usage=q", "-a", "cq-level=22"],
         .photo: ["-a", "end-usage=q", "-a", "cq-level=22"],
         .speed: [],
-        .quality: ["-a", "end-usage=q", "-a", "cq-level=16"]
+        .quality: ["-a", "end-usage=q", "-a", "cq-level=18"]
     ]
 
     /// SVT-AV1のadvanced option。品質はCRFで決めるため、libaomの `cq-level` とは
-    /// 値の意味が違う。photoの `crf=11` は実測でlibaomの `cq-level=22` と
-    /// VMAF・ファイルサイズがほぼ同じになる値（ADR 0037）。
+    /// 値の意味が違う。photoは `--speed` を6に上げたため、サイズ増を抑える目的で
+    /// `crf` を12にした（1536x2752で 113KB→116KB、VMAF 95.41→95.38、速度2.9倍。ADR 0040）。
     /// 速度優先はlibaomと同じくadvanced optionを渡さず `-q` に従わせる。
     static let avifSvtOpts: [OptimizeType: [String]] = [
-        .photo: ["-a", "crf=11"],
+        .photo: ["-a", "crf=12"],
         .speed: []
     ]
 
