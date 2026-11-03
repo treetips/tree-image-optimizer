@@ -84,10 +84,10 @@ final class ConvertViewModel {
     var quality: Double = 80 {
         didSet { saveConvert() }
     }
-    var parallelCount: Double = 3 {
+    var parallelCount: Double = Double(HardwareInfo.defaultParallelCount()) {
         didSet { saveConvert() }
     }
-    var maxParallel: Double = Double(max(1, ProcessInfo.processInfo.processorCount))
+    var maxParallel: Double = Double(max(1, HardwareInfo.performanceCoreCount()))
     var showWaiting: Bool = true
     var showRunning: Bool = true
     var showSuccess: Bool = true
@@ -130,7 +130,7 @@ final class ConvertViewModel {
         self.paths = paths
         self.store = store ?? SettingsStore(paths: paths)
         self.jobStore = jobStore ?? ConvertJobStore(paths: paths, store: self.store)
-        maxParallel = Double(max(1, ProcessInfo.processInfo.processorCount))
+        maxParallel = Double(max(1, HardwareInfo.performanceCoreCount()))
         loadRealCuganCatalog()
         loadPersisted()
         reloadTools()

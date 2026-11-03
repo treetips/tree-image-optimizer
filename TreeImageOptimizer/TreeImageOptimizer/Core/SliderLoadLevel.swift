@@ -23,6 +23,8 @@ enum SliderLoadLevel: Equatable {
 
     /// 並列数の負荷。最大並列数に対する割合で判定する。
     /// 6割以下は通常、7〜8割は警告、9割以上は危険。
+    /// エンコーダの総スレッド数が並列数ぶんになるため（ADR 0039）、
+    /// 割合はそのままCPU負荷の目安になる。
     static func parallelLevel(parallel: Double, maxParallel: Double) -> Self {
         guard maxParallel > 0 else { return .normal }
         let ratio = parallel / maxParallel

@@ -42,6 +42,29 @@ struct UpscaleService: Sendable {
         )
     }
 
+    /// ディレクトリ内の画像を1プロセスでまとめてアップスケールする。
+    /// モデル読み込みとMoltenVK初期化をファイルごとに繰り返さないため、
+    /// 小さな画像が連続するときに固定費を削れる（ADR 0035）。
+    func runDirectory(
+        inputDirectory: URL, outputDirectory: URL, scale: Int, model: String, paths: AppPaths
+    ) async throws {
+        let bin = paths.upscalBinURL.path
+        guard FileManager.default.fileExists(atPath: bin) else {
+            throw AppError.toolMissing(bin)
+        }
+        _ = try await runner.run(
+            bin,
+            args: Self.arguments(
+                input: inputDirectory.path,
+                output: outputDirectory.path,
+                scale: scale,
+                model: model,
+                modelsDir: paths.upscalModelsURL.path
+            ),
+            workingDirectory: paths.upscalBinURL.deletingLastPathComponent().path
+        )
+    }
+
     /// Real-CUGANでアップスケールする。実行前に `.param`/`.bin` の存在を確認し、
     /// 実行後に出力の存在・寸法を検証する。
     func runRealCUGAN(input: URL, output: URL, model: RealCUGANModel, paths: AppPaths) async throws {
@@ -64,6 +87,31 @@ struct UpscaleService: Sendable {
             workingDirectory: paths.realCuganBinURL.deletingLastPathComponent().path
         )
         try postVerify(output: output, input: input, scale: model.scale)
+    }
+
+    /// ディレクトリ内の画像を1プロセスでまとめてアップスケールする。
+    /// モデルの事前検証は1回で済む。出力の検証は呼び出し側がファイル単位で行う。
+    func runRealCUGANDirectory(
+        inputDirectory: URL, outputDirectory: URL, model: RealCUGANModel, paths: AppPaths
+    ) async throws {
+        let bin = paths.realCuganBinURL.path
+        guard FileManager.default.fileExists(atPath: bin) else {
+            throw AppError.toolMissing(bin)
+        }
+        let modelsDir = paths.realCuganRootURL.appendingPathComponent(
+            model.folder, isDirectory: true)
+        try preflight(model: model, modelsDir: modelsDir)
+        _ = try await runner.run(
+            bin,
+            args: Self.realCuganArguments(
+                input: inputDirectory.path,
+                output: outputDirectory.path,
+                scale: model.scale,
+                noise: model.noise,
+                modelsDir: modelsDir.path
+            ),
+            workingDirectory: paths.realCuganBinURL.deletingLastPathComponent().path
+        )
     }
 
     /// 実行前検証。対象モデルの `.param` と `.bin` が揃っていること。

@@ -33,6 +33,8 @@
 		E30000000000000000000021 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000021 /* GlassCard.swift */; };
 		E30000000000000000000022 /* SettingsStoreValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000022 /* SettingsStoreValues.swift */; };
 		E30000000000000000000023 /* RealCUGANModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000023 /* RealCUGANModels.swift */; };
+		E30000000000000000000024 /* ConvertOrchestratorWorkers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000024 /* ConvertOrchestratorWorkers.swift */; };
+		E30000000000000000000025 /* HardwareInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000025 /* HardwareInfo.swift */; };
 		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
 		E40000000000000000000009 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000009 /* AppThemeTests.swift */; };
 		E40000000000000000000011 /* SliderLoadLevelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000011 /* SliderLoadLevelTests.swift */; };
@@ -59,6 +61,7 @@
 		E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000003 /* ProcessRunnerTests.swift */; };
 		E40000000000000000000004 /* ToolInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* ToolInstallerTests.swift */; };
 		E40000000000000000000005 /* ConvertPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000005 /* ConvertPipelineTests.swift */; };
+		E40000000000000000000016 /* ConvertWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000016 /* ConvertWindowTests.swift */; };
 		E40000000000000000000006 /* MediaServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000006 /* MediaServicesTests.swift */; };
 		E50000000000000000000001 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000001 /* assets */; };
 		E50000000000000000000002 /* TreeImageOptimizer.icns in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* TreeImageOptimizer.icns */; };
@@ -96,6 +99,8 @@
 		F30000000000000000000021 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
 		F30000000000000000000022 /* SettingsStoreValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreValues.swift; sourceTree = "<group>"; };
 		F30000000000000000000023 /* RealCUGANModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealCUGANModels.swift; sourceTree = "<group>"; };
+		F30000000000000000000024 /* ConvertOrchestratorWorkers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertOrchestratorWorkers.swift; sourceTree = "<group>"; };
+		F30000000000000000000025 /* HardwareInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareInfo.swift; sourceTree = "<group>"; };
 		F40000000000000000000007 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000011 /* SliderLoadLevelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderLoadLevelTests.swift; sourceTree = "<group>"; };
@@ -120,6 +125,7 @@
 		F40000000000000000000003 /* ProcessRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunnerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000004 /* ToolInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolInstallerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000005 /* ConvertPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPipelineTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000016 /* ConvertWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertWindowTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000006 /* MediaServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServicesTests.swift; sourceTree = "<group>"; };
 		F50000000000000000000001 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -191,6 +197,7 @@
 				F40000000000000000000013 /* ConvertJobStoreTests.swift */,
 				F40000000000000000000014 /* SettingsViewModelTests.swift */,
 				F40000000000000000000015 /* ConvertViewModelTests.swift */,
+				F40000000000000000000016 /* ConvertWindowTests.swift */,
 			);
 			path = TreeImageOptimizerTests;
 			sourceTree = "<group>";
@@ -206,6 +213,7 @@
 				F30000000000000000000008 /* UpscaleService.swift */,
 				F30000000000000000000009 /* CompressionService.swift */,
 				F30000000000000000000010 /* ConvertOrchestrator.swift */,
+				F30000000000000000000024 /* ConvertOrchestratorWorkers.swift */,
 				F30000000000000000000011 /* SoundService.swift */,
 				F30000000000000000000012 /* WallpaperService.swift */,
 				F30000000000000000000013 /* NotificationService.swift */,
@@ -240,6 +248,7 @@
 				F30000000000000000000019 /* HelpPopover.swift */,
 				F30000000000000000000020 /* SliderLoadLevel.swift */,
 				F30000000000000000000021 /* GlassCard.swift */,
+				F30000000000000000000025 /* HardwareInfo.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -411,6 +420,7 @@
 				E40000000000000000000013 /* ConvertJobStoreTests.swift in Sources */,
 				E40000000000000000000014 /* SettingsViewModelTests.swift in Sources */,
 				E40000000000000000000015 /* ConvertViewModelTests.swift in Sources */,
+				E40000000000000000000016 /* ConvertWindowTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -444,6 +454,7 @@
 				E30000000000000000000008 /* UpscaleService.swift in Sources */,
 				E30000000000000000000009 /* CompressionService.swift in Sources */,
 				E30000000000000000000010 /* ConvertOrchestrator.swift in Sources */,
+				E30000000000000000000024 /* ConvertOrchestratorWorkers.swift in Sources */,
 				E30000000000000000000011 /* SoundService.swift in Sources */,
 				E30000000000000000000012 /* WallpaperService.swift in Sources */,
 				E30000000000000000000013 /* NotificationService.swift in Sources */,
@@ -455,6 +466,7 @@
 				E30000000000000000000019 /* HelpPopover.swift in Sources */,
 				E30000000000000000000020 /* SliderLoadLevel.swift in Sources */,
 				E30000000000000000000021 /* GlassCard.swift in Sources */,
+				E30000000000000000000025 /* HardwareInfo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

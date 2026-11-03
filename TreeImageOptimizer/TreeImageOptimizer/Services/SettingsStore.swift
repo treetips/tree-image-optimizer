@@ -24,7 +24,7 @@ struct BatchSettings: Codable, Equatable {
             format: OutputFormat.jpegXL.rawValue,
             optimizeType: OptimizeType.anime.rawValue,
             quality: 80,
-            parallelCount: max(1, maxParallel / 2 - 1),
+            parallelCount: HardwareInfo.defaultParallelCount(maxParallel: maxParallel),
             inputFolderPath: nil,
             outputFolderPath: nil,
             engine: UpscaleEngine.upscayl.rawValue,
@@ -55,7 +55,7 @@ struct EasyConvertSettings: Codable, Equatable {
             format: OutputFormat.jpegXL.rawValue,
             optimizeType: OptimizeType.anime.rawValue,
             quality: 80,
-            parallelCount: max(1, maxParallel / 2 - 1),
+            parallelCount: HardwareInfo.defaultParallelCount(maxParallel: maxParallel),
             outputFolderPath: nil,
             engine: UpscaleEngine.upscayl.rawValue,
             realCuganModel: "models-se/up2x-conservative"

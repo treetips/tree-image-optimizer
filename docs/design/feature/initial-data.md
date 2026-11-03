@@ -80,15 +80,16 @@
 
 ## AV1
 
-- [GitHub Releasesのlatestタグ](https://github.com/AOMediaCodec/libavif/releases/latest) からダウンロードします。
-- `linux-artifacts.zip` `macOS-artifacts.zip` `windows-artifacts.zip` 等と3つのOSそれぞれのアーティファクトが有るので、それぞれダウンロードし、解凍したものを配置します。
+- [GitHub Releasesのlatestタグ](https://github.com/AOMediaCodec/libavif/releases/latest) からソースを取得し、SVT-AV1を含めて自前でビルドします。
+  - 公開アーティファクトには SVT-AV1 が含まれていないため、そのままでは使えない。
+  - ビルド手順は [ADR 0037](../../adr/0037-hybrid-av1-encoder.md) を参照してください。
 - `~/Library/Application Support/tree-image-optimizer/tools/libavif/bin` 配下にバイナリを配置してください。
   - （例）`~/Library/Application Support/tree-image-optimizer/tools/libavif/bin/macos/avifenc`
   - （例）`~/Library/Application Support/tree-image-optimizer/tools/libavif/bin/linux/avifenc`
   - （例）`~/Library/Application Support/tree-image-optimizer/tools/libavif/bin/windows/avifenc.exe`
 - ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/libavif` フォルダに同梱してください。
 - バイナリは以下だけを抽出してプロジェクトに同梱してください。
-  - avifenc （エンコード用）
+  - avifenc （エンコード用。libaom と SVT-AV1 の両方を静的リンクしたもの）
 - `~/Library/Application Support/tree-image-optimizer/tools/libavif/.version` を作成し、現在のバージョンを書き込んでください。（例）v1.4.2
   - 現在のバージョンから更新されていた場合のみ、 `.version` を更新してください。
 - アップデートする際は、元のファイルを全削除してから更新してください。

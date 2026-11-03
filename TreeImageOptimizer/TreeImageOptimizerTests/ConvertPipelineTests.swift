@@ -46,26 +46,67 @@ struct ConvertPipelineTests {
                 == ["i.png", "o.jxl", "--distance=0.0", "-e", "7", "--num_threads=1", "--lossless_jpeg=0"])
     }
 
-    @Test("avifenc引数")
+    @Test("エンコーダのスレッド配分は並列数を予算にワーカー数で割る")
+    func encoderThreads() {
+        #expect(CompressionService.encoderThreads(parallelCount: 6, workers: 4, processorCount: 12) == 1)
+        #expect(CompressionService.encoderThreads(parallelCount: 6, workers: 2, processorCount: 12) == 3)
+        #expect(CompressionService.encoderThreads(parallelCount: 2, workers: 1, processorCount: 12) == 2)
+        #expect(CompressionService.encoderThreads(parallelCount: 0, workers: 1, processorCount: 12) == 1)
+        #expect(CompressionService.encoderThreads(parallelCount: 20, workers: 4, processorCount: 12) == 3)
+    }
+
+    @Test("エンコーダの総スレッド数は並列数を超えないで、下げるほど減る")
+    func encoderThreadBudgetIsMonotonic() {
+        let processorCount = 12
+        var previous = 0
+        for parallel in 1...processorCount {
+            let workers = ConvertOrchestrator.stageWorkerCounts(parallelCount: parallel).compression
+            let threads = CompressionService.encoderThreads(
+                parallelCount: parallel, workers: workers, processorCount: processorCount)
+            let total = workers * threads
+            #expect(total <= parallel, "並列\(parallel): \(workers)ワーカー×\(threads)=\(total)が並列数を超えること")
+            #expect(total >= previous, "並列を下げると総スレッド数も下がること: 並列\(parallel)で\(total)、前は\(previous)")
+            previous = total
+        }
+    }
+
+    @Test("avifenc引数（4:4:4種別はlibaom、4:2:0種別はSVT-AV1）")
     func avifencArgs() {
         #expect(
             CompressionService.avifencArguments(
-                input: "i.png", output: "o.avif", optimizeType: .anime, quality: 90)
+                input: "i.png", output: "o.avif", optimizeType: .anime, quality: 90, threads: 2)
                 == [
-                    "--speed", "3", "-q", "90", "-y", "444", "-a", "end-usage=q", "-a", "cq-level=20",
-                    "i.png", "o.avif"
+                    "-c", "aom", "--speed", "3", "-q", "90", "-y", "444", "-j", "2", "-a",
+                    "end-usage=q", "-a", "cq-level=22", "i.png", "o.avif"
                 ])
         #expect(
             CompressionService.avifencArguments(
-                input: "i.png", output: "o.avif", optimizeType: .speed, quality: 70)
-                == ["--speed", "8", "-q", "70", "-y", "420", "i.png", "o.avif"])
+                input: "i.png", output: "o.avif", optimizeType: .photo, quality: 85, threads: 4)
+                == [
+                    "-c", "svt", "--speed", "6", "-q", "85", "-y", "420", "-j", "4", "-a",
+                    "crf=12", "i.png", "o.avif"
+                ])
         #expect(
             CompressionService.avifencArguments(
-                input: "i.png", output: "o.avif", optimizeType: .quality, quality: 90)
+                input: "i.png", output: "o.avif", optimizeType: .speed, quality: 70, threads: 1)
+                == ["-c", "svt", "--speed", "8", "-q", "70", "-y", "420", "-j", "1", "i.png", "o.avif"])
+        #expect(
+            CompressionService.avifencArguments(
+                input: "i.png", output: "o.avif", optimizeType: .quality, quality: 90, threads: 3)
                 == [
-                    "--speed", "4", "-q", "90", "-y", "444", "-a", "end-usage=q", "-a", "cq-level=16",
-                    "i.png", "o.avif"
+                    "-c", "aom", "--speed", "4", "-q", "90", "-y", "444", "-j", "3", "-a",
+                    "end-usage=q", "-a", "cq-level=18", "i.png", "o.avif"
                 ])
+    }
+
+    @Test("SVT-AV1を使う種別は4:2:0のみ（4:4:4はエンコードに失敗する）")
+    func avifCodecMatchesYuv() {
+        for (optimizeType, codec) in CompressionService.avifCodec {
+            let yuv = CompressionService.avifYuv[optimizeType, default: 420]
+            if codec == "svt" {
+                #expect(yuv == 420, "\(optimizeType) はSVT-AV1を使うため420である必要がある")
+            }
+        }
     }
 
     @Test("cwebp引数")
@@ -179,6 +220,24 @@ struct ConvertPipelineTests {
         #expect(result == (success: 8, failure: 0), "全件処理されること: \(result)")
         #expect(peak <= 3, "並列数を超えないこと: \(peak)")
         #expect(peak == 3, "余りが出るまで並列数を満たし続けること: \(peak)")
+    }
+
+    @Test("ステージ別ワーカー数はGPUを最大3にし、残りを圧縮へ回す")
+    func stageWorkers() {
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 1) == StageWorkers(upscale: 1, compression: 1))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 2) == StageWorkers(upscale: 1, compression: 1))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 3) == StageWorkers(upscale: 1, compression: 2))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 6) == StageWorkers(upscale: 2, compression: 4))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 7) == StageWorkers(upscale: 2, compression: 5))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 15) == StageWorkers(upscale: 3, compression: 12))
+        #expect(ConvertOrchestrator.stageWorkerCounts(parallelCount: 30) == StageWorkers(upscale: 3, compression: 27))
+    }
+
+    @Test("Pコア数は1以上で全論理コア以下")
+    func performanceCoreCount() {
+        let performance = HardwareInfo.performanceCoreCount()
+        #expect(performance >= 1)
+        #expect(performance <= ProcessInfo.processInfo.processorCount)
     }
 
     @Test("出力確定（同一ボリュームではrename・既存は上書き・元のファイルは残らない）")

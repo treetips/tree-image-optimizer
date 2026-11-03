@@ -37,7 +37,7 @@ final class EasyConvertJobStore {
         self.store = store ?? SettingsStore(paths: paths)
         self.orchestrator = orchestrator
         self.soundService = soundService ?? SoundService(paths: paths)
-        self.maxParallel = max(1, ProcessInfo.processInfo.processorCount)
+        self.maxParallel = max(1, HardwareInfo.performanceCoreCount())
     }
 
     /// 変換を開始する。実行中は受け付けない。

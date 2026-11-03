@@ -37,7 +37,7 @@ final class ConvertJobStore {
         self.store = store ?? SettingsStore(paths: paths)
         self.orchestrator = orchestrator
         self.soundService = soundService ?? SoundService(paths: paths)
-        self.maxParallel = max(1, ProcessInfo.processInfo.processorCount)
+        self.maxParallel = max(1, HardwareInfo.performanceCoreCount())
     }
 
     /// 進捗表の初期行を組み立てる。実行前の待機中状態で、変換前後のフルパスを保持する。
