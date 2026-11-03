@@ -47,6 +47,44 @@ struct SettingsStoreTests {
         #expect(reloaded.easy.quality == 70)
     }
 
+    @Test("実行結果の絞り込み選択を保存して復元する")
+    func roundTripsResultFilter() throws {
+        let (store, _) = try makeStore()
+        var file = try store.load(maxParallel: 8)
+        // 初期値は4項目ともチェック済み。
+        #expect(file.batch.showWaiting && file.batch.showRunning)
+        #expect(file.batch.showSuccess && file.batch.showFailure)
+
+        file.batch.showWaiting = false
+        file.batch.showFailure = false
+        try store.save(file)
+
+        let reloaded = try store.load(maxParallel: 8)
+        #expect(reloaded.batch.showWaiting == false, "外したチェックが復元されること")
+        #expect(reloaded.batch.showRunning, "触っていない項目が維持されること")
+        #expect(reloaded.batch.showSuccess)
+        #expect(reloaded.batch.showFailure == false)
+    }
+
+    @Test("絞り込みのキーが無い既存設定は既定値で補われ、保存し直される")
+    func resolvesMissingResultFilter() throws {
+        let (store, file) = try makeStore()
+        try """
+        {"batchConvert":{}}
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        let loaded = try store.load(maxParallel: 8)
+        #expect(loaded.batch.showWaiting && loaded.batch.showRunning)
+        #expect(loaded.batch.showSuccess && loaded.batch.showFailure)
+
+        let data = try Data(contentsOf: file)
+        let object = try JSONSerialization.jsonObject(with: data)
+        let json = try #require(object as? [String: Any])
+        let batch = try #require(json["batchConvert"] as? [String: Any])
+        #expect(batch["showWaiting"] as? Bool == true)
+        #expect(batch["showFailure"] as? Bool == true)
+    }
+
     @Test("不正値は補正されファイルが更新される")
     func correctsInvalidValues() throws {
         let (store, file) = try makeStore()

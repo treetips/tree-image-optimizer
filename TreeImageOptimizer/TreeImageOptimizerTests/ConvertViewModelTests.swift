@@ -175,3 +175,42 @@ struct ConvertViewModelRealCUGANTests {
         #expect(viewModel.models == ["m"])
     }
 }
+
+/// 実行結果の絞り込み選択（待機中・実行中・成功・失敗）の永続化を確認する。
+/// Why not: `ConvertView` のViewModelは `@State` で、サイドナビの切替やアプリ再起動で
+/// 再生成される。保存しなければ毎回全チェックの既定状態に戻るため。
+@Suite("ConvertViewModel 絞り込み")
+struct ConvertViewModelResultFilterTests {
+    /// テスト用の基準ディレクトリを作る。
+    private func makeBase() throws -> URL {
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        return base
+    }
+
+    @Test("絞り込み選択をsettings.jsonへ保存し、起動し直しても復元される")
+    @MainActor
+    func resultFilterIsPersisted() throws {
+        let base = try makeBase()
+        let paths = AppPaths(baseURL: base)
+        let store = SettingsStore(paths: paths)
+
+        let viewModel = ConvertViewModel(paths: paths, store: store)
+        #expect(viewModel.showWaiting && viewModel.showRunning)
+        #expect(viewModel.showSuccess && viewModel.showFailure)
+
+        viewModel.showWaiting = false
+        viewModel.showFailure = false
+        let saved = try store.load(maxParallel: 8)
+        #expect(saved.batch.showWaiting == false, "選択状態が設定ファイルへ書き込まれること")
+        #expect(saved.batch.showFailure == false)
+
+        // 起動し直したViewModelで選択状態が復元される。
+        let relaunched = ConvertViewModel(paths: paths, store: store)
+        #expect(relaunched.showWaiting == false, "外したチェックが起動後も外れていること")
+        #expect(relaunched.showRunning, "触っていない項目が既定のままであること")
+        #expect(relaunched.showSuccess)
+        #expect(relaunched.showFailure == false)
+    }
+}
