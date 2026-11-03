@@ -48,7 +48,7 @@
 
 ## アップデート
 
-- 起動時にバックグラウンドで確認し（`UpdateCheckController.refreshAvailability()`、ダイアログなし・サイドナビ通知のみ反映）、About画面・メニューバー・サイドナビ通知から手動確認もできる（`checkForUpdate()`）。
+- 起動時にバックグラウンドで確認し（`UpdateCheckController.refreshAvailability()`、ダイアログなし・サイドナビ通知のみ反映）、About画面・メニューバー・サイドナビ通知から手動確認もできる（`checkForUpdate()`）。手動確認の結果はダイアログとサイドナビ下部の更新カードの双方に反映する（確認失敗時は更新カードを変更しない）。
 - `UpdateService` がGitHub Releasesの `update-info.json` を取得し、セマンティックバージョン→ビルド番号の順で比較する。GitHub側が新しい場合のみアップデートダイアログを表示する。
 - ダウンロード・SHA-256検証・展開までは `UpdateService` が行う。適用（差し替え・再起動）は配布方式確定後に実装する。
 
