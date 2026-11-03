@@ -88,10 +88,19 @@ final class ConvertViewModel {
         didSet { saveConvert() }
     }
     var maxParallel: Double = Double(max(1, HardwareInfo.performanceCoreCount()))
-    var showWaiting: Bool = true
-    var showRunning: Bool = true
-    var showSuccess: Bool = true
-    var showFailure: Bool = true
+    /// 実行結果の表の絞り込み。次回起動時に復元する（ADR 0041）。
+    var showWaiting: Bool = true {
+        didSet { saveConvert() }
+    }
+    var showRunning: Bool = true {
+        didSet { saveConvert() }
+    }
+    var showSuccess: Bool = true {
+        didSet { saveConvert() }
+    }
+    var showFailure: Bool = true {
+        didSet { saveConvert() }
+    }
 
     /// 共有の実行状態。アプリ層で生成し、`ConvertView` 経由で注入する。
     let jobStore: ConvertJobStore
@@ -191,6 +200,10 @@ final class ConvertViewModel {
         parallelCount = Double(c.parallelCount)
         inputFolderPath = c.inputFolderPath ?? ""
         outputFolderPath = c.outputFolderPath ?? ""
+        showWaiting = c.showWaiting
+        showRunning = c.showRunning
+        showSuccess = c.showSuccess
+        showFailure = c.showFailure
         validateFolders()
     }
 
@@ -210,6 +223,10 @@ final class ConvertViewModel {
         if engine == .realCUGAN { updated.batch.scale = Int(scale) }
         updated.batch.engine = engine.rawValue
         updated.batch.realCuganModel = selectedRealCuganModel
+        updated.batch.showWaiting = showWaiting
+        updated.batch.showRunning = showRunning
+        updated.batch.showSuccess = showSuccess
+        updated.batch.showFailure = showFailure
         try? store.save(updated)
     }
 
