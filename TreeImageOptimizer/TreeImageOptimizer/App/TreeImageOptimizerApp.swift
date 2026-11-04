@@ -10,6 +10,12 @@ struct TreeImageOptimizerApp: App {
     @State private var easyConvertJobStore = EasyConvertJobStore()
 
     init() {
+        // 起動直後のツール展開や変換コマンドの失敗を追えるよう、最初にファイルログを開く。
+        let paths = AppPaths()
+        AppLogger.shared.configure(directoryURL: paths.logsURL)
+        AppLogger.shared.info(
+            "app launch: version=\(AppInfo.bundleVersion) base=\(paths.projectDirectoryURL.path)"
+        )
         // 完了通知を使えるよう起動時に許可を求める。拒否時は通知なしになる。
         settings.requestNotificationAuthorization()
     }

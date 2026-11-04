@@ -43,6 +43,11 @@ extension ConvertOrchestrator {
             try fileManager.createDirectory(at: inputDirectory, withIntermediateDirectories: true)
             try fileManager.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
         } catch {
+            AppLogger.shared.error(
+                """
+                upscale batch: failed to create temp directories under \(batchRoot.path): \
+                \(error.localizedDescription)
+                """)
             var counts = RunCounts()
             for index in range {
                 await context.onOutcome(
@@ -59,9 +64,14 @@ extension ConvertOrchestrator {
         guard !prepared.prepared.isEmpty else { return prepared.counts }
 
         // 失敗しても部分的な出力が残ることがあるため、ここでは投げずに後段でファイル単位に検証する。
-        try? await runUpscaleBatch(
-            inputDirectory: inputDirectory, outputDirectory: outputDirectory,
-            config: context.config, paths: context.paths)
+        do {
+            try await runUpscaleBatch(
+                inputDirectory: inputDirectory, outputDirectory: outputDirectory,
+                config: context.config, paths: context.paths)
+        } catch {
+            AppLogger.shared.error(
+                "upscale batch: process failed (continuing per-file verification): \(error.localizedDescription)")
+        }
 
         let finished = await enqueuePrepared(prepared.prepared, context: context)
         var result = prepared.counts
@@ -85,6 +95,8 @@ extension ConvertOrchestrator {
             do {
                 try Self.linkOrCopy(file, to: input)
             } catch {
+                AppLogger.shared.error(
+                    "upscale batch: failed to stage \(file.path) -> \(input.path): \(error.localizedDescription)")
                 await context.onOutcome(
                     FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: true))
                 counts.failure += 1
@@ -117,6 +129,8 @@ extension ConvertOrchestrator {
             guard
                 (try? upscale.postVerify(output: item.output, input: item.file, scale: expectedScale)) != nil
             else {
+                AppLogger.shared.error(
+                    "upscale batch: output verification failed file=\(item.file.path) output=\(item.output.path)")
                 await context.onOutcome(
                     FileOutcome(index: item.index, stage: .upscale, succeeded: false, fileDone: true))
                 counts.failure += 1
@@ -136,6 +150,8 @@ extension ConvertOrchestrator {
                         outputName: Self.outputFileName(
                             for: item.file.lastPathComponent, format: context.config.format)))
             } catch {
+                AppLogger.shared.error(
+                    "upscale batch: failed to enqueue \(item.file.path): \(error.localizedDescription)")
                 await context.onOutcome(
                     FileOutcome(index: item.index, stage: .upscale, succeeded: false, fileDone: true))
                 counts.failure += 1
@@ -171,6 +187,11 @@ extension ConvertOrchestrator {
                     FileOutcome(index: item.index, stage: .output, succeeded: true, fileDone: true))
                 counts.success += 1
             } catch {
+                AppLogger.shared.error(
+                    """
+                    compress/output: failed at \(stage) file=\(item.upscaled.path) \
+                    output=\(item.outputName): \(error.localizedDescription)
+                    """)
                 await context.onOutcome(
                     FileOutcome(index: item.index, stage: stage, succeeded: false, fileDone: true))
                 counts.failure += 1

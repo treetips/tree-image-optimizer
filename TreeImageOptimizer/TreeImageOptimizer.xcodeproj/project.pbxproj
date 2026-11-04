@@ -36,6 +36,7 @@
 		E30000000000000000000023 /* RealCUGANModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000023 /* RealCUGANModels.swift */; };
 		E30000000000000000000024 /* ConvertOrchestratorWorkers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000024 /* ConvertOrchestratorWorkers.swift */; };
 		E30000000000000000000025 /* HardwareInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000025 /* HardwareInfo.swift */; };
+		E30000000000000000000027 /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000027 /* AppLogger.swift */; };
 		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
 		E40000000000000000000009 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000009 /* AppThemeTests.swift */; };
 		E40000000000000000000011 /* SliderLoadLevelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000011 /* SliderLoadLevelTests.swift */; };
@@ -63,6 +64,7 @@
 		E40000000000000000000004 /* ToolInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* ToolInstallerTests.swift */; };
 		E40000000000000000000005 /* ConvertPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000005 /* ConvertPipelineTests.swift */; };
 		E40000000000000000000016 /* ConvertWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000016 /* ConvertWindowTests.swift */; };
+		E40000000000000000000017 /* AppLoggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000017 /* AppLoggerTests.swift */; };
 		E40000000000000000000006 /* MediaServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000006 /* MediaServicesTests.swift */; };
 		E50000000000000000000001 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000001 /* assets */; };
 		E50000000000000000000002 /* TreeImageOptimizer.icns in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* TreeImageOptimizer.icns */; };
@@ -103,6 +105,7 @@
 		F30000000000000000000023 /* RealCUGANModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealCUGANModels.swift; sourceTree = "<group>"; };
 		F30000000000000000000024 /* ConvertOrchestratorWorkers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertOrchestratorWorkers.swift; sourceTree = "<group>"; };
 		F30000000000000000000025 /* HardwareInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareInfo.swift; sourceTree = "<group>"; };
+		F30000000000000000000027 /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
 		F40000000000000000000007 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000011 /* SliderLoadLevelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderLoadLevelTests.swift; sourceTree = "<group>"; };
@@ -125,6 +128,7 @@
 		F40000000000000000000001 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000002 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000003 /* ProcessRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunnerTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000017 /* AppLoggerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLoggerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000004 /* ToolInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolInstallerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000005 /* ConvertPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPipelineTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000016 /* ConvertWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertWindowTests.swift; sourceTree = "<group>"; };
@@ -186,6 +190,7 @@
 			isa = PBXGroup;
 			children = (
 				F40000000000000000000001 /* AppPathsTests.swift */,
+				F40000000000000000000017 /* AppLoggerTests.swift */,
 				F40000000000000000000002 /* SettingsStoreTests.swift */,
 				F40000000000000000000003 /* ProcessRunnerTests.swift */,
 				F40000000000000000000004 /* ToolInstallerTests.swift */,
@@ -208,6 +213,7 @@
 			isa = PBXGroup;
 			children = (
 				F30000000000000000000003 /* AppPaths.swift */,
+				F30000000000000000000027 /* AppLogger.swift */,
 				F30000000000000000000004 /* SettingsStore.swift */,
 				F30000000000000000000005 /* ProcessRunner.swift */,
 				F30000000000000000000006 /* ToolInstaller.swift */,
@@ -410,6 +416,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E40000000000000000000001 /* AppPathsTests.swift in Sources */,
+				E40000000000000000000017 /* AppLoggerTests.swift in Sources */,
 				E40000000000000000000002 /* SettingsStoreTests.swift in Sources */,
 				E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */,
 				E40000000000000000000004 /* ToolInstallerTests.swift in Sources */,
@@ -448,6 +455,7 @@
 				E30000000000000000000001 /* AppError.swift in Sources */,
 				E30000000000000000000002 /* AppInfo.swift in Sources */,
 				E30000000000000000000003 /* AppPaths.swift in Sources */,
+				E30000000000000000000027 /* AppLogger.swift in Sources */,
 				E30000000000000000000004 /* SettingsStore.swift in Sources */,
 				E30000000000000000000022 /* SettingsStoreValues.swift in Sources */,
 				E30000000000000000000026 /* SettingsStoreResolve.swift in Sources */,

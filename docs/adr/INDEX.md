@@ -47,6 +47,7 @@
 | 0044 | commit時にprekでrumdlのフォーマットとBetterleaksの漏洩チェックを行う | Accepted | 開発環境・git hooks |
 | 0045 | setup.shで.vscode/extensions.jsonからVSCode拡張を導入する | Accepted | 開発環境 |
 | 0046 | MarkdownのCIをpushに一本化して2重実行をなくす | Accepted | ドキュメント・CI |
+| 0047 | アプリ全体のファイルログ | Accepted | 全体構造 |
 
 - ステータス凡例
   - 提案済み (Proposed)

@@ -101,15 +101,25 @@ struct ToolInstaller: Sendable {
 
     /// 揃っていなければ修復する。進捗（0.0〜1.0と作業名）を報告する。
     func ensureInstalled(progress: @Sendable (Double, String) -> Void = { _, _ in }) async throws {
+        AppLogger.shared.info(
+            "tools check: base=\(paths.projectDirectoryURL.path) tools=\(paths.toolsURL.path)")
         if isInstalled() {
+            AppLogger.shared.info("tools check: already installed")
             progress(1.0, "")
             return
         }
-        try await repairMissingTools(progress: progress)
-        guard isInstalled() else {
-            throw AppError.toolMissing("tools repair did not complete")
+        AppLogger.shared.info("tools check: missing tools, repairing")
+        do {
+            try await repairMissingTools(progress: progress)
+            guard isInstalled() else {
+                throw AppError.toolMissing("tools repair did not complete")
+            }
+            AppLogger.shared.info("tools check: repair completed")
+            progress(1.0, "")
+        } catch {
+            AppLogger.shared.error("tools repair failed: \(error.localizedDescription)")
+            throw error
         }
-        progress(1.0, "")
     }
 
     /// 不足分を修復する。ローカルのtoolsコピーを優先し、無ければダウンロードする。
@@ -124,9 +134,11 @@ struct ToolInstaller: Sendable {
             guard fm.fileExists(atPath: bin.path) else { return tool.folder }
             return nil
         }
+        AppLogger.shared.info("tools repair: missing folders=\(missingFolders.joined(separator: ","))")
         for folder in missingFolders {
             let dir = paths.toolsURL.appendingPathComponent(folder, isDirectory: true)
             if fm.fileExists(atPath: dir.path) {
+                AppLogger.shared.warning("tools repair: removing partial folder \(dir.path)")
                 try fm.removeItem(at: dir)
             }
         }
@@ -141,6 +153,7 @@ struct ToolInstaller: Sendable {
                     progress(done / total, folder)
                     continue
                 }
+                AppLogger.shared.info("tools repair: downloading \(folder)")
                 progress(done / total, folder)
                 try await downloadTool(folder: folder)
                 done += 1
@@ -149,7 +162,14 @@ struct ToolInstaller: Sendable {
             }
             // それ以外は開発用toolsからのコピーのみ。無ければエラーで再試行UIへ出す。
             guard copyFromDevTools(folder: folder) else {
-                throw AppError.toolMissing("tools unavailable locally: \(folder)")
+                AppLogger.shared.error(
+                    """
+                    tools repair: no local source for \(folder); \
+                    candidates=\(devToolsCandidates.map(\.path).joined(separator: ","))
+                    """)
+                let searched = devToolsCandidates.map(\.path).joined(separator: ", ")
+                throw AppError.toolMissing(
+                    "tools unavailable locally: \(folder) (searched: \(searched))")
             }
             done += 1
             progress(done / total, folder)
@@ -188,7 +208,9 @@ extension ToolInstaller {
         guard let url = URL(string: "\(Self.realcuganBaseURL)/\(Self.realcuganVersion)/\(archiveName)") else {
             throw AppError.networkError("invalid realcugan URL")
         }
+        AppLogger.shared.info("realcugan download: url=\(url.absoluteString)")
         let data = try await download(url: url)
+        AppLogger.shared.info("realcugan download: received bytes=\(data.count) dest=\(paths.realCuganRootURL.path)")
         let tmpDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: tmpDir) }
@@ -200,6 +222,7 @@ extension ToolInstaller {
         guard let extracted = findDirectory(named: folderName, under: tmpDir) else {
             throw AppError.toolMissing("\(folderName) not found in \(archiveName)")
         }
+        AppLogger.shared.info("realcugan download: extracted=\(extracted.path)")
         // 配置後、モデル・バイナリが揃っていない場合は失敗扱いにする。
         try installRealCugan(from: extracted)
         guard isRealCuganInstalled() else {
@@ -210,7 +233,7 @@ extension ToolInstaller {
     /// 展開済みのReal-CUGANフォルダを `tools/realcugan` へ配置する。テストからも呼ぶ。
     func installRealCugan(from source: URL) throws {
         let fm = FileManager.default
-        let dest = paths.toolsURL.appendingPathComponent("realcugan", isDirectory: true)
+        let dest = paths.realCuganRootURL
         // Why not: 親ディレクトリが無いとcopyItemが「ソース不在」の誤ったエラーを出すため先に作る。
         try fm.createDirectory(at: paths.toolsURL, withIntermediateDirectories: true)
         if fm.fileExists(atPath: dest.path) {
@@ -229,6 +252,7 @@ extension ToolInstaller {
                 try fm.createDirectory(
                     at: bin.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try fm.moveItem(at: flatBin, to: bin)
+                AppLogger.shared.info("realcugan install: normalized \(flatBin.path) -> \(bin.path)")
             }
         }
         guard fm.fileExists(atPath: bin.path) else {
@@ -238,6 +262,7 @@ extension ToolInstaller {
         try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: bin.path)
         try Self.realcuganFullVersion
             .write(to: paths.realCuganRootURL.appendingPathComponent(".version"), atomically: true, encoding: .utf8)
+        AppLogger.shared.info("realcugan install: binary=\(bin.path)")
     }
 }
 
@@ -250,7 +275,10 @@ extension ToolInstaller {
         for candidate in devToolsCandidates {
             let src = candidate.appendingPathComponent(folder, isDirectory: true)
             var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: src.path, isDirectory: &isDir), isDir.boolValue else { continue }
+            guard fm.fileExists(atPath: src.path, isDirectory: &isDir), isDir.boolValue else {
+                AppLogger.shared.info("tools copy: source not found \(src.path)")
+                continue
+            }
             let dest = paths.toolsURL.appendingPathComponent(folder, isDirectory: true)
             do {
                 try fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -259,8 +287,11 @@ extension ToolInstaller {
                 }
                 try fm.copyItem(at: src, to: dest)
                 try makeExecutable(in: dest)
+                AppLogger.shared.info("tools copy: \(src.path) -> \(dest.path)")
                 return true
             } catch {
+                AppLogger.shared.error(
+                    "tools copy failed: \(src.path) -> \(dest.path): \(error.localizedDescription)")
                 continue
             }
         }
@@ -306,26 +337,31 @@ extension ToolInstaller {
         guard let url = URL(string: "\(Self.webpBaseURL)/\(name)") else {
             throw AppError.networkError("invalid libwebp URL")
         }
+        AppLogger.shared.info("libwebp download: arch=\(arch) url=\(url.absoluteString)")
         let data = try await download(url: url)
+        AppLogger.shared.info("libwebp download: received bytes=\(data.count) dest=\(paths.cwebpBinURL.path)")
         let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmpDir) }
         let archive = tmpDir.appendingPathComponent(name, isDirectory: false)
         try data.write(to: archive)
-        let binDir = paths.toolsURL.appendingPathComponent("libwebp/bin/macos", isDirectory: true)
-        try FileManager.default.createDirectory(at: binDir, withIntermediateDirectories: true)
+        // Why not: ダウンロード先を文字列で組み立てると AppPaths の実行パスとずれる恐れがあるため、
+        // 実行時と同じ `cwebpBinURL` から配置先を導出する。
+        let dest = paths.cwebpBinURL
+        try FileManager.default.createDirectory(
+            at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
         // tar.gz を /usr/bin/tar で展開し、*/bin/cwebp を配置する。
         _ = try await runner.run(
             "/usr/bin/tar", args: ["-xzf", archive.path, "-C", tmpDir.path], workingDirectory: nil)
         guard let cwebp = findFile(named: "cwebp", under: tmpDir) else {
             throw AppError.toolMissing("cwebp not found in \(name)")
         }
-        let dest = binDir.appendingPathComponent("cwebp", isDirectory: false)
         if FileManager.default.fileExists(atPath: dest.path) {
             try FileManager.default.removeItem(at: dest)
         }
         try FileManager.default.copyItem(at: cwebp, to: dest)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dest.path)
+        AppLogger.shared.info("libwebp install: source=\(cwebp.path) binary=\(dest.path)")
     }
 
     func findFile(named name: String, under directory: URL) -> URL? {
@@ -357,13 +393,18 @@ extension ToolInstaller {
         request.timeoutInterval = 300
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
+            let statusCode = (response as? HTTPURLResponse)?.statusCode
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                AppLogger.shared.error(
+                    "download failed: url=\(url.absoluteString) status=\(statusCode.map(String.init) ?? "unknown")")
                 throw AppError.networkError("download failed: \(url)")
             }
             return data
         } catch let error as AppError {
             throw error
         } catch {
+            AppLogger.shared.error(
+                "download error: url=\(url.absoluteString) error=\(error.localizedDescription)")
             throw AppError.networkError("\(error)")
         }
     }
