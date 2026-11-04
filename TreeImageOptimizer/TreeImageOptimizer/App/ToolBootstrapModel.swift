@@ -33,6 +33,7 @@ final class ToolBootstrapModel {
         Task { @MainActor [weak self] in
             guard let self else { return }
             if toolInstaller.isInstalled() {
+                AppLogger.shared.info("bootstrap: tools already installed")
                 phase = .ready
                 return
             }
@@ -42,8 +43,10 @@ final class ToolBootstrapModel {
                         self?.phase = .installing(fraction, name)
                     }
                 }
+                AppLogger.shared.info("bootstrap: ready")
                 phase = .ready
             } catch {
+                AppLogger.shared.error("bootstrap failed: \(error.localizedDescription)")
                 phase = .failed(error.localizedDescription)
             }
         }
@@ -51,6 +54,7 @@ final class ToolBootstrapModel {
 
     /// 失敗時に最初からやり直す。
     func retry() {
+        AppLogger.shared.info("bootstrap: retry requested")
         phase = .checking
         started = false
         start()

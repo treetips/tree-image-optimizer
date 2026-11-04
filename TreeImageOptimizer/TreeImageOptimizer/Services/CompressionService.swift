@@ -194,6 +194,7 @@ struct CompressionService: Sendable {
 
     private func runBinary(_ bin: URL, args: [String], workingDirectory: String) async throws {
         guard FileManager.default.fileExists(atPath: bin.path) else {
+            AppLogger.shared.error("encoder binary missing: \(bin.path)")
             throw AppError.toolMissing(bin.path)
         }
         _ = try await runner.run(bin.path, args: args, workingDirectory: workingDirectory)
@@ -209,6 +210,8 @@ struct CompressionService: Sendable {
                 bin, args: Self.jpegoptimArguments(output: output.path, quality: quality),
                 workingDirectory: bin.deletingLastPathComponent().path)
         } catch {
+            AppLogger.shared.warning(
+                "jpegoptim failed, falling back to re-encode: \(error.localizedDescription)")
             // フォールバック：指定品質で再エンコードする。
             try Self.convertToJPEG(input: output, output: output, quality: Double(quality) / 100.0)
         }
@@ -223,6 +226,8 @@ struct CompressionService: Sendable {
                 bin, args: Self.pngoptimArguments(output: output.path, quality: quality),
                 workingDirectory: bin.deletingLastPathComponent().path)
         } catch {
+            AppLogger.shared.warning(
+                "pngoptim failed, falling back to re-encode: \(error.localizedDescription)")
             try Self.convertToPNG(input: output, output: output)
         }
     }

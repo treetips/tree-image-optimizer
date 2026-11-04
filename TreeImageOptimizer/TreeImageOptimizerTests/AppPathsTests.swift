@@ -30,6 +30,27 @@ struct AppPathsTests {
         #expect(!paths.cwebpBinURL.path.contains(".exe"))
     }
 
+    @Test("ダウンロード配置先と実行パスが一致する")
+    func downloadDestinationsMatchExecutionPaths() {
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let paths = AppPaths(baseURL: base)
+
+        // libwebp は tools/libwebp/bin/macos/cwebp へ配置し、同じパスを実行する。
+        #expect(
+            paths.cwebpBinURL.path
+                == paths.toolsURL.appendingPathComponent("libwebp/bin/macos/cwebp").path)
+        // Real-CUGAN は tools/realcugan へ展開し、bin/macos 配下を実行する。
+        #expect(
+            paths.realCuganRootURL.path
+                == paths.toolsURL.appendingPathComponent("realcugan", isDirectory: true).path)
+        #expect(
+            paths.realCuganBinURL.path
+                == paths.realCuganRootURL.appendingPathComponent(
+                    "bin/macos/realcugan-ncnn-vulkan", isDirectory: false
+                ).path)
+    }
+
     @Test("Real-CUGANのパスを解決する")
     func realCuganPaths() {
         let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
