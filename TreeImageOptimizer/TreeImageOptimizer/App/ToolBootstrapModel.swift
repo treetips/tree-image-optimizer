@@ -26,6 +26,11 @@ final class ToolBootstrapModel {
         return false
     }
 
+    /// 失敗時に案内するログ出力先。調査手順をユーザーへ示すために使う。
+    var logDirectoryURL: URL {
+        toolInstaller.paths.logsURL
+    }
+
     /// 初回はtools展開が必要なため、揃うまで操作をブロックする。
     func start() {
         guard !started else { return }

@@ -51,22 +51,27 @@ struct ToolInstaller: Sendable {
         }
     }
 
-    /// リポジトリ直下 `tools/` とアプリバンドル内 `Resources/tools` を候補にする。
-    /// 開発ビルドでは `Info.plist` の `DevToolsPath`（Xcodeが `$(SOURCE_ROOT)/../tools`
-    /// に展開）を最優先にする。カレントディレクトリは実行方法に依存するため当てにしない。
+    /// アプリバンドル内 `Resources/tools`、リポジトリ直下 `tools/`、カレントディレクトリ配下
+    /// `tools/` を候補にする。配布ビルドはアプリ内の同梱物を最優先にし、開発ビルドは
+    /// `Info.plist` の `DevToolsPath`（Xcodeが `$(SOURCE_ROOT)/../tools` に展開）を使う。
+    /// カレントディレクトリは実行方法に依存するため最後に回す。
     static func defaultDevToolsCandidates() -> [URL] {
         var candidates: [URL] = []
-        if let devPath = Bundle.main.object(forInfoDictionaryKey: "DevToolsPath") as? String,
-            !devPath.contains("$(")
-        {
-            candidates.append(URL(fileURLWithPath: devPath, isDirectory: true))
+        // Why not DevToolsPath を先頭にするか: 配布ビルドの Info.plist には
+        // ビルドマシンのパスが残るため、ユーザー環境では実在しない。同梱物を先に探す。
+        if let resources = Bundle.main.resourceURL {
+            candidates.append(resources.appendingPathComponent("tools", isDirectory: true))
+        }
+        let configuredDevToolsPath = Bundle.main.object(forInfoDictionaryKey: "DevToolsPath") as? String
+        if let devPath = configuredDevToolsPath, !devPath.contains("$(") {
+            // 配布ビルドの Info.plist にはビルドマシンのパスが残るため、実在する場合だけ使う。
+            if FileManager.default.fileExists(atPath: devPath) {
+                candidates.append(URL(fileURLWithPath: devPath, isDirectory: true))
+            }
         }
         candidates.append(
             URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
                 .appendingPathComponent("tools", isDirectory: true))
-        if let resources = Bundle.main.resourceURL {
-            candidates.append(resources.appendingPathComponent("tools", isDirectory: true))
-        }
         return candidates
     }
 
@@ -103,6 +108,8 @@ struct ToolInstaller: Sendable {
     func ensureInstalled(progress: @Sendable (Double, String) -> Void = { _, _ in }) async throws {
         AppLogger.shared.info(
             "tools check: base=\(paths.projectDirectoryURL.path) tools=\(paths.toolsURL.path)")
+        AppLogger.shared.info(
+            "tools check: candidates=\(devToolsCandidates.map(\.path).joined(separator: ", "))")
         if isInstalled() {
             AppLogger.shared.info("tools check: already installed")
             progress(1.0, "")

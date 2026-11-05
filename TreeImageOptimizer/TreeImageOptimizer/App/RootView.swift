@@ -284,6 +284,18 @@ struct RootView: View {
                     Text(reason)
                         .font(AppTheme.font(.footnote, scale: fontScale))
                         .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                    // Why not ログをアプリ内で表示するか: 失敗原因は外部コマンドや
+                    // ファイル操作にも及び、まず現物のログを開ける方が調査が速い。
+                    Text(
+                        String(
+                            format: L10n.string("boot.logHint", language: settings.language),
+                            bootstrap.logDirectoryURL.path
+                        )
+                    )
+                    .font(AppTheme.font(.footnote, scale: fontScale))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
                     Button {
                         bootstrap.retry()
                     } label: {
@@ -291,6 +303,12 @@ struct RootView: View {
                             .font(AppTheme.font(.body, scale: fontScale))
                     }
                     .buttonStyle(.borderedProminent)
+                    Button {
+                        NSWorkspace.shared.open(bootstrap.logDirectoryURL)
+                    } label: {
+                        Text(L10n.string("boot.openLogs", language: settings.language))
+                            .font(AppTheme.font(.body, scale: fontScale))
+                    }
                 case .ready:
                     EmptyView()
                 }
