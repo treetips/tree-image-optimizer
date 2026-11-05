@@ -229,4 +229,28 @@ struct ToolInstallerTests {
         #expect((attrs[.posixPermissions] as? NSNumber)?.uint16Value == 0o755)
         #expect(installer.isRealCuganInstalled())
     }
+
+    @Test("復元元が無い場合は探索した候補パスを含めて失敗する")
+    func reportsSearchedCandidatesWhenMissing() async throws {
+        let (installer, _) = try makeInstaller()
+        // 実在しない候補だけを渡し、配布.appで復元元が無い状態を再現する。
+        let searched = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let local = ToolInstaller(
+            paths: installer.paths,
+            devToolsCandidates: [searched]
+        )
+
+        do {
+            try await local.repairMissingTools()
+            Issue.record("復元元が無いのに成功した")
+        } catch let error as AppError {
+            guard case .toolMissing(let message) = error else {
+                Issue.record("想定外のエラー: \(error)")
+                return
+            }
+            #expect(message.contains("tools unavailable locally: upscal"))
+            #expect(message.contains(searched.path))
+        }
+    }
 }

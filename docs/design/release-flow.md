@@ -152,7 +152,7 @@ Bundle build:               1
   - `.xcode-version` 指定のXcodeを選択
   - Git LFS オブジェクトの取得（`tools/` 実体）
   - ビルドとテストの実行（`xcodebuild test`）
-  - macOS Releaseビルド
+  - macOS Releaseビルド（`tools/` を `.app/Contents/Resources/tools` へ同梱。ADR 0048）
   - アドホック再署名と検証（`codesign`）
   - 手動インストール用 `.app` の `.zip` アーカイブ化および SHA-256 チェックサム生成
   - 自前アップデート用の `update-info.json`（`version` / `build` / `url` / `sha256`）を生成

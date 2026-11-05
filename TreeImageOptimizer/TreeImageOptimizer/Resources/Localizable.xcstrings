@@ -401,6 +401,40 @@
         }
       }
     },
+    "boot.logHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログ: %@"
+          }
+        }
+      }
+    },
+    "boot.openLogs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Log Folder"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログフォルダを開く"
+          }
+        }
+      }
+    },
     "boot.preparing" : {
       "extractionState" : "manual",
       "localizations" : {

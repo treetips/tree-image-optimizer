@@ -320,7 +320,7 @@ Flutterでは実装できたがSwiftUI版で対応しない項目を記録する
 | 1 | Windows/Linux版の提供 | 対象外（意思決定） | 技術的不可ではなくADR 0019の目的。`_osName()` 分岐・`.exe` 対応は廃止し、macOS専用（`bin/macos` 固定）とした |
 | 2 | App Store配布と外部CLI同梱の両立 | 見送り（確定） | App Store配布の予定なし。サンドボックス制約上、署名なし外部バイナリの実行と両立困難なため、現行の自前アップデート＋公証配布を踏襲する |
 | 3 | アップデートの適用（差し替え・再起動） | 未実装 | 確認・ダウンロード・SHA-256検証・展開・`.app` 検出まで実装。ヘルパーによる置換・再起動は配布方式確定後に実装する |
-| 4 | 単一ZIP（`tools-vVERSION.zip`）配布基盤 | 未実装 | 不足時はローカル`tools/`コピーとlibwebp取得で対応。GitHub Releasesからの単一ZIP取得は配布開始時に実装する |
+| 4 | 単一ZIP（`tools-vVERSION.zip`）配布基盤 | 未実装 | Releaseビルドは`tools/`を`.app`へ同梱する（ADR 0048）。不足時はアプリ内`tools/`のコピーとlibwebp取得で対応。GitHub Releasesからの単一ZIP取得は配布開始時に実装する |
 | 5 | Syncfusionスライダーの色分けメモリ完全再現 | 簡略化 | 標準`Slider`に置換。リスク#8の確定事項としてユーザーレビューで合意済み扱いとする |
 | 6 | material_uiのhover popover | 置換 | SwiftUIの`.help()` に置換。同等機能のため問題なし |
 | 7 | just_audioの高度な再生機能 | 不要 | ローカルファイル再生のみ必要なため`AVAudioPlayer`で充足 |
