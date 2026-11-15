@@ -2707,13 +2707,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adjusts the scale and compression quality per image based on the target size and file size (bytes per pixel)."
+            "value" : "Adjusts the scale and compression quality per image based on the target size and file size."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画像ごとに目標サイズとファイルサイズ（画素数に対するBPP）を見て、拡大率と圧縮品質を調整します。"
+            "value" : "画像ごとに目標サイズとファイルサイズを確認し、拡大率と圧縮品質を調整します。"
           }
         }
       }
