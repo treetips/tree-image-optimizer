@@ -1,4 +1,3 @@
-import AVFoundation
 import Foundation
 
 /// 一括変換の実行状態を保持する共有ジョブ層。
@@ -22,9 +21,7 @@ final class ConvertJobStore {
     private let paths: AppPaths
     private let store: SettingsStore
     private let orchestrator: ConvertOrchestrator
-    private let notificationService = NotificationService()
-    private var soundService: SoundService
-    private var audioPlayer: AVAudioPlayer?
+    private let completionService: ConversionCompletionService
     private let maxParallel: Int
 
     init(
@@ -33,11 +30,15 @@ final class ConvertJobStore {
         orchestrator: ConvertOrchestrator = ConvertOrchestrator(),
         soundService: SoundService? = nil
     ) {
+        let resolvedStore = store ?? SettingsStore(paths: paths)
+        let resolvedMaxParallel = max(1, HardwareInfo.performanceCoreCount())
         self.paths = paths
-        self.store = store ?? SettingsStore(paths: paths)
+        self.store = resolvedStore
         self.orchestrator = orchestrator
-        self.soundService = soundService ?? SoundService(paths: paths)
-        self.maxParallel = max(1, HardwareInfo.performanceCoreCount())
+        self.maxParallel = resolvedMaxParallel
+        self.completionService = ConversionCompletionService(
+            paths: paths, store: resolvedStore, soundService: soundService,
+            maxParallel: resolvedMaxParallel)
     }
 
     /// 進捗表の初期行を組み立てる。実行前の待機中状態で、変換前後のフルパスを保持する。
@@ -110,7 +111,8 @@ final class ConvertJobStore {
         } else {
             resultMessage = String(format: L10n.string("c.done.mixed", language: language), success, failure)
         }
-        await finishNotification(allSuccess: allSuccess, language: language)
+        await completionService.complete(
+            allSuccess: allSuccess, language: language, notify: true)
     }
 
     private func apply(_ outcome: FileOutcome) {
@@ -145,30 +147,6 @@ final class ConvertJobStore {
         }
         if !rows.isEmpty {
             progressPercent = Double(completedCount) / Double(rows.count) * 100
-        }
-    }
-
-    private func finishNotification(allSuccess: Bool, language: String) async {
-        let settings: ScreenSettings
-        do {
-            settings = try store.load(maxParallel: maxParallel).settings
-        } catch {
-            return
-        }
-        if settings.showOsNotification {
-            let body = L10n.string(allSuccess ? "notify.success" : "notify.failure", language: language)
-            await notificationService.notify(body: body)
-        }
-        if settings.playSound,
-            let option = soundService.resolvePlaybackOption(
-                success: allSuccess,
-                name: allSuccess ? settings.successSound : settings.errorSound,
-                random: allSuccess ? settings.successSoundRandom : settings.errorSoundRandom
-            ),
-            let player = soundService.makePlayer(for: option)
-        {
-            audioPlayer = player
-            player.play()
         }
     }
 }

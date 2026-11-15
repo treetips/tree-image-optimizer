@@ -41,6 +41,7 @@
 		E30000000000000000000029 /* ImageResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000029 /* ImageResizer.swift */; };
 		E3000000000000000000002A /* BatchScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002A /* BatchScheduling.swift */; };
 		E3000000000000000000002B /* ConversionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002B /* ConversionSettings.swift */; };
+		E3000000000000000000002C /* ConversionCompletionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002C /* ConversionCompletionService.swift */; };
 		E10000000000000000000016 /* ConvertSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* ConvertSettingsView.swift */; };
 		E40000000000000000000018 /* ConversionPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000018 /* ConversionPlannerTests.swift */; };
 		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
@@ -117,6 +118,7 @@
 		F30000000000000000000029 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		F3000000000000000000002A /* BatchScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchScheduling.swift; sourceTree = "<group>"; };
 		F3000000000000000000002B /* ConversionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionSettings.swift; sourceTree = "<group>"; };
+		F3000000000000000000002C /* ConversionCompletionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionCompletionService.swift; sourceTree = "<group>"; };
 		F40000000000000000000018 /* ConversionPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionPlannerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000007 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
@@ -227,6 +229,7 @@
 			children = (
 				F30000000000000000000003 /* AppPaths.swift */,
 				F30000000000000000000027 /* AppLogger.swift */,
+				F3000000000000000000002C /* ConversionCompletionService.swift */,
 				F30000000000000000000028 /* ConversionPlanner.swift */,
 				F30000000000000000000029 /* ImageResizer.swift */,
 				F3000000000000000000002A /* BatchScheduling.swift */,
@@ -499,6 +502,7 @@
 				E30000000000000000000002 /* AppInfo.swift in Sources */,
 				E30000000000000000000003 /* AppPaths.swift in Sources */,
 				E30000000000000000000027 /* AppLogger.swift in Sources */,
+				E3000000000000000000002C /* ConversionCompletionService.swift in Sources */,
 				E30000000000000000000028 /* ConversionPlanner.swift in Sources */,
 				E30000000000000000000029 /* ImageResizer.swift in Sources */,
 				E3000000000000000000002A /* BatchScheduling.swift in Sources */,
