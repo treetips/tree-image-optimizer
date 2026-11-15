@@ -61,8 +61,11 @@ actor FileBatcher {
     /// Why not: 必ず `batchSize` 件そろえると空き1件で次が始まらないため、
     /// 「1件完了ごとに次を開始する」を満たせない。
     func next() async -> Range<Int>? {
-        guard nextIndex < count else { return nil }
-        while inFlight >= capacity {
+        while true {
+            guard nextIndex < count else { return nil }
+            if inFlight < capacity { break }
+            // actorはawaitで再入するため、待機から再開した時点で他のワーカーが
+            // 残りを取得している可能性がある。ループ先頭へ戻って必ず再評価する。
             await withCheckedContinuation { waiters.append($0) }
         }
         let take = min(batchSize, capacity - inFlight, count - nextIndex)
@@ -115,12 +118,18 @@ actor BatchScheduler {
     /// 空き枠の数だけ次のバッチを返す。空きが無ければ空きが出来るまで待つ。
     /// 同一グループ内で収まる範囲だけを切り出す。
     func next() async -> UpscaleBatch? {
-        while groupIndex < groups.count, offset >= groups[groupIndex].indices.count {
-            groupIndex += 1
-            offset = 0
-        }
-        guard groupIndex < groups.count else { return nil }
-        while inFlight >= capacity {
+        while true {
+            // グループの終端を読み飛ばす。待機から再開すると他のワーカーが
+            // groupIndex/offsetを進めているため、毎回この位置で評価し直す。
+            while groupIndex < groups.count, offset >= groups[groupIndex].indices.count {
+                groupIndex += 1
+                offset = 0
+            }
+            guard groupIndex < groups.count else { return nil }
+            if inFlight < capacity { break }
+            // Why not 待機前に計算したgroupIndexを使うか: actorはawaitで再入し、
+            // 待機中に別のワーカーが最後のグループまで取り切ってgroupIndexが
+            // groups.countへ進む。再開後に古い添字でアクセスするとクラッシュする。
             await withCheckedContinuation { waiters.append($0) }
         }
         let group = groups[groupIndex]

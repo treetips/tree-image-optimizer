@@ -240,6 +240,85 @@ struct ConvertPipelineTests {
         #expect(performance <= ProcessInfo.processInfo.processorCount)
     }
 
+    @Test("バッチ配布は待機から再開してもグループを再評価し、全ファイルを一度ずつ配る")
+    func batchSchedulerRevalidatesAfterWaiting() async {
+        let groupCount = 6
+        for _ in 0..<200 {
+            let groups = (0..<groupCount).map { index in
+                UpscaleGroup(
+                    scale: index.isMultiple(of: 2) ? 2 : 4,
+                    resizeLongEdge: nil,
+                    model: nil,
+                    indices: [index]
+                )
+            }
+            let scheduler = BatchScheduler(groups: groups, batchSize: 1, capacity: 2)
+            let distributed = await withTaskGroup(of: ([Int], Int).self) { group in
+                for _ in 0..<8 {
+                    group.addTask {
+                        var received: [Int] = []
+                        var emptyBatches = 0
+                        while let batch = await scheduler.next() {
+                            if batch.indices.isEmpty {
+                                emptyBatches += 1
+                            } else {
+                                received.append(contentsOf: batch.indices)
+                            }
+                            // ワーカーの再開順を競わせる。
+                            await Task.yield()
+                            await scheduler.release(batch.indices.count)
+                        }
+                        return (received, emptyBatches)
+                    }
+                }
+                var all: [Int] = []
+                var emptyBatches = 0
+                for await (received, empty) in group {
+                    all.append(contentsOf: received)
+                    emptyBatches += empty
+                }
+                return (all, emptyBatches)
+            }
+            #expect(distributed.0.sorted() == Array(0..<groupCount))
+            #expect(distributed.1 == 0)
+        }
+    }
+
+    @Test("ファイル配布は待機から再開しても空の範囲を返さない")
+    func fileBatcherRevalidatesAfterWaiting() async {
+        let fileCount = 12
+        for _ in 0..<200 {
+            let batcher = FileBatcher(count: fileCount, batchSize: 1, capacity: 2)
+            let distributed = await withTaskGroup(of: ([Int], Int).self) { group in
+                for _ in 0..<8 {
+                    group.addTask {
+                        var received: [Int] = []
+                        var emptyRanges = 0
+                        while let range = await batcher.next() {
+                            if range.isEmpty {
+                                emptyRanges += 1
+                            } else {
+                                received.append(contentsOf: range)
+                            }
+                            await Task.yield()
+                            await batcher.release(range.count)
+                        }
+                        return (received, emptyRanges)
+                    }
+                }
+                var all: [Int] = []
+                var emptyRanges = 0
+                for await (received, empty) in group {
+                    all.append(contentsOf: received)
+                    emptyRanges += empty
+                }
+                return (all, emptyRanges)
+            }
+            #expect(distributed.0.sorted() == Array(0..<fileCount))
+            #expect(distributed.1 == 0)
+        }
+    }
+
     @Test("出力確定（同一ボリュームではrename・既存は上書き・元のファイルは残らない）")
     func installOutput() throws {
         let fileManager = FileManager.default
