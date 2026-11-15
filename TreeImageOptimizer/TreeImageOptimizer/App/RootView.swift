@@ -85,9 +85,9 @@ struct RootView: View {
                         }
                     }
                     .navigationSplitViewColumnWidth(min: 150, ideal: 180)
-                    // 更新カード。更新ありはOSテーマ色（アクセント色）の背景で最下部に表示し、
-                    // クリックでインストールダイアログを出す。更新なしは背景なしで表示し、
-                    // クリックで非表示化する（10秒後の自動非表示はUpdateCheckController側）。
+                    // 更新カード。更新ありはOSテーマ色（アクセント色）で表示しクリックでダイアログを出す。
+                    // インストール中は進捗、失敗時は赤色で再実行、更新なしは透明で表示する
+                    // （10秒後の自動非表示はUpdateCheckController側）。
                     if let card = updateCheck.card {
                         Divider()
                         switch card {
@@ -125,6 +125,10 @@ struct RootView: View {
                             .buttonStyle(.plain)
                             .padding(.horizontal)
                             .padding(.vertical, 8)
+                        case .installing(let progress):
+                            installingCard(progress: progress)
+                        case .installFailed:
+                            installFailedCard()
                         case .noUpdate:
                             Button {
                                 updateCheck.dismissCard()
@@ -361,6 +365,104 @@ struct RootView: View {
         .padding(.vertical, 6)
     }
 
+    /// インストール中の更新カード。確認ダイアログを閉じた後の進捗をここへ集約する。
+    /// ダウンロード中は受信バイト数の確定バー、検証・展開・コピー中は不確定バーを出す。
+    private func installingCard(progress: UpdateInstallProgress) -> some View {
+        VStack(spacing: 6) {
+            Label {
+                Text(L10n.string("nav.installing", language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            } icon: {
+                Image(systemName: "arrow.down.circle")
+            }
+            .bold()
+            Text(installingDetail(for: progress))
+                .font(AppTheme.font(.caption, scale: fontScale))
+                .opacity(0.8)
+            if let fraction = progress.fraction {
+                DeterminateLinearBar(progress: fraction * 100, tint: availableTextColor)
+            } else {
+                IndeterminateLinearBar(tint: availableTextColor)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        // 更新ありカードと同じLiquid Glass。クリックできないため `.interactive()` は付けない。
+        .glassEffect(
+            .regular.tint(Color.accentColor.opacity(GlassStyle.updateCardTintOpacity)),
+            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
+        )
+        .foregroundStyle(availableTextColor)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// インストール中の補足文言。進捗率はダウンロード段階だけ表示する。
+    private func installingDetail(for progress: UpdateInstallProgress) -> String {
+        let lang = settings.language
+        switch progress.phase {
+        case .downloading:
+            guard let fraction = progress.fraction else {
+                return L10n.string("nav.downloading", language: lang)
+            }
+            return String(
+                format: L10n.string("nav.downloadingPercent", language: lang),
+                Int((fraction * 100).rounded(.down))
+            )
+        case .verifying:
+            return L10n.string("nav.verifying", language: lang)
+        case .extracting:
+            return L10n.string("nav.extracting", language: lang)
+        case .installing:
+            return L10n.string("nav.copying", language: lang)
+        }
+    }
+
+    /// インストール失敗カード。赤背景で失敗を示し、カード内の `再実行` から
+    /// ダウンロードからやり直せる。失敗の詳細理由はエラーダイアログとAbout画面に出す。
+    private func installFailedCard() -> some View {
+        VStack(spacing: 6) {
+            Label {
+                Text(L10n.string("nav.installFailed", language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+            }
+            .bold()
+            Button {
+                updateCheck.retryInstall(language: settings.language)
+            } label: {
+                Text(L10n.string("nav.retry", language: settings.language))
+                    .font(AppTheme.font(.caption, scale: fontScale))
+                    .bold()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(availableTextColor.opacity(0.18), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        // 失敗は赤。濃さは更新ありカードと揃え、不透明な塗りでグラスを飽和させない。
+        .glassEffect(
+            .regular.tint(Color.red.opacity(GlassStyle.updateCardTintOpacity)),
+            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
+        )
+        .foregroundStyle(availableTextColor)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        // 再実行ボタンを読み上げ対象に残すため、進捗カードの combine は使わない。
+        .accessibilityElement(children: .contain)
+    }
+
     /// 実行中のメニューはアイコンをローディング表示に切り替える。
     private func isItemRunning(_ item: SidebarSelection) -> Bool {
         switch item {
@@ -505,17 +607,19 @@ private struct SidebarLoadingIcon: View {
 }
 
 /// 進捗連動の細いリニアバー。標準の `ProgressView` より細くするため自前表示する。
+/// `tint` はアクセント色の上に重ねる更新カードなど、背景に合わせた色が必要な場合に上書きする。
 private struct DeterminateLinearBar: View {
     var progress: Double
+    var tint: Color = .accentColor
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Color.accentColor.opacity(0.25))
+                    .fill(tint.opacity(0.25))
                     .frame(height: 3)
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Color.accentColor)
+                    .fill(tint)
                     .frame(width: barWidth(total: geometry.size.width), height: 3)
             }
         }
@@ -531,6 +635,7 @@ private struct DeterminateLinearBar: View {
 /// 進捗%がない場合（かんたん変換の1ファイル処理など）に使う。
 private struct IndeterminateLinearBar: View {
     @State private var move = false
+    var tint: Color = .accentColor
 
     var body: some View {
         GeometryReader { geometry in
@@ -538,10 +643,10 @@ private struct IndeterminateLinearBar: View {
             let barWidth = max(width * 0.35, 24)
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Color.accentColor.opacity(0.25))
+                    .fill(tint.opacity(0.25))
                     .frame(height: 3)
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Color.accentColor)
+                    .fill(tint)
                     .frame(width: barWidth, height: 3)
                     .offset(x: move ? width - barWidth : 0)
                     .animation(

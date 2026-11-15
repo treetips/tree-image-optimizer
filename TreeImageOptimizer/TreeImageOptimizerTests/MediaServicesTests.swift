@@ -115,6 +115,19 @@ struct MediaServicesTests {
         #expect(!info.isNewerThan(currentVersion: "0.1.0", currentBuild: 3))
     }
 
+    @Test("ダウンロード進捗は受信バイト数を0〜1に丸める")
+    func updateDownloadProgress() {
+        #expect(UpdateInstallProgress.downloadFraction(received: 0, total: 100) == 0)
+        #expect(UpdateInstallProgress.downloadFraction(received: 50, total: 100) == 0.5)
+        #expect(UpdateInstallProgress.downloadFraction(received: 120, total: 100) == 1)
+        // Content-Lengthが不明なら0%固定にせず不確定表示にする。
+        #expect(UpdateInstallProgress.downloadFraction(received: 10, total: -1) == nil)
+        let progress = UpdateInstallProgress.downloading(received: 25, total: 100)
+        #expect(progress.phase == .downloading)
+        #expect(progress.fraction == 0.25)
+        #expect(UpdateInstallProgress.indeterminate(.verifying).fraction == nil)
+    }
+
     @Test("インストール先は/Applications配下")
     func installDestination() {
         let prepared = URL(fileURLWithPath: "/tmp/TreeImageOptimizer.app", isDirectory: false)
