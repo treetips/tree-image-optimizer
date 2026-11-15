@@ -9,6 +9,10 @@ import Foundation
 enum UpdateCard: Equatable {
     /// 更新あり。クリックでインストールダイアログを開く。
     case available(UpdateInfo)
+    /// インストール中。ダイアログを閉じた後の進捗をサイドナビに表示する。
+    case installing(UpdateInstallProgress)
+    /// インストール失敗。背景を赤くし、カード内の `再実行` から最初からやり直せる。
+    case installFailed(UpdateInfo)
     /// 更新なし。クリックでカードを非表示化する。
     case noUpdate
 }
@@ -109,7 +113,7 @@ final class UpdateCheckController {
     /// About画面のボタンとメニューバーの手動確認。
     /// 結果はメッセージ・ダイアログとサイドナビ下部の更新カードの双方に反映する。
     func checkForUpdate(language: String? = nil) {
-        guard !isChecking else { return }
+        guard !isChecking, !isInstalling else { return }
         isChecking = true
         message = ""
         Task {
@@ -147,25 +151,59 @@ final class UpdateCheckController {
     func install(_ info: UpdateInfo, language: String? = nil) {
         guard !isInstalling else { return }
         isInstalling = true
+        // 確認ダイアログを閉じ、以降の進捗はサイドナビのカードだけで示す。
+        availableInfo = nil
+        hideCardTask?.cancel()
+        hideCardTask = nil
+        card = .installing(.indeterminate(.downloading))
+        // 呼び出し元が保持済みの言語を渡す。nil時のみ設定ファイルを読み直す。
+        let lang = language ?? self.language()
         Task {
-            // 呼び出し元が保持済みの言語を渡す。nil時のみ設定ファイルを読み直す。
-            let lang = language ?? self.language()
+            let onProgress: @Sendable (UpdateInstallProgress) -> Void = { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    self?.applyProgress(progress)
+                }
+            }
             do {
-                let prepared = try await updateService.downloadAndPrepare(info: info)
+                let prepared = try await updateService.downloadAndPrepare(info: info, onProgress: onProgress)
                 let destination = UpdateService.installDestination(for: prepared)
-                try updateService.applyUpdate(preparedApp: prepared, destination: destination)
+                card = .installing(.indeterminate(.installing))
+                // 数百MBのコピーでメインスレッドを止めないよう、別タスクで実行する。
+                // 止まるとプログレスバーの更新もアニメーションも途切れるため。
+                try await Task.detached(priority: .userInitiated) {
+                    try UpdateService().applyUpdate(preparedApp: prepared, destination: destination)
+                }.value
                 // 実行中のアプリ自身なら新バージョンを開いて終了する。
                 // 起動要求に失敗したらFinderで開いて終わる。
-                if isRunningFrom(destination), relaunch(appURL: destination) { return }
+                if isRunningFrom(destination), relaunch(appURL: destination) {
+                    // 終了するまでの間も「インストール中」を出したままにする。
+                    return
+                }
+                card = nil
                 message = String(
                     format: L10n.string("a.downloadDoneMsg", language: lang), destination.path)
                 revealInFinder(destination)
             } catch {
+                // 失敗時は赤いカードに切り替え、カード内の `再実行` で最初からやり直せるようにする。
+                card = .installFailed(info)
                 message = "\(L10n.string("a.downloadFailed", language: lang)): \(error.localizedDescription)"
                 errorDialog = error.localizedDescription
             }
             isInstalling = false
         }
+    }
+
+    /// 失敗カードの `再実行`。ダウンロードからやり直す。
+    func retryInstall(language: String? = nil) {
+        guard case .installFailed(let info) = card else { return }
+        install(info, language: language)
+    }
+
+    /// 進捗をカードへ反映する。遅れて届いたダウンロード進捗が、
+    /// 検証・展開へ進んだ表示を巻き戻さないよう段階の後退は無視する。
+    private func applyProgress(_ progress: UpdateInstallProgress) {
+        guard isInstalling, case .installing(let current) = card, current.phase <= progress.phase else { return }
+        card = .installing(progress)
     }
 
     /// 実行中のバンドルがインストール先と同一か。

@@ -28,9 +28,50 @@ enum UpdateCheckResult: Sendable {
     case failed(String)
 }
 
+/// インストール処理の段階。この順に進む。
+enum UpdateInstallPhase: Int, Sendable, Equatable, Comparable {
+    case downloading = 0
+    case verifying = 1
+    case extracting = 2
+    case installing = 3
+
+    static func < (lhs: UpdateInstallPhase, rhs: UpdateInstallPhase) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
+/// サイドナビの「インストール中」カードに表示する進捗。
+struct UpdateInstallProgress: Sendable, Equatable {
+    var phase: UpdateInstallPhase
+    /// 0...1。nilの段階は不確定表示にする。
+    var fraction: Double?
+    var receivedBytes: Int64
+    var totalBytes: Int64
+
+    /// 受信バイト数から進捗率を求める。総バイト数が不明ならnilを返す。
+    /// サーバーが Content-Length を返さない場合に0%固定へ丸めないため。
+    static func downloadFraction(received: Int64, total: Int64) -> Double? {
+        guard total > 0 else { return nil }
+        return min(max(Double(received) / Double(total), 0), 1)
+    }
+
+    static func downloading(received: Int64, total: Int64) -> UpdateInstallProgress {
+        UpdateInstallProgress(
+            phase: .downloading,
+            fraction: downloadFraction(received: received, total: total),
+            receivedBytes: received,
+            totalBytes: total
+        )
+    }
+
+    /// バイト進捗を持たない段階（検証・展開・コピー）の不確定表示。
+    static func indeterminate(_ phase: UpdateInstallPhase) -> UpdateInstallProgress {
+        UpdateInstallProgress(phase: phase, fraction: nil, receivedBytes: 0, totalBytes: 0)
+    }
+}
+
 /// 自前アップデート処理。Flutter版 `UpdaterService` に対応する。
-/// フェーズ3では確認・ダウンロード・検証まで実装し、適用（差し替え・再起動）は
-/// 配布方式確定後に行う。
+/// 配布ZIPのダウンロード・検証・展開と、`/Applications` への適用まで行う。
 struct UpdateService: Sendable {
     /// `update-info.json` を取得してバージョン比較する。
     func checkForUpdate(url: URL, currentVersion: String, currentBuild: Int) async -> UpdateCheckResult {
@@ -52,17 +93,15 @@ struct UpdateService: Sendable {
     }
 
     /// ZIPをダウンロードしSHA-256検証して一時ディレクトリに展開する。
+    /// 進捗はダウンロードの受信バイト数（Content-Length基準）で通知する。
     /// - Returns: 展開先ディレクトリ内の `.app` パス。
-    func downloadAndPrepare(info: UpdateInfo, runner: ProcessRunner = ProcessRunner()) async throws -> URL {
-        var request = URLRequest(url: URL(string: info.url)!)
-        request.timeoutInterval = 300
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw AppError.networkError("Download failed: \(info.url)")
-        }
-        let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-        guard digest == info.sha256.lowercased() else {
-            throw AppError.verificationFailed("SHA-256 mismatch: expected \(info.sha256), got \(digest)")
+    func downloadAndPrepare(
+        info: UpdateInfo,
+        runner: ProcessRunner = ProcessRunner(),
+        onProgress: @escaping @Sendable (UpdateInstallProgress) -> Void = { _ in }
+    ) async throws -> URL {
+        guard let url = URL(string: info.url) else {
+            throw AppError.networkError("Invalid update URL: \(info.url)")
         }
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("tree-image-optimizer-update", isDirectory: true)
@@ -72,12 +111,37 @@ struct UpdateService: Sendable {
         }
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         let zip = dir.appendingPathComponent("update.zip", isDirectory: false)
-        try data.write(to: zip, options: .atomic)
+
+        AppLogger.shared.info("update download start: \(info.url)")
+        let downloader = UpdateDownloader(destination: zip, onProgress: onProgress)
+        try await downloader.download(from: url)
+
+        // 検証・展開・コピーはバイト単位の進捗APIが無いため不確定表示にする。
+        onProgress(.indeterminate(.verifying))
+        let digest = try sha256(of: zip)
+        guard digest == info.sha256.lowercased() else {
+            throw AppError.verificationFailed("SHA-256 mismatch: expected \(info.sha256), got \(digest)")
+        }
+
+        onProgress(.indeterminate(.extracting))
         _ = try await runner.run("/usr/bin/unzip", args: ["-o", zip.path, "-d", dir.path], workingDirectory: nil)
         guard let app = findAppBundle(under: dir, maxDepth: 2) else {
             throw AppError.fileNotFound(".app bundle not found in archive")
         }
+        AppLogger.shared.info("update download finish: \(app.path)")
         return app
+    }
+
+    /// ファイルを読みながらSHA-256を計算する。
+    /// 数百MBのZIPを丸ごとメモリへ載せないため、`SHA256.hash(data:)` ではなく逐次更新する。
+    private func sha256(of url: URL) throws -> String {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        while let chunk = try handle.read(upToCount: 4 * 1024 * 1024), !chunk.isEmpty {
+            hasher.update(data: chunk)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     func findAppBundle(under directory: URL, maxDepth: Int) -> URL? {
@@ -124,6 +188,102 @@ struct UpdateService: Sendable {
             } else if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
                 collectAppBundles(under: url, depth: depth + 1, maxDepth: maxDepth, into: &results)
             }
+        }
+    }
+}
+
+/// `URLSessionDownloadTask` の受信バイト数を通知するダウンローダ。
+/// `URLSession.download(for:)` は進捗を取得できないためdelegateで受ける。
+/// 進捗は1%単位に間引き、SwiftUIの状態更新を毎バイト起こさないようにする。
+private final class UpdateDownloader: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+    private let destination: URL
+    private let onProgress: @Sendable (UpdateInstallProgress) -> Void
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, Error>?
+    private var session: URLSession?
+    private var transferError: Error?
+    private var lastPercent = -1
+
+    init(destination: URL, onProgress: @escaping @Sendable (UpdateInstallProgress) -> Void) {
+        self.destination = destination
+        self.onProgress = onProgress
+    }
+
+    func download(from url: URL) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            lock.lock()
+            self.continuation = continuation
+            lock.unlock()
+
+            let configuration = URLSessionConfiguration.default
+            configuration.timeoutIntervalForRequest = 60
+            configuration.timeoutIntervalForResource = 60 * 30
+            let session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
+            lock.lock()
+            self.session = session
+            lock.unlock()
+            // 再実行時に壊れたキャッシュを使い回さないよう、常に取り直す。
+            var request = URLRequest(url: url)
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            session.downloadTask(with: request).resume()
+        }
+    }
+
+    func urlSession(
+        _ session: URLSession, downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        if totalBytesExpectedToWrite <= 0 {
+            // Content-Lengthが無い場合は0%固定にせず、不確定表示へ一度だけ切り替える。
+            guard lastPercent != 0 else { return }
+            lastPercent = 0
+            onProgress(.downloading(received: totalBytesWritten, total: totalBytesExpectedToWrite))
+            return
+        }
+        let percent = Int((Double(totalBytesWritten) / Double(totalBytesExpectedToWrite) * 100).rounded(.down))
+        guard percent != lastPercent else { return }
+        lastPercent = percent
+        onProgress(.downloading(received: totalBytesWritten, total: totalBytesExpectedToWrite))
+    }
+
+    func urlSession(
+        _ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL
+    ) {
+        if let http = downloadTask.response as? HTTPURLResponse, http.statusCode != 200 {
+            transferError = AppError.networkError("Download failed: HTTP \(http.statusCode)")
+            return
+        }
+        do {
+            let fm = FileManager.default
+            if fm.fileExists(atPath: destination.path) {
+                try fm.removeItem(at: destination)
+            }
+            // 受信済みの一時ファイルを動かすだけなので、ここは同期で終わらせる。
+            // このdelegateを抜けるとURLSessionが一時ファイルを削除するため。
+            try fm.moveItem(at: location, to: destination)
+        } catch {
+            transferError = error
+        }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        // sessionがdelegate（self）を保持し続けるため、完了時に必ず無効化して解放する。
+        session.invalidateAndCancel()
+        finish(error ?? transferError)
+    }
+
+    private func finish(_ error: Error?) {
+        lock.lock()
+        let continuation = self.continuation
+        self.continuation = nil
+        self.session = nil
+        lock.unlock()
+        guard let continuation else { return }
+        if let error {
+            continuation.resume(throwing: error)
+        } else {
+            continuation.resume()
         }
     }
 }
