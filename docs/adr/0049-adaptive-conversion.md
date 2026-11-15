@@ -81,4 +81,4 @@
 - 一括変換画面ではモードをタブで切り替え、タブ直下の「拡大」「圧縮」が
   そのモードの対象であることを示す。
 - 品質値の実測チューニング（ADR 0040）はプリセット基準で取り直す必要がある。
-- 実装箇所: `ConversionPlanner`、`ConvertOrchestrator`、`CompressionService`、`ConvertViewModel`、`ConvertView`。
+- 実装箇所: `ConversionPlanner`、`ConvertOrchestrator`、`CompressionService`、`ConversionSettings`、`ConvertViewModel`、`ConvertView`。

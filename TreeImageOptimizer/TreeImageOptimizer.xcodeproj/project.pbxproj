@@ -40,6 +40,7 @@
 		E30000000000000000000028 /* ConversionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000028 /* ConversionPlanner.swift */; };
 		E30000000000000000000029 /* ImageResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000029 /* ImageResizer.swift */; };
 		E3000000000000000000002A /* BatchScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002A /* BatchScheduling.swift */; };
+		E3000000000000000000002B /* ConversionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002B /* ConversionSettings.swift */; };
 		E10000000000000000000016 /* ConvertSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* ConvertSettingsView.swift */; };
 		E40000000000000000000018 /* ConversionPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000018 /* ConversionPlannerTests.swift */; };
 		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
@@ -115,6 +116,7 @@
 		F30000000000000000000028 /* ConversionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionPlanner.swift; sourceTree = "<group>"; };
 		F30000000000000000000029 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
 		F3000000000000000000002A /* BatchScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchScheduling.swift; sourceTree = "<group>"; };
+		F3000000000000000000002B /* ConversionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionSettings.swift; sourceTree = "<group>"; };
 		F40000000000000000000018 /* ConversionPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionPlannerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000007 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000009 /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
@@ -272,6 +274,7 @@
 				F30000000000000000000020 /* SliderLoadLevel.swift */,
 				F30000000000000000000021 /* GlassCard.swift */,
 				F30000000000000000000025 /* HardwareInfo.swift */,
+				F3000000000000000000002B /* ConversionSettings.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -522,6 +525,7 @@
 				E30000000000000000000020 /* SliderLoadLevel.swift in Sources */,
 				E30000000000000000000021 /* GlassCard.swift in Sources */,
 				E30000000000000000000025 /* HardwareInfo.swift in Sources */,
+				E3000000000000000000002B /* ConversionSettings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
