@@ -18,7 +18,8 @@ struct ConvertSettingsView: View {
                     HelpPopover(text: t("c.help.mode"))
                 }
 
-                ModeDescriptionCallout(mode: viewModel.mode, localize: t)
+                ModeNoteAccordion(
+                    mode: viewModel.mode, isExpanded: $viewModel.modeNoteExpanded, localize: t)
 
                 upscaleSection
                 compressSection
@@ -298,6 +299,44 @@ private struct ModeDescriptionCallout: View {
                 .appFont(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// モードの特徴コールアウトを開閉するアコーディオン。
+/// SwiftUIの `DisclosureGroup` ではなく、ガラスカードに合わせたヘッダーと
+/// チューロンで実装する。開閉状態は呼び出し側が保存する。
+private struct ModeNoteAccordion: View {
+    let mode: ConvertMode
+    @Binding var isExpanded: Bool
+    let localize: (String) -> String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                withAnimation(.snappy(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.secondary)
+                    Text(localize("c.mode.features"))
+                        .appFont(.headline)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                ModeDescriptionCallout(mode: mode, localize: localize)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
     }
 }

@@ -261,4 +261,20 @@ struct SettingsStoreTests {
         #expect(merged.batch.engine == "upscayl")
         #expect(merged.batch.realCuganModel == "models-se/up2x-conservative")
     }
+
+    @Test("モードの特徴の展開状態を保存して復元する")
+    func roundTripsModeNoteExpanded() throws {
+        let (store, file) = try makeStore()
+        var saved = try store.load(maxParallel: 8)
+        #expect(saved.batch.modeNoteExpanded)
+        saved.batch.modeNoteExpanded = false
+        try store.save(saved)
+        #expect(try store.load(maxParallel: 8).batch.modeNoteExpanded == false)
+
+        // 不正値は既定値（展開）へ補正し、ファイルを書き換える。
+        try #"{"batchConvert":{"modeNoteExpanded":"yes"}}"#
+            .write(to: file, atomically: true, encoding: .utf8)
+        #expect(try store.load(maxParallel: 8).batch.modeNoteExpanded == true)
+    }
+
 }

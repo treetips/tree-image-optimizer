@@ -2785,6 +2785,23 @@
           }
         }
       }
+    },
+    "c.mode.features" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode features"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モードの特徴"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

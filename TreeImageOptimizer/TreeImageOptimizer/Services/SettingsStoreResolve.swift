@@ -114,7 +114,9 @@ extension SettingsStore {
             showWaiting: boolValue(json["showWaiting"], fallback: defaults.showWaiting, mark: mark),
             showRunning: boolValue(json["showRunning"], fallback: defaults.showRunning, mark: mark),
             showSuccess: boolValue(json["showSuccess"], fallback: defaults.showSuccess, mark: mark),
-            showFailure: boolValue(json["showFailure"], fallback: defaults.showFailure, mark: mark)
+            showFailure: boolValue(json["showFailure"], fallback: defaults.showFailure, mark: mark),
+            modeNoteExpanded: boolValue(
+                json["modeNoteExpanded"], fallback: defaults.modeNoteExpanded, mark: mark)
         )
     }
 

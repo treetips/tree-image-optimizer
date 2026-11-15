@@ -31,6 +31,8 @@ struct BatchSettings: Codable, Equatable {
     var showSuccess: Bool = true
     /// 実行結果の表の絞り込み（失敗）。
     var showFailure: Bool = true
+    /// モードの特徴コールアウトの展開状態。固定・自動で共用する。
+    var modeNoteExpanded: Bool = true
 
     static func defaults(maxParallel: Int) -> BatchSettings {
         BatchSettings(
@@ -52,7 +54,8 @@ struct BatchSettings: Codable, Equatable {
             showWaiting: true,
             showRunning: true,
             showSuccess: true,
-            showFailure: true
+            showFailure: true,
+            modeNoteExpanded: true
         )
     }
 }

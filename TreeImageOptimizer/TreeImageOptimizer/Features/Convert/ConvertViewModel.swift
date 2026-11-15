@@ -37,6 +37,10 @@ final class ConvertViewModel {
     var showFailure: Bool = true {
         didSet { saveBatchFields() }
     }
+    /// モードの特徴コールアウトの展開状態。固定・自動で共用する。
+    var modeNoteExpanded: Bool = true {
+        didSet { saveBatchFields() }
+    }
 
     /// 変換設定。かんたん変換画面と共通の型を使う。
     let settings: ConversionSettings
@@ -163,6 +167,7 @@ final class ConvertViewModel {
         showRunning = batch.showRunning
         showSuccess = batch.showSuccess
         showFailure = batch.showFailure
+        modeNoteExpanded = batch.modeNoteExpanded
         validateFolders()
     }
 
@@ -177,6 +182,7 @@ final class ConvertViewModel {
         updated.batch.showRunning = showRunning
         updated.batch.showSuccess = showSuccess
         updated.batch.showFailure = showFailure
+        updated.batch.modeNoteExpanded = modeNoteExpanded
         try? store.save(updated)
     }
 
