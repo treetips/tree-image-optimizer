@@ -310,6 +310,7 @@ private struct ModeNoteAccordion: View {
     let mode: ConvertMode
     @Binding var isExpanded: Bool
     let localize: (String) -> String
+    @State private var isHovering = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -320,18 +321,34 @@ private struct ModeNoteAccordion: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "info.circle")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isHovering ? Color.accentColor : Color.secondary)
                     Text(localize("c.mode.features"))
                         .appFont(.headline)
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isHovering ? Color.accentColor : Color.secondary)
                 }
-                .contentShape(Rectangle())
-                .padding(.vertical, 4)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(isHovering ? Color.accentColor.opacity(0.08) : Color.clear)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(
+                            isHovering ? Color.accentColor : Color.secondary.opacity(0.25),
+                            lineWidth: isHovering ? 1.5 : 1
+                        )
+                )
+                .animation(.easeOut(duration: 0.12), value: isHovering)
             }
             .buttonStyle(.plain)
+            .pointerStyle(.link)
+            .onHover { isHovering = $0 }
 
             if isExpanded {
                 ModeDescriptionCallout(mode: mode, localize: localize)
