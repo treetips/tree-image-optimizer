@@ -20,6 +20,14 @@ struct L10nTests {
         #expect(L10n.string("nav.updateNone", language: "en") == "No update available")
     }
 
+    @Test("自動最適化のラベル")
+    func autoOptimizationLabels() {
+        #expect(L10n.string("c.mode.fixed", language: "ja") == "固定最適化")
+        #expect(L10n.string("c.mode.auto", language: "ja") == "自動最適化")
+        #expect(L10n.string("c.preset.best", language: "ja") == "画質最優先")
+        #expect(L10n.string("c.label.targetSize", language: "en") == "Target size")
+    }
+
     @Test("書式付き文字列")
     func formatted() {
         let ja = String(format: L10n.string("c.done.mixed", language: "ja"), 3, 1)

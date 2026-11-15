@@ -11,6 +11,14 @@ struct BatchSettings: Codable, Equatable {
     var parallelCount: Int
     var inputFolderPath: String?
     var outputFolderPath: String?
+    /// 固定最適化 / 自動最適化（ADR 0049）。
+    var mode: String = ConvertMode.fixed.rawValue
+    /// 自動モードのコンテンツ種別。
+    var contentType: String = ContentType.anime.rawValue
+    /// 自動モードの目標解像度。
+    var targetSize: String = TargetSize.fiveK.rawValue
+    /// 自動モードの画質プリセット。
+    var qualityPreset: String = QualityPreset.high.rawValue
     /// アップスケーラーのエンジン。`upscayl` / `realCUGAN`。
     var engine: String = UpscaleEngine.upscayl.rawValue
     /// Real-CUGANのモデルID。`models-se/up2x-conservative` 形式。
@@ -35,6 +43,10 @@ struct BatchSettings: Codable, Equatable {
             parallelCount: HardwareInfo.defaultParallelCount(maxParallel: maxParallel),
             inputFolderPath: nil,
             outputFolderPath: nil,
+            mode: ConvertMode.fixed.rawValue,
+            contentType: ContentType.anime.rawValue,
+            targetSize: TargetSize.fiveK.rawValue,
+            qualityPreset: QualityPreset.high.rawValue,
             engine: UpscaleEngine.upscayl.rawValue,
             realCuganModel: "models-se/up2x-conservative",
             showWaiting: true,

@@ -11,7 +11,15 @@ struct ConvertConfig: Sendable {
     /// アップスケーラーのエンジン。既定は従来の `upscayl-bin`。
     var engine: UpscaleEngine = .upscayl
     /// Real-CUGAN選択時のモデル。`model` はエンジン側のID（`models-se/...`）を持つ。
-    var realCuganModel: RealCUGANModel? = nil
+    var realCuganModel: RealCUGANModel?
+    /// 固定最適化 / 自動最適化（ADR 0049）。
+    var mode: ConvertMode = .fixed
+    /// 自動モードのコンテンツ種別。
+    var contentType: ContentType = .anime
+    /// 自動モードの目標解像度。
+    var targetSize: TargetSize = .fiveK
+    /// 自動モードの画質プリセット。
+    var qualityPreset: QualityPreset = .high
 }
 
 /// 1ファイルの処理段階。
@@ -70,6 +78,47 @@ struct ConvertOrchestrator: Sendable {
             upscale: upscale,
             compression: max(1, total - upscale)
         )
+    }
+
+    /// 同一の倍率・縮小先で処理できるファイルをまとめる。
+    /// アップスケーラは1プロセス1倍率のため、バッチが倍率をまたがないようにする（ADR 0049）。
+    static func upscaleGroups(
+        files: [URL],
+        plans: [FilePlan],
+        config: ConvertConfig,
+        paths: AppPaths
+    ) -> [UpscaleGroup] {
+        if config.mode == .fixed {
+            let model = config.engine == .realCUGAN ? config.realCuganModel : nil
+            return [
+                UpscaleGroup(
+                    scale: config.scale, resizeLongEdge: nil, model: model,
+                    indices: Array(files.indices))
+            ]
+        }
+
+        let catalog =
+            config.engine == .realCUGAN ? RealCUGANModels.catalog(in: paths.realCuganRootURL) : []
+        var order: [UpscaleGroupKey] = []
+        var buckets: [UpscaleGroupKey: [Int]] = [:]
+        for index in files.indices {
+            let plan = plans[index]
+            let key = UpscaleGroupKey(scale: plan.scale, resizeLongEdge: plan.resizeLongEdge)
+            if buckets[key] == nil { order.append(key) }
+            buckets[key, default: []].append(index)
+        }
+        return order.map { key in
+            let model: RealCUGANModel?
+            if config.engine == .realCUGAN, let scale = key.scale {
+                model = RealCUGANModels.resolve(
+                    id: config.realCuganModel?.id ?? "", catalog: catalog, scale: scale)
+            } else {
+                model = nil
+            }
+            return UpscaleGroup(
+                scale: key.scale, resizeLongEdge: key.resizeLongEdge, model: model,
+                indices: buckets[key] ?? [])
+        }
     }
 
     /// 出力ファイル名を組み立てる。拡張子直前の `.` ではなく最初の `.` で切る（Flutter版踏襲）。
@@ -140,22 +189,25 @@ struct ConvertOrchestrator: Sendable {
         guard !files.isEmpty else { return (0, 0) }
 
         let workers = Self.stageWorkerCounts(parallelCount: config.parallelCount)
-        let batchCount = (files.count + Self.upscaleBatchSize - 1) / Self.upscaleBatchSize
-        let upscaleWorkers = min(workers.upscale, batchCount, files.count)
+        let plans = ConversionPlanner.plans(for: files, config: config)
+        let groups = Self.upscaleGroups(files: files, plans: plans, config: config, paths: paths)
+        let upscaleWorkers = min(workers.upscale, max(1, groups.count), files.count)
         let compressionWorkers = min(workers.compression, files.count)
         // エンコーダの総スレッド数は並列数ぶん。それをワーカー数で割って各プロセスに配る（ADR 0039）。
         let encoderThreads = CompressionService.encoderThreads(
             parallelCount: config.parallelCount, workers: compressionWorkers)
 
         // 処理枠は並列数ぶん。出力が完了したファイルだけが枠を返す（ADR 0038）。
-        let batcher = FileBatcher(
-            count: files.count, batchSize: Self.upscaleBatchSize, capacity: config.parallelCount)
+        // 自動モードでは倍率ごとにバッチを分けるため、グループ単位で配る（ADR 0049）。
+        let scheduler = BatchScheduler(
+            groups: groups, batchSize: Self.upscaleBatchSize, capacity: config.parallelCount)
         let trackedOutcome = Self.trackingOutcome(deliver: onOutcome) {
-            await batcher.release()
+            await scheduler.release()
         }
         let queue = UpscaledQueue()
         let upscaleContext = UpscaleBatchContext(
-            files: files, config: config, paths: paths, queue: queue, onOutcome: trackedOutcome)
+            files: files, plans: plans, config: config, paths: paths, queue: queue,
+            onOutcome: trackedOutcome)
         let compressionContext = CompressionContext(
             config: config, encoderThreads: encoderThreads, outputDirectory: outputDirectory,
             paths: paths, onOutcome: trackedOutcome)
@@ -165,7 +217,7 @@ struct ConvertOrchestrator: Sendable {
             let counts = await withTaskGroup(of: RunCounts.self) { group in
                 for _ in 0..<upscaleWorkers {
                     group.addTask {
-                        await self.upscaleWorker(batcher: batcher, context: upscaleContext)
+                        await self.upscaleWorker(scheduler: scheduler, context: upscaleContext)
                     }
                 }
                 var total = RunCounts()

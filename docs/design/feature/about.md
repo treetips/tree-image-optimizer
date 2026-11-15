@@ -1,6 +1,6 @@
 # About画面
 
-![About](./images/画面構成-About.webp)
+![About](./images/tree-image-optimizer-About.webp)
 
 ## ✳️アプリケーション
 

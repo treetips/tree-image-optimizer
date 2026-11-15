@@ -84,6 +84,22 @@ final class ConvertViewModel {
     var quality: Double = 80 {
         didSet { saveConvert() }
     }
+    /// 固定最適化 / 自動最適化（ADR 0049）。
+    var mode: ConvertMode = .fixed {
+        didSet { saveConvert() }
+    }
+    /// 自動モードのコンテンツ種別。
+    var contentType: ContentType = .anime {
+        didSet { saveConvert() }
+    }
+    /// 自動モードの目標解像度。
+    var targetSize: TargetSize = .fiveK {
+        didSet { saveConvert() }
+    }
+    /// 自動モードの画質プリセット。
+    var qualityPreset: QualityPreset = .high {
+        didSet { saveConvert() }
+    }
     var parallelCount: Double = Double(HardwareInfo.defaultParallelCount()) {
         didSet { saveConvert() }
     }
@@ -188,22 +204,28 @@ final class ConvertViewModel {
 
     private func loadPersisted() {
         guard let file = try? store.load(maxParallel: Int(maxParallel)) else { return }
-        let c = file.batch
-        if let filter = TargetFilter(rawValue: c.targetFilter) { targetFilter = filter }
-        scale = Double(c.scale)
-        selectedModel = c.model
-        if let engineValue = UpscaleEngine(rawValue: c.engine) { engine = engineValue }
-        selectedRealCuganModel = c.realCuganModel
-        if let format = OutputFormat(rawValue: c.format) { self.format = format }
-        if let type = OptimizeType(rawValue: c.optimizeType) { optimizeType = type }
-        quality = Double(c.quality)
-        parallelCount = Double(c.parallelCount)
-        inputFolderPath = c.inputFolderPath ?? ""
-        outputFolderPath = c.outputFolderPath ?? ""
-        showWaiting = c.showWaiting
-        showRunning = c.showRunning
-        showSuccess = c.showSuccess
-        showFailure = c.showFailure
+        let batch = file.batch
+        if let filter = TargetFilter(rawValue: batch.targetFilter) { targetFilter = filter }
+        scale = Double(batch.scale)
+        selectedModel = batch.model
+        if let engineValue = UpscaleEngine(rawValue: batch.engine) { engine = engineValue }
+        selectedRealCuganModel = batch.realCuganModel
+        if let format = OutputFormat(rawValue: batch.format) { self.format = format }
+        if let type = OptimizeType(rawValue: batch.optimizeType) { optimizeType = type }
+        quality = Double(batch.quality)
+        if let mode = ConvertMode(rawValue: batch.mode) { self.mode = mode }
+        if let contentType = ContentType(rawValue: batch.contentType) { self.contentType = contentType }
+        if let targetSize = TargetSize(rawValue: batch.targetSize) { self.targetSize = targetSize }
+        if let qualityPreset = QualityPreset(rawValue: batch.qualityPreset) {
+            self.qualityPreset = qualityPreset
+        }
+        parallelCount = Double(batch.parallelCount)
+        inputFolderPath = batch.inputFolderPath ?? ""
+        outputFolderPath = batch.outputFolderPath ?? ""
+        showWaiting = batch.showWaiting
+        showRunning = batch.showRunning
+        showSuccess = batch.showSuccess
+        showFailure = batch.showFailure
         validateFolders()
     }
 
@@ -216,6 +238,10 @@ final class ConvertViewModel {
         updated.batch.format = format.rawValue
         updated.batch.optimizeType = optimizeType.rawValue
         updated.batch.quality = Int(quality)
+        updated.batch.mode = mode.rawValue
+        updated.batch.contentType = contentType.rawValue
+        updated.batch.targetSize = targetSize.rawValue
+        updated.batch.qualityPreset = qualityPreset.rawValue
         updated.batch.parallelCount = Int(parallelCount)
         updated.batch.inputFolderPath = inputFolderPath.isEmpty ? nil : inputFolderPath
         updated.batch.outputFolderPath = outputFolderPath.isEmpty ? nil : outputFolderPath
@@ -261,7 +287,11 @@ final class ConvertViewModel {
             quality: Int(quality),
             parallelCount: Int(parallelCount),
             engine: engine,
-            realCuganModel: engine == .realCUGAN ? realCuganModel : nil
+            realCuganModel: engine == .realCUGAN ? realCuganModel : nil,
+            mode: mode,
+            contentType: contentType,
+            targetSize: targetSize,
+            qualityPreset: qualityPreset
         )
         jobStore.start(files: files, config: config, outputDirectory: outputURL)
     }
