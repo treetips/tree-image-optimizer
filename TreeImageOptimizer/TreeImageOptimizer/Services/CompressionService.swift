@@ -2,6 +2,24 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
+/// 1ファイル分のエンコーダ設定。
+/// 固定モードは最適化種別から、自動モードはコンテンツ種別と画質プリセットから組み立てる。
+struct CompressionProfile: Sendable, Equatable {
+    /// JPEG XL の距離、AV1 / WebP の `-q` に使う品質。
+    var quality: Int
+    /// jpegoptim / pngoptim に渡す品質。
+    var jpegQuality: Int
+    var pngQuality: Int
+    var jxlEffort: Int
+    var jxlExtra: [String]
+    var avifCodec: String
+    var avifSpeed: Int
+    var avifYuv: Int
+    var avifAdvanced: [String]
+    var webpPreset: String
+    var webpMethod: Int
+}
+
 /// 画像圧縮実行。Flutter版 `CompressionService` に対応する。
 /// 最適化種別ごとのパラメータは `docs/design/feature/convert-flow/compression.md` 通り。
 struct CompressionService: Sendable {
@@ -77,11 +95,51 @@ struct CompressionService: Sendable {
         .anime: 4, .photo: 4, .speed: 0, .quality: 6
     ]
 
+    // MARK: - Profiles
+
+    /// 固定モードのプロファイル。従来の最適化種別の表をそのまま使う。
+    static func profile(optimizeType: OptimizeType, quality: Int) -> CompressionProfile {
+        let codec = avifCodec[optimizeType, default: "aom"]
+        return CompressionProfile(
+            quality: quality,
+            jpegQuality: jpegQuality[optimizeType, default: 80],
+            pngQuality: pngQuality[optimizeType, default: 80],
+            jxlEffort: jxlEffort[optimizeType, default: 7],
+            jxlExtra: jxlExtraOpts[optimizeType] ?? [],
+            avifCodec: codec,
+            avifSpeed: avifSpeed[optimizeType, default: 6],
+            avifYuv: avifYuv[optimizeType, default: 420],
+            avifAdvanced: codec == "svt" ? (avifSvtOpts[optimizeType] ?? []) : (avifAomOpts[optimizeType] ?? []),
+            webpPreset: webpPreset[optimizeType, default: "default"],
+            webpMethod: webpMethod[optimizeType, default: 4]
+        )
+    }
+
+    /// 自動モードのプロファイル。品質値はプリセットを起点にBPPで補正したもの。
+    /// Why not: 従来の `cq-level` / `crf` を併用すると、`-q` より優先されて
+    /// 画質プリセットの変更が効かなくなるため、自動モードでは渡さない。
+    static func profile(contentType: ContentType, preset: QualityPreset, quality: Int) -> CompressionProfile {
+        let codec = contentType == .photo ? "svt" : "aom"
+        return CompressionProfile(
+            quality: quality,
+            jpegQuality: quality,
+            pngQuality: quality,
+            jxlEffort: preset.jxlEffort,
+            jxlExtra: jxlExtraOpts[.anime] ?? [],
+            avifCodec: codec,
+            avifSpeed: preset.avifSpeed,
+            avifYuv: contentType == .photo ? 420 : 444,
+            avifAdvanced: codec == "aom" ? ["-a", "end-usage=q"] : [],
+            webpPreset: contentType == .photo ? "photo" : "drawing",
+            webpMethod: preset.webpMethod
+        )
+    }
+
     /// 品質 (1-100) を JPEG XL の距離に変換する。100はロスレス相当 (0)。
     static func qualityToDistance(_ quality: Int) -> Double {
-        let q = min(max(quality, 1), 100)
-        if q >= 100 { return 0 }
-        return Double(100 - q) * 0.1
+        let clamped = min(max(quality, 1), 100)
+        if clamped >= 100 { return 0 }
+        return Double(100 - clamped) * 0.1
     }
 
     /// エンコーダ1プロセスに割り当てるスレッド数。
@@ -110,43 +168,62 @@ struct CompressionService: Sendable {
         [output, "-o", output, "--quality", "\(quality)"]
     }
 
-    static func cjxlArguments(input: String, output: String, optimizeType: OptimizeType, quality: Int, threads: Int)
-        -> [String]
-    {
+    static func cjxlArguments(
+        input: String, output: String, profile: CompressionProfile, threads: Int
+    ) -> [String] {
         [
             input,
             output,
-            "--distance=\(qualityToDistance(quality))",
-            "-e", "\(jxlEffort[optimizeType, default: 7])",
+            "--distance=\(qualityToDistance(profile.quality))",
+            "-e", "\(profile.jxlEffort)",
             "--num_threads=\(threads)"
-        ] + (jxlExtraOpts[optimizeType] ?? [])
+        ] + profile.jxlExtra
+    }
+
+    static func cjxlArguments(
+        input: String, output: String, optimizeType: OptimizeType, quality: Int, threads: Int
+    ) -> [String] {
+        cjxlArguments(
+            input: input, output: output,
+            profile: profile(optimizeType: optimizeType, quality: quality), threads: threads)
+    }
+
+    static func avifencArguments(
+        input: String, output: String, profile: CompressionProfile, threads: Int
+    ) -> [String] {
+        [
+            "-c", profile.avifCodec,
+            "--speed", "\(profile.avifSpeed)",
+            "-q", "\(profile.quality)",
+            "-y", "\(profile.avifYuv)",
+            "-j", "\(threads)"
+        ] + profile.avifAdvanced + [input, output]
     }
 
     static func avifencArguments(
         input: String, output: String, optimizeType: OptimizeType, quality: Int, threads: Int
     ) -> [String] {
-        let codec = avifCodec[optimizeType, default: "aom"]
-        let advanced =
-            codec == "svt" ? (avifSvtOpts[optimizeType] ?? []) : (avifAomOpts[optimizeType] ?? [])
-        return [
-            "-c", codec,
-            "--speed", "\(avifSpeed[optimizeType, default: 6])",
-            "-q", "\(quality)",
-            "-y", "\(avifYuv[optimizeType, default: 420])",
-            "-j", "\(threads)"
-        ] + advanced + [input, output]
+        avifencArguments(
+            input: input, output: output,
+            profile: profile(optimizeType: optimizeType, quality: quality), threads: threads)
     }
 
-    static func cwebpArguments(input: String, output: String, optimizeType: OptimizeType, quality: Int) -> [String] {
+    static func cwebpArguments(input: String, output: String, profile: CompressionProfile) -> [String] {
         [
-            "-preset", webpPreset[optimizeType, default: "default"],
-            "-q", "\(quality)",
-            "-m", "\(webpMethod[optimizeType, default: 4])",
+            "-preset", profile.webpPreset,
+            "-q", "\(profile.quality)",
+            "-m", "\(profile.webpMethod)",
             "-mt",
             input,
             "-o",
             output
         ]
+    }
+
+    static func cwebpArguments(input: String, output: String, optimizeType: OptimizeType, quality: Int) -> [String] {
+        cwebpArguments(
+            input: input, output: output,
+            profile: profile(optimizeType: optimizeType, quality: quality))
     }
 
     // MARK: - Run
@@ -155,39 +232,35 @@ struct CompressionService: Sendable {
         input: URL,
         output: URL,
         format: OutputFormat,
-        optimizeType: OptimizeType,
-        quality: Int,
+        profile: CompressionProfile,
         threads: Int,
         paths: AppPaths
     ) async throws {
         switch format {
         case .jpeg:
-            try await compressJpeg(input: input, output: output, optimizeType: optimizeType, paths: paths)
+            try await compressJpeg(input: input, output: output, profile: profile, paths: paths)
         case .png:
-            try await compressPng(input: input, output: output, optimizeType: optimizeType, paths: paths)
+            try await compressPng(input: input, output: output, profile: profile, paths: paths)
         case .jpegXL:
             let bin = paths.cjxlBinURL
             try await runBinary(
                 bin,
                 args: Self.cjxlArguments(
-                    input: input.path, output: output.path,
-                    optimizeType: optimizeType, quality: quality, threads: threads
+                    input: input.path, output: output.path, profile: profile, threads: threads
                 ), workingDirectory: bin.deletingLastPathComponent().path)
         case .av1:
             let bin = paths.avifencBinURL
             try await runBinary(
                 bin,
                 args: Self.avifencArguments(
-                    input: input.path, output: output.path,
-                    optimizeType: optimizeType, quality: quality, threads: threads
+                    input: input.path, output: output.path, profile: profile, threads: threads
                 ), workingDirectory: bin.deletingLastPathComponent().path)
         case .webp:
             let bin = paths.cwebpBinURL
             try await runBinary(
                 bin,
                 args: Self.cwebpArguments(
-                    input: input.path, output: output.path,
-                    optimizeType: optimizeType, quality: quality
+                    input: input.path, output: output.path, profile: profile
                 ), workingDirectory: bin.deletingLastPathComponent().path)
         }
     }
@@ -200,8 +273,8 @@ struct CompressionService: Sendable {
         _ = try await runner.run(bin.path, args: args, workingDirectory: workingDirectory)
     }
 
-    private func compressJpeg(input: URL, output: URL, optimizeType: OptimizeType, paths: AppPaths) async throws {
-        let quality = Self.jpegQuality[optimizeType, default: 80]
+    private func compressJpeg(input: URL, output: URL, profile: CompressionProfile, paths: AppPaths) async throws {
+        let quality = profile.jpegQuality
         // jpegoptim はJPEG入力のみ対応のため、一旦JPEGを生成する。
         try Self.convertToJPEG(input: input, output: output, quality: 1.0)
         do {
@@ -217,8 +290,8 @@ struct CompressionService: Sendable {
         }
     }
 
-    private func compressPng(input: URL, output: URL, optimizeType: OptimizeType, paths: AppPaths) async throws {
-        let quality = Self.pngQuality[optimizeType, default: 80]
+    private func compressPng(input: URL, output: URL, profile: CompressionProfile, paths: AppPaths) async throws {
+        let quality = profile.pngQuality
         try Self.convertToPNG(input: input, output: output)
         do {
             let bin = paths.pngoptimBinURL
@@ -258,6 +331,38 @@ struct CompressionService: Sendable {
         CGImageDestinationAddImage(dest, image, nil)
         guard CGImageDestinationFinalize(dest) else {
             throw AppError.processFailed(executable: "CGImageDestination", exitCode: -1, output: output.path)
+        }
+    }
+}
+
+extension QualityPreset {
+    /// JPEG XL の effort。画質を優先するほど高い。
+    var jxlEffort: Int {
+        switch self {
+        case .best: return 9
+        case .high: return 7
+        case .medium: return 5
+        case .low: return 3
+        }
+    }
+
+    /// AVIF の `--speed`。数値が大きいほど高速・低画質。
+    var avifSpeed: Int {
+        switch self {
+        case .best: return 2
+        case .high: return 4
+        case .medium: return 6
+        case .low: return 8
+        }
+    }
+
+    /// WebP の `-m`。数値が大きいほど高画質・低速。
+    var webpMethod: Int {
+        switch self {
+        case .best: return 6
+        case .high: return 4
+        case .medium: return 2
+        case .low: return 0
         }
     }
 }

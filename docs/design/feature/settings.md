@@ -1,6 +1,6 @@
 # 設定画面
 
-![設定](./images/画面構成-設定.webp)
+![設定](./images/tree-image-optimizer-設定.webp)
 
 ## ✳️ 変換終了時のアクション
 

@@ -26,6 +26,18 @@ struct EasyConvertTests {
         #expect(viewModel.canRun == false)
     }
 
+    @Test("かんたん変換の実行設定は常に固定最適化になる")
+    @MainActor
+    func configIsAlwaysFixed() throws {
+        let store = try makeStore()
+        var file = try store.load(maxParallel: 8)
+        file.batch.mode = ConvertMode.auto.rawValue
+        try store.save(file)
+
+        let viewModel = EasyConvertViewModel(store: store)
+        #expect(viewModel.settings.makeConfig().mode == .fixed)
+    }
+
     @Test("ドロップ画像の選別は拡張子で行う")
     func filterDroppedImageFiles() {
         let urls = [

@@ -1,8 +1,34 @@
 import Foundation
 
+/// 同一の倍率・縮小先でまとめたファイル群。バッチはこの単位をまたがない。
+struct UpscaleGroup: Sendable {
+    /// 超解像の倍率。`nil` は超解像をかけない（リサイズのみ、またはそのまま）。
+    var scale: Int?
+    /// 出力の目標長辺。`nil` はリサイズしない。
+    var resizeLongEdge: Int?
+    /// Real-CUGANのモデル。倍率に合うものが選ばれている。
+    var model: RealCUGANModel?
+    var indices: [Int]
+}
+
+/// グループ分けのキー。倍率と縮小先が同じファイルだけを同じバッチにする。
+struct UpscaleGroupKey: Hashable, Sendable {
+    var scale: Int?
+    var resizeLongEdge: Int?
+}
+
+/// ワーカーが受け取る1バッチ分の処理。
+struct UpscaleBatch: Sendable {
+    var scale: Int?
+    var resizeLongEdge: Int?
+    var model: RealCUGANModel?
+    var indices: [Int]
+}
+
 /// アップスケールワーカーが共有する入力。
 struct UpscaleBatchContext: Sendable {
     var files: [URL]
+    var plans: [FilePlan]
     var config: ConvertConfig
     var paths: AppPaths
     var queue: UpscaledQueue
@@ -21,10 +47,10 @@ struct CompressionContext: Sendable {
 extension ConvertOrchestrator {
 
     /// バッチを処理するアップスケールワーカー。1プロセスで複数ファイルを処理する。
-    func upscaleWorker(batcher: FileBatcher, context: UpscaleBatchContext) async -> RunCounts {
+    func upscaleWorker(scheduler: BatchScheduler, context: UpscaleBatchContext) async -> RunCounts {
         var total = RunCounts()
-        while let range = await batcher.next() {
-            let counts = await processBatch(range: range, context: context)
+        while let batch = await scheduler.next() {
+            let counts = await processBatch(batch: batch, context: context)
             total.merge(counts)
         }
         return total
@@ -32,7 +58,10 @@ extension ConvertOrchestrator {
 
     /// 1バッチ分を1プロセスでアップスケールし、成功したファイルだけキューへ流す。
     /// プロセスが失敗しても、出力が揃っているファイルは成功として扱う。
-    private func processBatch(range: Range<Int>, context: UpscaleBatchContext) async -> RunCounts {
+    private func processBatch(batch: UpscaleBatch, context: UpscaleBatchContext) async -> RunCounts {
+        guard let scale = batch.scale else {
+            return await processResizeOnlyBatch(batch: batch, context: context)
+        }
         let fileManager = FileManager.default
         let batchRoot = fileManager.temporaryDirectory.appendingPathComponent(
             UUID().uuidString, isDirectory: true)
@@ -49,7 +78,7 @@ extension ConvertOrchestrator {
                 \(error.localizedDescription)
                 """)
             var counts = RunCounts()
-            for index in range {
+            for index in batch.indices {
                 await context.onOutcome(
                     FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: true))
                 counts.failure += 1
@@ -59,7 +88,7 @@ extension ConvertOrchestrator {
         defer { try? fileManager.removeItem(at: batchRoot) }
 
         let prepared = await prepareBatch(
-            range: range, inputDirectory: inputDirectory, outputDirectory: outputDirectory,
+            batch: batch, inputDirectory: inputDirectory, outputDirectory: outputDirectory,
             context: context)
         guard !prepared.prepared.isEmpty else { return prepared.counts }
 
@@ -67,28 +96,70 @@ extension ConvertOrchestrator {
         do {
             try await runUpscaleBatch(
                 inputDirectory: inputDirectory, outputDirectory: outputDirectory,
-                config: context.config, paths: context.paths)
+                batch: batch, scale: scale, config: context.config, paths: context.paths)
         } catch {
             AppLogger.shared.error(
                 "upscale batch: process failed (continuing per-file verification): \(error.localizedDescription)")
         }
 
-        let finished = await enqueuePrepared(prepared.prepared, context: context)
+        let finished = await enqueuePrepared(prepared.prepared, batch: batch, context: context)
         var result = prepared.counts
         result.merge(finished)
         return result
     }
 
+    /// 超解像をかけないバッチを圧縮キューへ流す。目標が近い場合はここでリサイズする。
+    /// Why not: 1.2倍程度の拡大に超解像モデルを使うと、中間画像だけが巨大になり
+    /// 画質差も小さいため、高品質リサイズで目標ちょうどに合わせる（ADR 0049）。
+    private func processResizeOnlyBatch(
+        batch: UpscaleBatch,
+        context: UpscaleBatchContext
+    ) async -> RunCounts {
+        let fileManager = FileManager.default
+        var counts = RunCounts()
+        for index in batch.indices {
+            let file = context.files[index]
+            await context.onOutcome(
+                FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: false, started: true))
+            do {
+                let tempDirectory = fileManager.temporaryDirectory.appendingPathComponent(
+                    UUID().uuidString, isDirectory: true)
+                try fileManager.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+                let upscaled = tempDirectory.appendingPathComponent("upscaled.png", isDirectory: false)
+                if let longEdge = batch.resizeLongEdge {
+                    try ImageResizer.resize(input: file, output: upscaled, longEdge: longEdge)
+                } else {
+                    try Self.linkOrCopy(file, to: upscaled)
+                }
+                await context.onOutcome(
+                    FileOutcome(index: index, stage: .upscale, succeeded: true, fileDone: false))
+                await context.queue.push(
+                    UpscaledItem(
+                        index: index, upscaled: upscaled, tempDirectory: tempDirectory,
+                        outputName: Self.outputFileName(
+                            for: file.lastPathComponent, format: context.config.format),
+                        quality: context.plans[index].quality))
+            } catch {
+                AppLogger.shared.error(
+                    "upscale skip: failed for \(file.path): \(error.localizedDescription)")
+                await context.onOutcome(
+                    FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: true))
+                counts.failure += 1
+            }
+        }
+        return counts
+    }
+
     /// バッチの入力ディレクトリを作り、元ファイルを連番で持ち込む。
     private func prepareBatch(
-        range: Range<Int>,
+        batch: UpscaleBatch,
         inputDirectory: URL,
         outputDirectory: URL,
         context: UpscaleBatchContext
     ) async -> (prepared: [PreparedBatchItem], counts: RunCounts) {
         var prepared: [PreparedBatchItem] = []
         var counts = RunCounts()
-        for index in range {
+        for index in batch.indices {
             let file = context.files[index]
             let name = String(format: "%04d.png", index)
             let input = inputDirectory.appendingPathComponent(name, isDirectory: false)
@@ -115,14 +186,12 @@ extension ConvertOrchestrator {
     /// 出力をファイル単位で検証し、成功したものだけを圧縮キューへ流す。
     private func enqueuePrepared(
         _ prepared: [PreparedBatchItem],
+        batch: UpscaleBatch,
         context: UpscaleBatchContext
     ) async -> RunCounts {
         let fileManager = FileManager.default
         // Real-CUGANはモデル側の倍率で出力するため、検証もモデルの倍率に合わせる。
-        let expectedScale =
-            context.config.engine == .realCUGAN
-            ? (context.config.realCuganModel?.scale ?? context.config.scale)
-            : context.config.scale
+        let expectedScale = batch.model?.scale ?? batch.scale ?? context.config.scale
         var counts = RunCounts()
 
         for item in prepared {
@@ -136,20 +205,37 @@ extension ConvertOrchestrator {
                 counts.failure += 1
                 continue
             }
+            var tempDirectory: URL?
             do {
-                let tempDirectory = fileManager.temporaryDirectory.appendingPathComponent(
+                let directory = fileManager.temporaryDirectory.appendingPathComponent(
                     UUID().uuidString, isDirectory: true)
-                try fileManager.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
-                let upscaled = tempDirectory.appendingPathComponent("upscaled.png", isDirectory: false)
-                try fileManager.moveItem(at: item.output, to: upscaled)
+                tempDirectory = directory
+                try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+                let upscaled = directory.appendingPathComponent("upscaled.png", isDirectory: false)
+                // 目標を超えた出力は、ファイルサイズを抑えるため目標長辺へ縮小する。
+                let longEdge = batch.resizeLongEdge
+                let needsResize =
+                    longEdge.map { edge in
+                        guard let dimensions = UpscaleService.imageDimensions(of: item.output)
+                        else { return false }
+                        return max(dimensions.width, dimensions.height) > edge
+                    } ?? false
+                if needsResize, let longEdge {
+                    try ImageResizer.resize(input: item.output, output: upscaled, longEdge: longEdge)
+                    try? fileManager.removeItem(at: item.output)
+                } else {
+                    try fileManager.moveItem(at: item.output, to: upscaled)
+                }
                 await context.onOutcome(
                     FileOutcome(index: item.index, stage: .upscale, succeeded: true, fileDone: false))
                 await context.queue.push(
                     UpscaledItem(
-                        index: item.index, upscaled: upscaled, tempDirectory: tempDirectory,
+                        index: item.index, upscaled: upscaled, tempDirectory: directory,
                         outputName: Self.outputFileName(
-                            for: item.file.lastPathComponent, format: context.config.format)))
+                            for: item.file.lastPathComponent, format: context.config.format),
+                        quality: context.plans[item.index].quality))
             } catch {
+                if let tempDirectory { try? fileManager.removeItem(at: tempDirectory) }
                 AppLogger.shared.error(
                     "upscale batch: failed to enqueue \(item.file.path): \(error.localizedDescription)")
                 await context.onOutcome(
@@ -173,8 +259,10 @@ extension ConvertOrchestrator {
                     item.outputName, isDirectory: false)
                 try await compression.run(
                     input: item.upscaled, output: compressed,
-                    format: context.config.format, optimizeType: context.config.optimizeType,
-                    quality: context.config.quality, threads: context.encoderThreads, paths: context.paths)
+                    format: context.config.format,
+                    profile: Self.compressionProfile(
+                        config: context.config, quality: item.quality),
+                    threads: context.encoderThreads, paths: context.paths)
                 await context.onOutcome(
                     FileOutcome(index: item.index, stage: .compress, succeeded: true, fileDone: false))
                 stage = .output
@@ -206,18 +294,32 @@ extension ConvertOrchestrator {
     private func runUpscaleBatch(
         inputDirectory: URL,
         outputDirectory: URL,
+        batch: UpscaleBatch,
+        scale: Int,
         config: ConvertConfig,
         paths: AppPaths
     ) async throws {
-        if config.engine == .realCUGAN, let realCuganModel = config.realCuganModel {
+        // 自動モードでは倍率ごとに合うReal-CUGANモデルがバッチへ入っている。
+        if let model = batch.model {
             try await upscale.runRealCUGANDirectory(
                 inputDirectory: inputDirectory, outputDirectory: outputDirectory,
-                model: realCuganModel, paths: paths)
+                model: model, paths: paths)
             return
         }
         try await upscale.runDirectory(
             inputDirectory: inputDirectory, outputDirectory: outputDirectory,
-            scale: config.scale, model: config.model, paths: paths)
+            scale: scale, model: config.model, paths: paths)
+    }
+
+    /// モードに応じた圧縮プロファイル。自動モードは品質をファイルごとに補正済み。
+    static func compressionProfile(config: ConvertConfig, quality: Int) -> CompressionProfile {
+        switch config.mode {
+        case .fixed:
+            return CompressionService.profile(optimizeType: config.optimizeType, quality: quality)
+        case .auto:
+            return CompressionService.profile(
+                contentType: config.contentType, preset: config.qualityPreset, quality: quality)
+        }
     }
 
     /// 一時入力ディレクトリへ元ファイルを持ち込む。同一ボリュームならhard linkで
@@ -230,96 +332,6 @@ extension ConvertOrchestrator {
             try FileManager.default.copyItem(at: source, to: destination)
         }
     }
-}
-
-/// アップスケール済みファイルを圧縮ワーカーへ渡すキュー。
-/// 複数ワーカーが待機できるよう、要素が無いときはcontinuationで待たせる。
-actor UpscaledQueue {
-    private var items: [UpscaledItem] = []
-    private var waiters: [CheckedContinuation<UpscaledItem?, Never>] = []
-    private var finished = false
-
-    func push(_ item: UpscaledItem) {
-        if let waiter = waiters.first {
-            waiters.removeFirst()
-            waiter.resume(returning: item)
-            return
-        }
-        items.append(item)
-    }
-
-    func finish() {
-        finished = true
-        let pending = waiters
-        waiters.removeAll()
-        for waiter in pending {
-            waiter.resume(returning: nil)
-        }
-    }
-
-    func next() async -> UpscaledItem? {
-        if !items.isEmpty {
-            return items.removeFirst()
-        }
-        if finished {
-            return nil
-        }
-        return await withCheckedContinuation { continuation in
-            waiters.append(continuation)
-        }
-    }
-}
-
-/// 次に処理するファイル範囲を配る。処理枠（並列数）を超えないようにする。
-///
-/// スロットは `release` で返す。アップスケールの完了では返さないため、
-/// 「1ファイルの出力が終わるまで次のファイルを開始しない」が守られる（ADR 0038）。
-actor FileBatcher {
-    private let count: Int
-    private let batchSize: Int
-    private let capacity: Int
-    private var nextIndex = 0
-    private var inFlight = 0
-    private var waiters: [CheckedContinuation<Void, Never>] = []
-
-    init(count: Int, batchSize: Int, capacity: Int) {
-        self.count = count
-        self.batchSize = max(1, batchSize)
-        self.capacity = max(1, capacity)
-    }
-
-    /// 空き枠の数だけ次のバッチ範囲を返す。空きが1件も無いと空きが出来るまで待つ。
-    /// ファイルが尽きたら nil を返す。
-    /// Why not: 必ず `batchSize` 件そろえると空き1件で次が始まらないため、
-    /// 「1件完了ごとに次を開始する」を満たせない。
-    func next() async -> Range<Int>? {
-        guard nextIndex < count else { return nil }
-        while inFlight >= capacity {
-            await withCheckedContinuation { waiters.append($0) }
-        }
-        let take = min(batchSize, capacity - inFlight, count - nextIndex)
-        let range = nextIndex..<(nextIndex + take)
-        nextIndex += take
-        inFlight += take
-        return range
-    }
-
-    /// 出力が完了したファイルの分だけ処理枠を返す。
-    func release(_ files: Int = 1) {
-        inFlight = max(0, inFlight - files)
-        let pending = waiters
-        waiters.removeAll()
-        for waiter in pending {
-            waiter.resume()
-        }
-    }
-}
-
-struct UpscaledItem: Sendable {
-    var index: Int
-    var upscaled: URL
-    var tempDirectory: URL
-    var outputName: String
 }
 
 private struct PreparedBatchItem: Sendable {

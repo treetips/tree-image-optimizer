@@ -101,13 +101,22 @@ extension SettingsStore {
                 json["parallelCount"], min: 1, max: maxParallel, fallback: defaults.parallelCount, mark: mark),
             inputFolderPath: optionalPath(json["inputFolderPath"]),
             outputFolderPath: optionalPath(json["outputFolderPath"]),
+            mode: validatedMode(json["mode"], fallback: defaults.mode, mark: mark),
+            contentType: validatedContentType(
+                json["contentType"], fallback: defaults.contentType, mark: mark),
+            targetSize: validatedTargetSize(
+                json["targetSize"], fallback: defaults.targetSize, mark: mark),
+            qualityPreset: validatedQualityPreset(
+                json["qualityPreset"], fallback: defaults.qualityPreset, mark: mark),
             engine: validatedEngine(json["engine"], fallback: defaults.engine, mark: mark),
             realCuganModel: realCuganModelValue(
                 json["realCuganModel"], fallback: defaults.realCuganModel, mark: mark),
             showWaiting: boolValue(json["showWaiting"], fallback: defaults.showWaiting, mark: mark),
             showRunning: boolValue(json["showRunning"], fallback: defaults.showRunning, mark: mark),
             showSuccess: boolValue(json["showSuccess"], fallback: defaults.showSuccess, mark: mark),
-            showFailure: boolValue(json["showFailure"], fallback: defaults.showFailure, mark: mark)
+            showFailure: boolValue(json["showFailure"], fallback: defaults.showFailure, mark: mark),
+            modeNoteExpanded: boolValue(
+                json["modeNoteExpanded"], fallback: defaults.modeNoteExpanded, mark: mark)
         )
     }
 
@@ -139,6 +148,30 @@ extension SettingsStore {
     /// エンジン名の検証。既知の `UpscaleEngine` のみ許容し、それ以外は既定へ戻す。
     private func validatedEngine(_ value: Any?, fallback: String, mark: () -> Void) -> String {
         if let raw = value as? String, UpscaleEngine(rawValue: raw) != nil { return raw }
+        mark()
+        return fallback
+    }
+
+    private func validatedMode(_ value: Any?, fallback: String, mark: () -> Void) -> String {
+        if let raw = value as? String, ConvertMode(rawValue: raw) != nil { return raw }
+        mark()
+        return fallback
+    }
+
+    private func validatedContentType(_ value: Any?, fallback: String, mark: () -> Void) -> String {
+        if let raw = value as? String, ContentType(rawValue: raw) != nil { return raw }
+        mark()
+        return fallback
+    }
+
+    private func validatedTargetSize(_ value: Any?, fallback: String, mark: () -> Void) -> String {
+        if let raw = value as? String, TargetSize(rawValue: raw) != nil { return raw }
+        mark()
+        return fallback
+    }
+
+    private func validatedQualityPreset(_ value: Any?, fallback: String, mark: () -> Void) -> String {
+        if let raw = value as? String, QualityPreset(rawValue: raw) != nil { return raw }
         mark()
         return fallback
     }

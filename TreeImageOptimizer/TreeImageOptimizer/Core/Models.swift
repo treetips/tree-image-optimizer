@@ -57,6 +57,109 @@ enum OptimizeType: String, Hashable, Identifiable, CaseIterable {
     var id: String { rawValue }
 }
 
+/// 変換モード。`fixed` は従来どおり全ファイル共通の設定で変換し、
+/// `auto` は画像ごとに目標解像度と圧縮品質を決める（ADR 0049）。
+enum ConvertMode: String, Hashable, Identifiable, CaseIterable, Sendable {
+    case fixed
+    case auto
+
+    var id: String { rawValue }
+
+    var l10nKey: String {
+        switch self {
+        case .fixed: return "c.mode.fixed"
+        case .auto: return "c.mode.auto"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .fixed: return "slider.horizontal.3"
+        case .auto: return "wand.and.stars"
+        }
+    }
+
+    /// モードの概要・得意・不得意の文言キー。
+    var summaryL10nKey: String { "c.mode.\(rawValue).summary" }
+    var strengthL10nKey: String { "c.mode.\(rawValue).strength" }
+    var weaknessL10nKey: String { "c.mode.\(rawValue).weakness" }
+}
+
+/// 自動最適化のコンテンツ種別。色差サブサンプリングと
+/// エンコーダのプリセットを選ぶ。
+enum ContentType: String, Hashable, Identifiable, CaseIterable, Sendable {
+    case anime
+    case photo
+
+    var id: String { rawValue }
+
+    /// 既存の最適化種別のラベルを流用する。
+    var l10nKey: String {
+        switch self {
+        case .anime: return "c.optimize.anime"
+        case .photo: return "c.optimize.photo"
+        }
+    }
+}
+
+/// 自動最適化の目標解像度。長辺のpxで比較する。
+/// 一覧の解像度表記は16:9の参考値で、実際の出力は元画像のアスペクト比を保つ。
+enum TargetSize: String, Hashable, Identifiable, CaseIterable, Sendable {
+    case twoK = "k2"
+    case fourK = "k4"
+    case fiveK = "k5"
+    case eightK = "k8"
+
+    var id: String { rawValue }
+
+    var longEdge: Int {
+        switch self {
+        case .twoK: return 1920
+        case .fourK: return 3840
+        case .fiveK: return 5120
+        case .eightK: return 7680
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .twoK: return "2K (1920×1080)"
+        case .fourK: return "4K (3840×2160)"
+        case .fiveK: return "5K (5120×2880)"
+        case .eightK: return "8K (7680×4320)"
+        }
+    }
+}
+
+/// 画質と処理速度のプリセット。品質値はBPPに応じて補正する。
+enum QualityPreset: String, Hashable, Identifiable, CaseIterable, Sendable {
+    case best
+    case high
+    case medium
+    case low
+
+    var id: String { rawValue }
+
+    var l10nKey: String {
+        switch self {
+        case .best: return "c.preset.best"
+        case .high: return "c.preset.high"
+        case .medium: return "c.preset.medium"
+        case .low: return "c.preset.low"
+        }
+    }
+
+    /// 品質の基準値。ファイルサイズに応じた補正の起点になる。
+    var quality: Int {
+        switch self {
+        case .best: return 90
+        case .high: return 80
+        case .medium: return 60
+        case .low: return 40
+        }
+    }
+}
+
 /// アップスケーラーのエンジン。`upscayl-bin` と `realcugan-ncnn-vulkan` の二択。
 enum UpscaleEngine: String, Hashable, Identifiable, CaseIterable, Sendable {
     case upscayl

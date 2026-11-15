@@ -2394,6 +2394,414 @@
     },
     "WebP" : {
 
+    },
+    "c.auto.realcuganModel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Real-CUGAN model matching the scale is selected automatically."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "倍率に合うReal-CUGANモデルを自動で選びます。"
+          }
+        }
+      }
+    },
+    "c.help.contentType" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anime preserves chroma; photos use SVT-AV1 for faster encoding."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アニメは色差を保持し、実写はSVT-AV1で高速に圧縮します。"
+          }
+        }
+      }
+    },
+    "c.help.mode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixed applies the same settings to every file. Auto adjusts target resolution and quality per image."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定は全ファイルに同じ設定を使います。自動は画像ごとに目標解像度と圧縮品質を合わせます。"
+          }
+        }
+      }
+    },
+    "c.help.qualityPreset" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balances quality and speed. Larger files are compressed more aggressively."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画質と速度のバランスです。ファイルサイズが大きい画像はより強く圧縮します。"
+          }
+        }
+      }
+    },
+    "c.help.targetSize" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matches the long edge to the target. Images already at or above it are not upscaled."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長辺を目標に合わせます。既に目標以上の画像は拡大しません。"
+          }
+        }
+      }
+    },
+    "c.label.contentType" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Content type"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテンツ種別"
+          }
+        }
+      }
+    },
+    "c.label.qualityPreset" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quality preset"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画質プリセット"
+          }
+        }
+      }
+    },
+    "c.label.targetSize" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target size"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標サイズ"
+          }
+        }
+      }
+    },
+    "c.mode.auto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto optimize"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動最適化"
+          }
+        }
+      }
+    },
+    "c.mode.fixed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定最適化"
+          }
+        }
+      }
+    },
+    "c.preset.best" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best quality"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画質最優先"
+          }
+        }
+      }
+    },
+    "c.preset.high" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quality"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画質優先"
+          }
+        }
+      }
+    },
+    "c.preset.low" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fastest"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度最優先"
+          }
+        }
+      }
+    },
+    "c.preset.medium" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度優先"
+          }
+        }
+      }
+    },
+    "c.group.settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optimization settings"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最適化設定"
+          }
+        }
+      }
+    },
+    "c.mode.fixed.summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses the same scale and compression quality for every file. Processing is consistent, so the duration is easy to estimate."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全ファイルに同じ拡大率と圧縮品質を使います。処理内容が一定なので、所要時間を読みやすいモードです。"
+          }
+        }
+      }
+    },
+    "c.mode.fixed.strength" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing many images with the same settings at once."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ設定で大量の画像をまとめて処理する。"
+          }
+        }
+      }
+    },
+    "c.mode.fixed.weakness" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot adjust to a target size or vary compression by file size. Large images may be upscaled too much, while small images may remain under-resolved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標サイズへの調整や、ファイルサイズに応じた圧縮の強弱はできません。大きい画像は過剰に拡大され、小さい画像は拡大不足になりやすいです。"
+          }
+        }
+      }
+    },
+    "c.mode.auto.summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjusts the scale and compression quality per image based on the target size and file size."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像ごとに目標サイズとファイルサイズを確認し、拡大率と圧縮品質を調整します。"
+          }
+        }
+      }
+    },
+    "c.mode.auto.strength" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keeps resolutions consistent for wallpapers. Large images skip upscaling, small images are raised to the target, and larger files are compressed more aggressively."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "壁紙用に解像度を揃えられます。大きい画像は拡大を省略し、小さい画像は目標まで引き上げ、ファイルが大きい画像ほど強く圧縮します。"
+          }
+        }
+      }
+    },
+    "c.mode.auto.weakness" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing varies per image, so the duration is harder to estimate. Upscaling many images can be slower than fixed mode."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像ごとに処理が変わるため所要時間が読みにくく、拡大する画像が多いと固定より遅くなることがあります。"
+          }
+        }
+      }
+    },
+    "c.mode.good" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good for"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "得意"
+          }
+        }
+      }
+    },
+    "c.mode.bad" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not ideal for"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不得意"
+          }
+        }
+      }
+    },
+    "c.mode.features" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode features"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モードの特徴"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

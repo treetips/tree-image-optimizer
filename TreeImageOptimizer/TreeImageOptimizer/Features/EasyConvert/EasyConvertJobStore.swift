@@ -1,4 +1,3 @@
-import AVFoundation
 import Foundation
 
 /// かんたん変換の実行状態を保持する共有ジョブ層。
@@ -23,8 +22,7 @@ final class EasyConvertJobStore {
     private let paths: AppPaths
     private let store: SettingsStore
     private let orchestrator: ConvertOrchestrator
-    private var soundService: SoundService
-    private var audioPlayer: AVAudioPlayer?
+    private let completionService: ConversionCompletionService
     private let maxParallel: Int
 
     init(
@@ -33,11 +31,15 @@ final class EasyConvertJobStore {
         orchestrator: ConvertOrchestrator = ConvertOrchestrator(),
         soundService: SoundService? = nil
     ) {
+        let resolvedStore = store ?? SettingsStore(paths: paths)
+        let resolvedMaxParallel = max(1, HardwareInfo.performanceCoreCount())
         self.paths = paths
-        self.store = store ?? SettingsStore(paths: paths)
+        self.store = resolvedStore
         self.orchestrator = orchestrator
-        self.soundService = soundService ?? SoundService(paths: paths)
-        self.maxParallel = max(1, HardwareInfo.performanceCoreCount())
+        self.maxParallel = resolvedMaxParallel
+        self.completionService = ConversionCompletionService(
+            paths: paths, store: resolvedStore, soundService: soundService,
+            maxParallel: resolvedMaxParallel)
     }
 
     /// 変換を開始する。実行中は受け付けない。
@@ -73,13 +75,15 @@ final class EasyConvertJobStore {
         progressPercent = 100
         let allSuccess = failure == 0 && success > 0
         lastRunSucceeded = allSuccess
+        let language = currentLanguage()
         if success > 0 && failure == 0 {
-            resultMessage = String(format: L10n.string("c.done.success", language: currentLanguage()), success)
+            resultMessage = String(format: L10n.string("c.done.success", language: language), success)
         } else {
-            resultMessage = String(format: L10n.string("c.done.mixed", language: currentLanguage()), success, failure)
+            resultMessage = String(format: L10n.string("c.done.mixed", language: language), success, failure)
         }
         easyLogger.info("run finish: success=\(success, privacy: .public) failure=\(failure, privacy: .public)")
-        await playCompletionSound(allSuccess: allSuccess)
+        await completionService.complete(
+            allSuccess: allSuccess, language: language, notify: false)
         isRunning = false
     }
 
@@ -93,25 +97,5 @@ final class EasyConvertJobStore {
 
     private func currentLanguage() -> String {
         (try? store.load(maxParallel: maxParallel).settings.language) ?? ""
-    }
-
-    private func playCompletionSound(allSuccess: Bool) async {
-        let settings: ScreenSettings
-        do {
-            settings = try store.load(maxParallel: maxParallel).settings
-        } catch {
-            return
-        }
-        guard settings.playSound else { return }
-        if let option = soundService.resolvePlaybackOption(
-            success: allSuccess,
-            name: allSuccess ? settings.successSound : settings.errorSound,
-            random: allSuccess ? settings.successSoundRandom : settings.errorSoundRandom
-        ),
-            let player = soundService.makePlayer(for: option)
-        {
-            audioPlayer = player
-            player.play()
-        }
     }
 }
