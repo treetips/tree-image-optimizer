@@ -2650,19 +2650,138 @@
         }
       }
     },
-    "c.mode.scope" : {
+    "c.mode.fixed.summary" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This mode applies to the upscale and compression settings below."
+            "value" : "Uses the same scale and compression quality for every file. Processing is consistent, so the duration is easy to estimate."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このモードは、下の拡大と圧縮の設定に適用されます。"
+            "value" : "全ファイルに同じ拡大率と圧縮品質を使います。処理内容が一定なので、所要時間を読みやすいモードです。"
+          }
+        }
+      }
+    },
+    "c.mode.fixed.strength" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing many images with the same settings at once."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ設定で大量の画像をまとめて処理する。"
+          }
+        }
+      }
+    },
+    "c.mode.fixed.weakness" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot adjust to a target size or vary compression by file size. Large images may be upscaled too much, while small images may remain under-resolved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標サイズへの調整や、ファイルサイズに応じた圧縮の強弱はできません。大きい画像は過剰に拡大され、小さい画像は拡大不足になりやすいです。"
+          }
+        }
+      }
+    },
+    "c.mode.auto.summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjusts the scale and compression quality per image based on the target size and file size (bytes per pixel)."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像ごとに目標サイズとファイルサイズ（画素数に対するBPP）を見て、拡大率と圧縮品質を調整します。"
+          }
+        }
+      }
+    },
+    "c.mode.auto.strength" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keeps resolutions consistent for wallpapers. Large images skip upscaling, small images are raised to the target, and larger files are compressed more aggressively."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "壁紙用に解像度を揃えられます。大きい画像は拡大を省略し、小さい画像は目標まで引き上げ、ファイルが大きい画像ほど強く圧縮します。"
+          }
+        }
+      }
+    },
+    "c.mode.auto.weakness" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing varies per image, so the duration is harder to estimate. Upscaling many images can be slower than fixed mode."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像ごとに処理が変わるため所要時間が読みにくく、拡大する画像が多いと固定より遅くなることがあります。"
+          }
+        }
+      }
+    },
+    "c.mode.good" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good for"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "得意"
+          }
+        }
+      }
+    },
+    "c.mode.bad" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not ideal for"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不得意"
           }
         }
       }

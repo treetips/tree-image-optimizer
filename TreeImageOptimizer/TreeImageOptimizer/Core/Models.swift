@@ -78,6 +78,11 @@ enum ConvertMode: String, Hashable, Identifiable, CaseIterable, Sendable {
         case .auto: return "wand.and.stars"
         }
     }
+
+    /// モードの概要・得意・不得意の文言キー。
+    var summaryL10nKey: String { "c.mode.\(rawValue).summary" }
+    var strengthL10nKey: String { "c.mode.\(rawValue).strength" }
+    var weaknessL10nKey: String { "c.mode.\(rawValue).weakness" }
 }
 
 /// 自動最適化のコンテンツ種別。色差サブサンプリングと

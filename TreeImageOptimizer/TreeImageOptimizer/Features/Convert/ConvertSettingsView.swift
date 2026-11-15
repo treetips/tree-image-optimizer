@@ -18,10 +18,7 @@ struct ConvertSettingsView: View {
                     HelpPopover(text: t("c.help.mode"))
                 }
 
-                Text(t("c.mode.scope"))
-                    .appFont(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 2)
+                ModeDescriptionCallout(mode: viewModel.mode, localize: t)
 
                 upscaleSection
                 compressSection
@@ -235,6 +232,72 @@ private struct ConvertModeTabBar: View {
                 .foregroundStyle(selected ? Color.accentColor : Color.primary)
                 .accessibilityAddTraits(selected ? [.isSelected] : [])
             }
+        }
+    }
+}
+
+/// 選択中モードの概要と得意・不得意を、GitHub Alerts風のコールアウトで示す。
+/// SwiftUIに同等の標準部品はないため、アイコン・テーマ色・左ボーダーで表現する。
+private struct ModeDescriptionCallout: View {
+    let mode: ConvertMode
+    let localize: (String) -> String
+
+    private var tint: Color {
+        switch mode {
+        case .fixed: return .blue
+        case .auto: return .green
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: mode.symbolName)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(localize(mode.l10nKey))
+                    .appFont(.headline)
+                    .foregroundStyle(tint)
+                Text(localize(mode.summaryL10nKey))
+                    .appFont(.callout)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                detailRow(
+                    icon: "checkmark.circle.fill", color: .green,
+                    text: "\(localize("c.mode.good")): \(localize(mode.strengthL10nKey))")
+                detailRow(
+                    icon: "exclamationmark.triangle.fill", color: .orange,
+                    text: "\(localize("c.mode.bad")): \(localize(mode.weaknessL10nKey))")
+            }
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(tint.opacity(0.28), lineWidth: 1)
+        }
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(tint)
+                .frame(width: 3)
+                .padding(.vertical, 10)
+                .padding(.leading, 3)
+        }
+    }
+
+    private func detailRow(icon: String, color: Color, text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(color)
+                .frame(width: 14)
+            Text(text)
+                .appFont(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
