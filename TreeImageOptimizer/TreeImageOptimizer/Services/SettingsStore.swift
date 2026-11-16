@@ -31,6 +31,8 @@ struct BatchSettings: Codable, Equatable {
     var showSuccess: Bool = true
     /// 実行結果の表の絞り込み（失敗）。
     var showFailure: Bool = true
+    /// 実行結果の表の絞り込み（キャンセル）。ADR 0054 で追加。
+    var showCancelled: Bool = true
     /// モードの特徴コールアウトの展開状態。固定・自動で共用する。
     var modeNoteExpanded: Bool = true
 
@@ -55,6 +57,7 @@ struct BatchSettings: Codable, Equatable {
             showRunning: true,
             showSuccess: true,
             showFailure: true,
+            showCancelled: true,
             modeNoteExpanded: true
         )
     }

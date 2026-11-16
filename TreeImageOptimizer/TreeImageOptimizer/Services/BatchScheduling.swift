@@ -1,13 +1,69 @@
 import Foundation
 
+/// 一括変換の一時停止・キャンセルを全ワーカーへ伝える共有状態。
+///
+/// Why not 各ワーカーが個別に停止フラグを持つか: 一時停止もキャンセルも画面の1操作で
+/// 全ワーカーへ同じタイミングで伝わる必要があり、状態を1か所に置かないと
+/// 「一部のワーカーだけ止まっている」中間状態が生まれる（ADR 0054）。
+actor RunControl {
+    private var paused = false
+    private var cancelled = false
+    private var pauseWaiters: [CheckedContinuation<Void, Never>] = []
+
+    var isPaused: Bool { paused }
+    var isCancelled: Bool { cancelled }
+
+    func pause() {
+        guard !cancelled else { return }
+        paused = true
+    }
+
+    func resume() {
+        guard !cancelled else { return }
+        paused = false
+        releasePauseWaiters()
+    }
+
+    func cancel() {
+        guard !cancelled else { return }
+        cancelled = true
+        paused = false
+        releasePauseWaiters()
+    }
+
+    /// 停止中は再開かキャンセルまで待つ。停止していなければ即座に返る。
+    func waitWhilePaused() async {
+        // Why not 停止フラグをawaitの外で読むか: actorはawaitで再入するため、
+        // 待機から戻ったら必ずループ先頭で状態を読み直す。
+        while paused, !cancelled {
+            await withCheckedContinuation { pauseWaiters.append($0) }
+        }
+    }
+
+    private func releasePauseWaiters() {
+        let pending = pauseWaiters
+        pauseWaiters.removeAll()
+        for waiter in pending {
+            waiter.resume()
+        }
+    }
+}
+
 /// アップスケール済みファイルを圧縮ワーカーへ渡すキュー。
 /// 複数ワーカーが待機できるよう、要素が無いときはcontinuationで待たせる。
 actor UpscaledQueue {
     private var items: [UpscaledItem] = []
     private var waiters: [CheckedContinuation<UpscaledItem?, Never>] = []
     private var finished = false
+    private let control: RunControl
 
-    func push(_ item: UpscaledItem) {
+    init(control: RunControl = RunControl()) {
+        self.control = control
+    }
+
+    /// キューへ積む。停止中でも待機中のワーカーは起こす。起きたワーカーは
+    /// 停止中なら要素を戻して待ち直すため、停止中に圧縮が始まることはない。
+    func push(_ item: UpscaledItem) async {
         if let waiter = waiters.first {
             waiters.removeFirst()
             waiter.resume(returning: item)
@@ -26,15 +82,35 @@ actor UpscaledQueue {
     }
 
     func next() async -> UpscaledItem? {
-        if !items.isEmpty {
-            return items.removeFirst()
+        while true {
+            await control.waitWhilePaused()
+            if await control.isCancelled { return nil }
+            if !items.isEmpty {
+                return items.removeFirst()
+            }
+            if finished {
+                return nil
+            }
+            let received = await withCheckedContinuation { continuation in
+                waiters.append(continuation)
+            }
+            guard let received else { return nil }
+            // 停止中に届いた分は先頭へ戻し、再開後に取り出す。
+            // Why not そのまま処理するか: 一時停止中に次のファイルが進むと、
+            // 止めたはずの処理が動き続けて見えるため（ADR 0054）。
+            if await control.isPaused {
+                items.insert(received, at: 0)
+                continue
+            }
+            return received
         }
-        if finished {
-            return nil
-        }
-        return await withCheckedContinuation { continuation in
-            waiters.append(continuation)
-        }
+    }
+
+    /// キャンセル時にキューへ残った中間ファイルを回収する。後始末は呼び出し側が行う。
+    func drainRemaining() -> [UpscaledItem] {
+        let remaining = items
+        items.removeAll()
+        return remaining
     }
 }
 
@@ -102,6 +178,7 @@ struct UpscaledItem: Sendable {
 /// バッチが異なる倍率をまたいでしまい、1プロセス1倍率の制約を守れない（ADR 0049）。
 /// 一覧表の最も上にある未処理ファイルから順にバッチを開始し、先読み `lookahead` 件以内に
 /// ある同じグループのファイルをまとめる。飛び越しは最大 `lookahead` 行に収まる（ADR 0053）。
+/// 一時停止中は新しいバッチを配らず、キャンセル後は `nil` を返してワーカーを終わらせる（ADR 0054）。
 actor BatchScheduler {
     private struct Entry: Sendable {
         var fileIndex: Int
@@ -112,6 +189,7 @@ actor BatchScheduler {
     private let batchSize: Int
     private let capacity: Int
     private let lookahead: Int
+    private let control: RunControl
     /// 一覧表の順（ファイルindex昇順）に並べた全ファイル。
     private let entries: [Entry]
     /// バッチへ配ったか。バッチ内のファイルは同時に処理を開始する。
@@ -119,13 +197,22 @@ actor BatchScheduler {
     /// まだ配っていない先頭位置。先頭から順に進める。
     private var cursor = 0
     private var inFlight = 0
+    /// キャンセルで受付を閉じたか。閉じたあとは空き枠を待たずに終了する。
+    private var closed = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
-    init(groups: [UpscaleGroup], batchSize: Int, capacity: Int, lookahead: Int = 8) {
+    init(
+        groups: [UpscaleGroup],
+        batchSize: Int,
+        capacity: Int,
+        lookahead: Int = 8,
+        control: RunControl = RunControl()
+    ) {
         self.groups = groups
         self.batchSize = max(1, batchSize)
         self.capacity = max(1, capacity)
         self.lookahead = max(1, lookahead)
+        self.control = control
         var entries: [Entry] = []
         entries.reserveCapacity(groups.reduce(0) { $0 + $1.indices.count })
         for (groupIndex, group) in groups.enumerated() {
@@ -141,6 +228,14 @@ actor BatchScheduler {
     /// 一覧表で最も上にある未処理ファイルから、先読みの範囲で同じグループをまとめる。
     func next() async -> UpscaleBatch? {
         while true {
+            // 配るファイルが残っていなければ、停止中でもワーカーを終わらせる。
+            // Why not 停止解除を待つか: 最後のバッチだけ残った状態で一時停止すると、
+            // 再開するまでジョブが終わらなくなってしまう。
+            if firstUntakenPosition() == nil { return nil }
+            // 停止中は新しいバッチを配らない。再開・キャンセルまでここで待つ。
+            await control.waitWhilePaused()
+            if closed { return nil }
+            if await control.isCancelled { return nil }
             // actorはawaitで再入するため、待機から再開したら必ず先頭から選び直す。
             // 待機前の位置をそのまま使うと、他ワーカーが取得済みのファイルを
             // 二重に配ったり、状態がずれたりする。
@@ -149,6 +244,16 @@ actor BatchScheduler {
                 return makeBatch(startPosition: start)
             }
             await withCheckedContinuation { waiters.append($0) }
+        }
+    }
+
+    /// キャンセル時に待機中のワーカーを起こして受付を閉じる。
+    func close() {
+        closed = true
+        let pending = waiters
+        waiters.removeAll()
+        for waiter in pending {
+            waiter.resume()
         }
     }
 

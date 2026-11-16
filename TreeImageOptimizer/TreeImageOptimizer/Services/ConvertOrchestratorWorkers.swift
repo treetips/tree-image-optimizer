@@ -32,6 +32,7 @@ struct UpscaleBatchContext: Sendable {
     var config: ConvertConfig
     var paths: AppPaths
     var queue: UpscaledQueue
+    var control: RunControl
     var onOutcome: @Sendable (FileOutcome) async -> Void
 }
 
@@ -41,6 +42,7 @@ struct CompressionContext: Sendable {
     var encoderThreads: Int
     var outputDirectory: URL
     var paths: AppPaths
+    var control: RunControl
     var onOutcome: @Sendable (FileOutcome) async -> Void
 }
 
@@ -98,6 +100,11 @@ extension ConvertOrchestrator {
                 inputDirectory: inputDirectory, outputDirectory: outputDirectory,
                 batch: batch, scale: scale, config: context.config, paths: context.paths)
         } catch {
+            // キャンセルで止めたプロセスの失敗は失敗件数に数えない。
+            // 行は呼び出し側が「キャンセル」として表示する（ADR 0054）。
+            if await context.control.isCancelled {
+                return prepared.counts
+            }
             AppLogger.shared.error(
                 "upscale batch: process failed (continuing per-file verification): \(error.localizedDescription)")
         }
@@ -118,6 +125,8 @@ extension ConvertOrchestrator {
         let fileManager = FileManager.default
         var counts = RunCounts()
         for index in batch.indices {
+            // バッチの途中でキャンセルされたら、残りのファイルは開始しない。
+            if await context.control.isCancelled { return counts }
             let file = context.files[index]
             await context.onOutcome(
                 FileOutcome(index: index, stage: .upscale, succeeded: false, fileDone: false, started: true))
@@ -195,6 +204,8 @@ extension ConvertOrchestrator {
         var counts = RunCounts()
 
         for item in prepared {
+            // キャンセル後は後段のキューへ積まない。残りは呼び出し側が片付ける。
+            if await context.control.isCancelled { return counts }
             guard
                 (try? upscale.postVerify(output: item.output, input: item.file, scale: expectedScale)) != nil
             else {
@@ -275,6 +286,11 @@ extension ConvertOrchestrator {
                     FileOutcome(index: item.index, stage: .output, succeeded: true, fileDone: true))
                 counts.success += 1
             } catch {
+                // キャンセルで止めた圧縮・出力は失敗に数えず、このワーカーを終える（ADR 0054）。
+                if await context.control.isCancelled {
+                    try? fileManager.removeItem(at: item.tempDirectory)
+                    break
+                }
                 AppLogger.shared.error(
                     """
                     compress/output: failed at \(stage) file=\(item.upscaled.path) \
