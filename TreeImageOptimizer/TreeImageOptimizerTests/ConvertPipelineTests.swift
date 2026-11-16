@@ -240,6 +240,173 @@ struct ConvertPipelineTests {
         #expect(performance <= ProcessInfo.processInfo.processorCount)
     }
 
+    @Test("バッチ配布は待機から再開してもグループを再評価し、全ファイルを一度ずつ配る")
+    func batchSchedulerRevalidatesAfterWaiting() async {
+        let groupCount = 6
+        for _ in 0..<200 {
+            let groups = (0..<groupCount).map { index in
+                UpscaleGroup(
+                    scale: index.isMultiple(of: 2) ? 2 : 4,
+                    resizeLongEdge: nil,
+                    model: nil,
+                    indices: [index]
+                )
+            }
+            let scheduler = BatchScheduler(groups: groups, batchSize: 1, capacity: 2)
+            let distributed = await withTaskGroup(of: ([Int], Int).self) { group in
+                for _ in 0..<8 {
+                    group.addTask {
+                        var received: [Int] = []
+                        var emptyBatches = 0
+                        while let batch = await scheduler.next() {
+                            if batch.indices.isEmpty {
+                                emptyBatches += 1
+                            } else {
+                                received.append(contentsOf: batch.indices)
+                            }
+                            // ワーカーの再開順を競わせる。
+                            await Task.yield()
+                            await scheduler.release(batch.indices.count)
+                        }
+                        return (received, emptyBatches)
+                    }
+                }
+                var all: [Int] = []
+                var emptyBatches = 0
+                for await (received, empty) in group {
+                    all.append(contentsOf: received)
+                    emptyBatches += empty
+                }
+                return (all, emptyBatches)
+            }
+            #expect(distributed.0.sorted() == Array(0..<groupCount))
+            #expect(distributed.1 == 0)
+        }
+    }
+
+    @Test("先読み1件なら1ファイルずつ一覧表の上から処理する")
+    func batchSchedulerPreservesDisplayOrder() async {
+        let groups = [
+            UpscaleGroup(scale: 2, resizeLongEdge: nil, model: nil, indices: [0, 3, 4]),
+            UpscaleGroup(scale: 4, resizeLongEdge: nil, model: nil, indices: [1, 5]),
+            UpscaleGroup(scale: nil, resizeLongEdge: 1920, model: nil, indices: [2])
+        ]
+        let scheduler = BatchScheduler(groups: groups, batchSize: 4, capacity: 4, lookahead: 1)
+        var batches: [[Int]] = []
+        while let batch = await scheduler.next() {
+            batches.append(batch.indices)
+            await scheduler.release(batch.indices.count)
+        }
+        #expect(batches == [[0], [1], [2], [3], [4], [5]])
+    }
+
+    @Test("先読み8件で交互の倍率をまとめ、飛び越しは8行以内に収める")
+    func batchSchedulerLookaheadBatchesAcrossGroups() async {
+        let groups = [
+            UpscaleGroup(scale: 2, resizeLongEdge: nil, model: nil, indices: [0, 2, 4, 6]),
+            UpscaleGroup(scale: 4, resizeLongEdge: nil, model: nil, indices: [1, 3, 5, 7])
+        ]
+        let scheduler = BatchScheduler(groups: groups, batchSize: 4, capacity: 8, lookahead: 8)
+        var batches: [[Int]] = []
+        while let batch = await scheduler.next() {
+            batches.append(batch.indices)
+            await scheduler.release(batch.indices.count)
+        }
+        // 8件を2プロセスにまとめつつ、最初のバッチはindex 6までに収まる。
+        #expect(batches == [[0, 2, 4, 6], [1, 3, 5, 7]])
+    }
+
+    @Test("交互に倍率が並んでも先読みでグループごとの起動回数に抑える")
+    func lookaheadKeepsProcessCount() async {
+        let count = 100
+        let groups = [
+            UpscaleGroup(scale: 2, resizeLongEdge: nil, model: nil, indices: Array(stride(from: 0, to: count, by: 2))),
+            UpscaleGroup(scale: 4, resizeLongEdge: nil, model: nil, indices: Array(stride(from: 1, to: count, by: 2)))
+        ]
+        let scheduler = BatchScheduler(groups: groups, batchSize: 4, capacity: 4, lookahead: 8)
+        var batches = 0
+        while let batch = await scheduler.next() {
+            batches += 1
+            await scheduler.release(batch.indices.count)
+        }
+        // 50件ずつを4件バッチで処理する従来のグループ単位と同じ13+13回。
+        #expect(batches == 26)
+    }
+
+    @Test("自動最適化のグループ分けでも先読み8件以内でまとめる")
+    func autoGroupsPreserveDisplayOrder() async {
+        let files = (0..<5).map { URL(fileURLWithPath: "/tmp/\($0).png") }
+        let plans = [
+            FilePlan(scale: 2, resizeLongEdge: nil, quality: 80),
+            FilePlan(scale: 2, resizeLongEdge: nil, quality: 80),
+            FilePlan(scale: 4, resizeLongEdge: nil, quality: 80),
+            FilePlan(scale: 2, resizeLongEdge: nil, quality: 80),
+            FilePlan(scale: 4, resizeLongEdge: nil, quality: 80)
+        ]
+        let config = ConvertConfig(
+            scale: 2, model: "m", format: .jpegXL, optimizeType: .anime, quality: 80,
+            parallelCount: 4, mode: .auto)
+        let groups = ConvertOrchestrator.upscaleGroups(
+            files: files, plans: plans, config: config, paths: AppPaths())
+        let scheduler = BatchScheduler(groups: groups, batchSize: 4, capacity: 4)
+        var batches: [[Int]] = []
+        while let batch = await scheduler.next() {
+            batches.append(batch.indices)
+            await scheduler.release(batch.indices.count)
+        }
+        // 2倍の [0,1,3] をまとめ、4倍の [2,4] は次のバッチに回る。
+        #expect(batches == [[0, 1, 3], [2, 4]])
+    }
+
+    @Test("同じグループが連続する場合はバッチサイズまでまとめる")
+    func batchSchedulerBatchesContiguousFiles() async {
+        let groups = [
+            UpscaleGroup(scale: 2, resizeLongEdge: nil, model: nil, indices: Array(0..<6))
+        ]
+        let scheduler = BatchScheduler(groups: groups, batchSize: 4, capacity: 8)
+        var batches: [[Int]] = []
+        while let batch = await scheduler.next() {
+            batches.append(batch.indices)
+            await scheduler.release(batch.indices.count)
+        }
+        #expect(batches == [[0, 1, 2, 3], [4, 5]])
+    }
+
+    @Test("ファイル配布は待機から再開しても空の範囲を返さない")
+    func fileBatcherRevalidatesAfterWaiting() async {
+        let fileCount = 12
+        for _ in 0..<200 {
+            let batcher = FileBatcher(count: fileCount, batchSize: 1, capacity: 2)
+            let distributed = await withTaskGroup(of: ([Int], Int).self) { group in
+                for _ in 0..<8 {
+                    group.addTask {
+                        var received: [Int] = []
+                        var emptyRanges = 0
+                        while let range = await batcher.next() {
+                            if range.isEmpty {
+                                emptyRanges += 1
+                            } else {
+                                received.append(contentsOf: range)
+                            }
+                            await Task.yield()
+                            await batcher.release(range.count)
+                        }
+                        return (received, emptyRanges)
+                    }
+                }
+                var all: [Int] = []
+                var emptyRanges = 0
+                for await (received, empty) in group {
+                    all.append(contentsOf: received)
+                    emptyRanges += empty
+                }
+                return (all, emptyRanges)
+            }
+            #expect(distributed.0.sorted() == Array(0..<fileCount))
+            #expect(distributed.1 == 0)
+        }
+    }
+
     @Test("出力確定（同一ボリュームではrename・既存は上書き・元のファイルは残らない）")
     func installOutput() throws {
         let fileManager = FileManager.default

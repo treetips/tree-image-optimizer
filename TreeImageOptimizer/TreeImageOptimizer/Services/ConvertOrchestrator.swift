@@ -57,6 +57,10 @@ struct ConvertOrchestrator: Sendable {
     /// 大きくするほど起動固定費は減るが、後段の圧縮が動き出すまでの待ち時間が増える。
     static let upscaleBatchSize = 4
 
+    /// 一覧表の上から処理しつつ、同じ倍率をまとめるために先読みする件数。
+    /// 大きくするほどプロセス起動回数は減るが、表の順序から外れる幅が広がる（ADR 0053）。
+    static let upscaleLookahead = 8
+
     let upscale: UpscaleService
     let compression: CompressionService
 
@@ -198,9 +202,10 @@ struct ConvertOrchestrator: Sendable {
             parallelCount: config.parallelCount, workers: compressionWorkers)
 
         // 処理枠は並列数ぶん。出力が完了したファイルだけが枠を返す（ADR 0038）。
-        // 自動モードでは倍率ごとにバッチを分けるため、グループ単位で配る（ADR 0049）。
+        // 自動モードでも一覧表の上から開始し、先読みの範囲で同じ倍率をまとめる（ADR 0053）。
         let scheduler = BatchScheduler(
-            groups: groups, batchSize: Self.upscaleBatchSize, capacity: config.parallelCount)
+            groups: groups, batchSize: Self.upscaleBatchSize, capacity: config.parallelCount,
+            lookahead: Self.upscaleLookahead)
         let trackedOutcome = Self.trackingOutcome(deliver: onOutcome) {
             await scheduler.release()
         }
