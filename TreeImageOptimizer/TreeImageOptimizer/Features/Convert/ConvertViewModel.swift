@@ -37,6 +37,10 @@ final class ConvertViewModel {
     var showFailure: Bool = true {
         didSet { saveBatchFields() }
     }
+    /// 実行結果の表の絞り込み（キャンセル）。ADR 0054 で追加。
+    var showCancelled: Bool = true {
+        didSet { saveBatchFields() }
+    }
     /// モードの特徴コールアウトの展開状態。固定・自動で共用する。
     var modeNoteExpanded: Bool = true {
         didSet { saveBatchFields() }
@@ -124,6 +128,7 @@ final class ConvertViewModel {
             if showRunning, statuses.contains(.running) { return true }
             if showSuccess, statuses.contains(.success) { return true }
             if showFailure, statuses.contains(.failure) { return true }
+            if showCancelled, statuses.contains(.cancelled) { return true }
             return false
         }
     }
@@ -167,6 +172,7 @@ final class ConvertViewModel {
         showRunning = batch.showRunning
         showSuccess = batch.showSuccess
         showFailure = batch.showFailure
+        showCancelled = batch.showCancelled
         modeNoteExpanded = batch.modeNoteExpanded
         validateFolders()
     }
@@ -182,6 +188,7 @@ final class ConvertViewModel {
         updated.batch.showRunning = showRunning
         updated.batch.showSuccess = showSuccess
         updated.batch.showFailure = showFailure
+        updated.batch.showCancelled = showCancelled
         updated.batch.modeNoteExpanded = modeNoteExpanded
         try? store.save(updated)
     }

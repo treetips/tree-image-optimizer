@@ -132,7 +132,8 @@ struct ConvertView: View {
 
                     GlassCTAButton(
                         title: jobStore.isRunning ? t("c.running") : t("c.run"),
-                        disabled: !viewModel.canRun
+                        disabled: !viewModel.canRun,
+                        systemImage: "play.fill"
                     ) {
                         viewModel.runConversion()
                         // 実行結果が見えるよう画面最下部へ自動スクロールする。
@@ -142,6 +143,10 @@ struct ConvertView: View {
                                 proxy.scrollTo("convertBottom", anchor: .bottom)
                             }
                         }
+                    }
+
+                    if jobStore.isRunning {
+                        ConvertRunControlsView(jobStore: jobStore, lang: lang)
                     }
 
                     GlassCard {
@@ -159,6 +164,9 @@ struct ConvertView: View {
                                 }
                                 Toggle(isOn: $viewModel.showFailure) {
                                     Text(t("status.failureIcon")).appFont(.body)
+                                }
+                                Toggle(isOn: $viewModel.showCancelled) {
+                                    Text(t("status.cancelledIcon")).appFont(.body)
                                 }
                             }
                             .toggleStyle(.checkbox)
@@ -252,6 +260,55 @@ struct ConvertView: View {
             // Why not: ViewModelの初期化はツール展開の完了前に走るため、
             // 完了後の再読込を欠かすと配置済みでも未配置表示のままになる。
             if ready { viewModel.reloadTools() }
+        }
+    }
+}
+
+/// 実行中だけ表示する一時停止・キャンセルの操作（ADR 0054）。
+/// 一時停止は区切りで効くため、押した直後も実行中のバッチは終わるまで進む。
+private struct ConvertRunControlsView: View {
+    var jobStore: ConvertJobStore
+    var lang: String
+    /// キャンセル確認ダイアログの表示状態。止める操作は取り消せないため必ず確認する。
+    @State private var showsCancelConfirmation = false
+
+    private func t(_ key: String) -> String { L10n.string(key, language: lang) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                GlassCTAButton(
+                    title: jobStore.isPaused ? t("c.resume") : t("c.pause"),
+                    disabled: jobStore.isCancelling,
+                    tint: .yellow,
+                    systemImage: jobStore.isPaused ? "play.fill" : "pause.fill"
+                ) {
+                    if jobStore.isPaused {
+                        jobStore.resume()
+                    } else {
+                        jobStore.pause()
+                    }
+                }
+                GlassCTAButton(
+                    title: t("c.cancel"), disabled: jobStore.isCancelling, tint: .red,
+                    systemImage: "xmark"
+                ) {
+                    showsCancelConfirmation = true
+                }
+            }
+            if jobStore.isCancelling || jobStore.isPaused {
+                Text(jobStore.isCancelling ? t("c.cancelling") : t("c.paused"))
+                    .appFont(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .alert(t("c.cancel.confirmTitle"), isPresented: $showsCancelConfirmation) {
+            Button(t("c.cancel.confirmAction"), role: .destructive) {
+                jobStore.cancel()
+            }
+            Button(t("a.cancel"), role: .cancel) {}
+        } message: {
+            Text(t("c.cancel.confirmMessage"))
         }
     }
 }

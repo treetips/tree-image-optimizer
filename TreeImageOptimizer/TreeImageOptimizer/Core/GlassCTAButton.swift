@@ -7,20 +7,30 @@ import SwiftUI
 struct GlassCTAButton: View {
     var title: String
     var disabled: Bool = false
+    /// ボタンのテーマ色。既定はアクセントカラー。
+    /// 停止は黄、取り消せない操作は赤を渡して、実行ボタンと見分けられるようにする。
+    var tint: Color = .accentColor
+    /// ラベルの左へ置くアイコン（SF Symbols名）。省略時は文字だけ。
+    var systemImage: String? = nil
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .appFont(.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                // plainスタイルは描画部のみヒットするため、枠全体を受け付ける。
-                .contentShape(Rectangle())
-                .glassEffect(
-                    .regular.tint(Color.accentColor.opacity(GlassStyle.ctaTintOpacity)).interactive(),
-                    in: RoundedRectangle(cornerRadius: GlassStyle.ctaCornerRadius)
-                )
+            HStack(spacing: 6) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                }
+                Text(title)
+            }
+            .appFont(.headline)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            // plainスタイルは描画部のみヒットするため、枠全体を受け付ける。
+            .contentShape(Rectangle())
+            .glassEffect(
+                .regular.tint(tint.opacity(GlassStyle.ctaTintOpacity)).interactive(),
+                in: RoundedRectangle(cornerRadius: GlassStyle.ctaCornerRadius)
+            )
         }
         .buttonStyle(.plain)
         .disabled(disabled)

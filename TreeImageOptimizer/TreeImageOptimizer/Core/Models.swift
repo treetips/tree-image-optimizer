@@ -216,6 +216,8 @@ enum ProcessStatus: String, Hashable, CaseIterable {
     case running
     case success
     case failure
+    /// 実行中にユーザーがキャンセルした段階（ADR 0054）。
+    case cancelled
 
     func label(language: String) -> String {
         switch self {
@@ -223,6 +225,7 @@ enum ProcessStatus: String, Hashable, CaseIterable {
         case .running: return L10n.string("status.runningIcon", language: language)
         case .success: return L10n.string("status.successIcon", language: language)
         case .failure: return L10n.string("status.failureIcon", language: language)
+        case .cancelled: return L10n.string("status.cancelledIcon", language: language)
         }
     }
 }

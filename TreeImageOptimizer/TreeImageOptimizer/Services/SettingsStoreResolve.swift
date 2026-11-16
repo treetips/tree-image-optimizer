@@ -115,6 +115,8 @@ extension SettingsStore {
             showRunning: boolValue(json["showRunning"], fallback: defaults.showRunning, mark: mark),
             showSuccess: boolValue(json["showSuccess"], fallback: defaults.showSuccess, mark: mark),
             showFailure: boolValue(json["showFailure"], fallback: defaults.showFailure, mark: mark),
+            showCancelled: boolValue(
+                json["showCancelled"], fallback: defaults.showCancelled, mark: mark),
             modeNoteExpanded: boolValue(
                 json["modeNoteExpanded"], fallback: defaults.modeNoteExpanded, mark: mark)
         )

@@ -188,6 +188,7 @@ struct ConvertOrchestrator: Sendable {
         config: ConvertConfig,
         outputDirectory: URL,
         paths: AppPaths,
+        control: RunControl = RunControl(),
         onOutcome: @Sendable @escaping (FileOutcome) async -> Void
     ) async -> (success: Int, failure: Int) {
         guard !files.isEmpty else { return (0, 0) }
@@ -205,24 +206,47 @@ struct ConvertOrchestrator: Sendable {
         // 自動モードでも一覧表の上から開始し、先読みの範囲で同じ倍率をまとめる（ADR 0053）。
         let scheduler = BatchScheduler(
             groups: groups, batchSize: Self.upscaleBatchSize, capacity: config.parallelCount,
-            lookahead: Self.upscaleLookahead)
+            lookahead: Self.upscaleLookahead, control: control)
         let trackedOutcome = Self.trackingOutcome(deliver: onOutcome) {
             await scheduler.release()
         }
-        let queue = UpscaledQueue()
+        let queue = UpscaledQueue(control: control)
         let upscaleContext = UpscaleBatchContext(
             files: files, plans: plans, config: config, paths: paths, queue: queue,
-            onOutcome: trackedOutcome)
+            control: control, onOutcome: trackedOutcome)
         let compressionContext = CompressionContext(
             config: config, encoderThreads: encoderThreads, outputDirectory: outputDirectory,
-            paths: paths, onOutcome: trackedOutcome)
+            paths: paths, control: control, onOutcome: trackedOutcome)
+
+        // キャンセル時は待機中のワーカーを起こして終了させる（ADR 0054）。
+        // Why not continuationで待つか: 停止待ちの解除とキュー詰まりの解消を
+        // 1か所で扱う必要があり、ポーリングの方が待機解除の取りこぼしが無い。
+        let cancelMonitor = Self.cancelMonitor(
+            control: control, scheduler: scheduler, queue: queue)
 
         // アップスケール群が終わったらキューを閉じ、圧縮群を排水する。
-        let upscaleTask = Task { () -> RunCounts in
+        let upscaleTask = startUpscaleWorkers(
+            count: upscaleWorkers, scheduler: scheduler, context: upscaleContext, queue: queue)
+        var total = await runCompressionWorkers(
+            count: compressionWorkers, queue: queue, context: compressionContext)
+        total.merge(await upscaleTask.value)
+        cancelMonitor.cancel()
+        await Self.removeRemaining(queue)
+        return (total.success, total.failure)
+    }
+
+    /// アップスケールワーカー群を起動する。全員が終わったらキューを閉じるタスクを返す。
+    private func startUpscaleWorkers(
+        count: Int,
+        scheduler: BatchScheduler,
+        context: UpscaleBatchContext,
+        queue: UpscaledQueue
+    ) -> Task<RunCounts, Never> {
+        Task { () -> RunCounts in
             let counts = await withTaskGroup(of: RunCounts.self) { group in
-                for _ in 0..<upscaleWorkers {
+                for _ in 0..<count {
                     group.addTask {
-                        await self.upscaleWorker(scheduler: scheduler, context: upscaleContext)
+                        await self.upscaleWorker(scheduler: scheduler, context: context)
                     }
                 }
                 var total = RunCounts()
@@ -234,21 +258,48 @@ struct ConvertOrchestrator: Sendable {
             await queue.finish()
             return counts
         }
+    }
 
-        var total = RunCounts()
+    /// 圧縮ワーカー群を起動し、全員の完了を待つ。
+    private func runCompressionWorkers(
+        count: Int, queue: UpscaledQueue, context: CompressionContext
+    ) async -> RunCounts {
         await withTaskGroup(of: RunCounts.self) { group in
-            for _ in 0..<compressionWorkers {
+            for _ in 0..<count {
                 group.addTask {
-                    await self.compressionWorker(queue: queue, context: compressionContext)
+                    await self.compressionWorker(queue: queue, context: context)
                 }
             }
+            var total = RunCounts()
             for await counts in group {
                 total.merge(counts)
             }
+            return total
         }
-        let upscaleCounts = await upscaleTask.value
-        total.merge(upscaleCounts)
-        return (total.success, total.failure)
+    }
+
+    /// キャンセルを監視して、待機中のワーカーを起こす。
+    /// Why not 各ワーカーへ直接伝えるか: スケジューラの空き枠待ちとキューの取り出し待ちは
+    /// continuationで止まっており、状態を変えるだけでは起きない（ADR 0054）。
+    private static func cancelMonitor(
+        control: RunControl, scheduler: BatchScheduler, queue: UpscaledQueue
+    ) -> Task<Void, Never> {
+        Task {
+            while !Task.isCancelled {
+                if await control.isCancelled { break }
+                try? await Task.sleep(nanoseconds: 100_000_000)
+            }
+            guard await control.isCancelled else { return }
+            await scheduler.close()
+            await queue.finish()
+        }
+    }
+
+    /// キャンセルで処理されずに残った中間ファイルを片付ける。
+    private static func removeRemaining(_ queue: UpscaledQueue) async {
+        for item in await queue.drainRemaining() {
+            try? FileManager.default.removeItem(at: item.tempDirectory)
+        }
     }
 
     /// 中間ファイルを出力先へ確定する。同一ボリュームならコピーではなくrenameで移動する。

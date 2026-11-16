@@ -70,6 +70,7 @@
 		E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000003 /* ProcessRunnerTests.swift */; };
 		E40000000000000000000004 /* ToolInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000004 /* ToolInstallerTests.swift */; };
 		E40000000000000000000005 /* ConvertPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000005 /* ConvertPipelineTests.swift */; };
+		E40000000000000000000019 /* ConvertPauseCancelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000019 /* ConvertPauseCancelTests.swift */; };
 		E40000000000000000000016 /* ConvertWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000016 /* ConvertWindowTests.swift */; };
 		E40000000000000000000017 /* AppLoggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000017 /* AppLoggerTests.swift */; };
 		E40000000000000000000006 /* MediaServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000006 /* MediaServicesTests.swift */; };
@@ -145,6 +146,7 @@
 		F40000000000000000000017 /* AppLoggerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLoggerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000004 /* ToolInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolInstallerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000005 /* ConvertPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPipelineTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000019 /* ConvertPauseCancelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPauseCancelTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000016 /* ConvertWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertWindowTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000006 /* MediaServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServicesTests.swift; sourceTree = "<group>"; };
 		F50000000000000000000001 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
@@ -209,6 +211,7 @@
 				F40000000000000000000003 /* ProcessRunnerTests.swift */,
 				F40000000000000000000004 /* ToolInstallerTests.swift */,
 				F40000000000000000000005 /* ConvertPipelineTests.swift */,
+				F40000000000000000000019 /* ConvertPauseCancelTests.swift */,
 				F40000000000000000000006 /* MediaServicesTests.swift */,
 				F40000000000000000000007 /* L10nTests.swift */,
 				F40000000000000000000009 /* AppThemeTests.swift */,
@@ -465,6 +468,7 @@
 				E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */,
 				E40000000000000000000004 /* ToolInstallerTests.swift in Sources */,
 				E40000000000000000000005 /* ConvertPipelineTests.swift in Sources */,
+				E40000000000000000000019 /* ConvertPauseCancelTests.swift in Sources */,
 				E40000000000000000000006 /* MediaServicesTests.swift in Sources */,
 				E40000000000000000000007 /* L10nTests.swift in Sources */,
 				E40000000000000000000009 /* AppThemeTests.swift in Sources */,

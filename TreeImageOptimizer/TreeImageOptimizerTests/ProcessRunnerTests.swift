@@ -28,4 +28,24 @@ struct ProcessRunnerTests {
             try await runner.run("/nonexistent/bin/foobar", args: [], workingDirectory: nil)
         }
     }
+
+    @Test("キャンセル時は実行中の子プロセスを終了してCancellationErrorを投げる")
+    func cancelsRunningProcess() async {
+        let runner = ProcessRunner()
+        let task = Task { try await runner.run("/bin/sleep", args: ["30"], workingDirectory: nil) }
+        // プロセスが起動するのを待ってからキャンセルする。
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        let started = Date()
+        task.cancel()
+        do {
+            _ = try await task.value
+            Issue.record("CancellationErrorを期待したが、処理が成功してしまった")
+        } catch is CancellationError {
+            // 期待どおり
+        } catch {
+            Issue.record("CancellationError以外のエラーが返った: \(error)")
+        }
+        // 30秒待たされず、SIGKILLの猶予内で終わること。
+        #expect(Date().timeIntervalSince(started) < 5)
+    }
 }
