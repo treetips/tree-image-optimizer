@@ -3,16 +3,19 @@ import Testing
 
 @testable import TreeImageOptimizer
 
+/// 一時ディレクトリに設定ファイルを1つ用意する。
+/// Why not テスト構造体の中に置くか: テストが増えると型の行数上限に当たり、
+/// 本質でないヘルパーのせいでテストを分けざるを得なくなるため。
+func makeStore() throws -> (SettingsStore, URL) {
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let file = dir.appendingPathComponent("settings.json", isDirectory: false)
+    return (SettingsStore(fileURL: file), file)
+}
+
 @Suite("SettingsStore")
 struct SettingsStoreTests {
-    func makeStore() throws -> (SettingsStore, URL) {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let file = dir.appendingPathComponent("settings.json", isDirectory: false)
-        return (SettingsStore(fileURL: file), file)
-    }
-
     @Test("無い場合は初期値を保存して返す")
     func createsDefaultsWhenMissing() throws {
         let (store, file) = try makeStore()
@@ -51,7 +54,7 @@ struct SettingsStoreTests {
     func roundTripsResultFilter() throws {
         let (store, _) = try makeStore()
         var file = try store.load(maxParallel: 8)
-        // 初期値は4項目ともチェック済み。
+        // 初期値は5項目ともチェック済み。
         #expect(file.batch.showWaiting && file.batch.showRunning)
         #expect(file.batch.showSuccess && file.batch.showFailure)
 
@@ -83,6 +86,22 @@ struct SettingsStoreTests {
         let batch = try #require(json["batchConvert"] as? [String: Any])
         #expect(batch["showWaiting"] as? Bool == true)
         #expect(batch["showFailure"] as? Bool == true)
+    }
+
+    @Test("キャンセル表示の絞り込みも保存・復元され、キー欠落時は既定値で補われる")
+    func roundTripsCancelledFilter() throws {
+        let (store, _) = try makeStore()
+        var file = try store.load(maxParallel: 8)
+        #expect(file.batch.showCancelled, "初期値はチェック済み")
+        file.batch.showCancelled = false
+        try store.save(file)
+        #expect(try store.load(maxParallel: 8).batch.showCancelled == false)
+
+        let (legacyStore, legacyFile) = try makeStore()
+        try #"{"batchConvert":{"showWaiting":false}}"#.write(
+            to: legacyFile, atomically: true, encoding: .utf8)
+        let legacy = try legacyStore.load(maxParallel: 8)
+        #expect(legacy.batch.showCancelled && legacy.batch.showWaiting == false)
     }
 
     @Test("不正値は補正されファイルが更新される")

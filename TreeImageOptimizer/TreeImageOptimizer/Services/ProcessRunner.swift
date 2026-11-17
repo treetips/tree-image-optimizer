@@ -13,12 +13,22 @@ struct ProcessResult: Sendable {
 private final class ProcessExecutionState: @unchecked Sendable {
     private let lock = NSLock()
     private var process: Process?
+    private var started = false
     private var cancelled = false
+    /// 終了処理を始めたか。`onCancel` と起動直後の確認から二重に呼ばれても1回に抑える。
+    private var terminating = false
 
     var isCancelled: Bool {
         lock.lock()
         defer { lock.unlock() }
         return cancelled
+    }
+
+    /// SIGKILLを送る直前に、対象プロセスがまだ生きているか。
+    var isTerminationTargetAlive: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return process?.isRunning ?? false
     }
 
     func attach(_ process: Process) {
@@ -27,11 +37,27 @@ private final class ProcessExecutionState: @unchecked Sendable {
         self.process = process
     }
 
-    /// キャンセル済みにして、起動済みならプロセスを返す。
-    func markCancelled() -> Process? {
+    /// 起動が終わったことを記録する。これ以前に終了処理を始めると、
+    /// `Process.run()` と `terminate()` が別スレッドで同時に走ってしまう。
+    func markStarted() {
+        lock.lock()
+        defer { lock.unlock() }
+        started = true
+    }
+
+    func markCancelled() {
         lock.lock()
         defer { lock.unlock() }
         cancelled = true
+    }
+
+    /// 起動済みで、まだ終了処理を始めていなければ対象プロセスを返す。
+    /// 起動前はnilを返し、`run()` の直後の確認に終了処理を任せる。
+    func beginTermination() -> Process? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard started, !terminating, let process else { return nil }
+        terminating = true
         return process
     }
 }
@@ -83,13 +109,17 @@ struct ProcessRunner: Sendable {
                     return
                 }
                 // 起動前にキャンセルが届いていた場合は、走り出した子プロセスをすぐ止める。
-                if state.isCancelled {
-                    Self.terminate(process)
+                // Why not ここで state.markCancelled() を呼ぶか: 既に onCancel が
+                // フラグを立てているため、二重に立てる必要はない。
+                state.markStarted()
+                if state.isCancelled, let process = state.beginTermination() {
+                    Self.terminate(process, state: state)
                 }
             }
         } onCancel: {
-            if let process = state.markCancelled() {
-                Self.terminate(process)
+            state.markCancelled()
+            if let process = state.beginTermination() {
+                Self.terminate(process, state: state)
             }
         }
     }
@@ -97,12 +127,15 @@ struct ProcessRunner: Sendable {
     /// 子プロセスを終了する。SIGTERMを無視するツールに備えて、猶予後にSIGKILLも送る。
     /// Why not キャンセル時に何もしないか: `sleep` のようなプロセスが終了まで残り、
     /// キャンセルしてもアプリが数十秒待たされてしまうため。
-    private static func terminate(_ process: Process) {
+    private static func terminate(_ process: Process, state: ProcessExecutionState) {
         guard process.isRunning else { return }
         process.terminate()
         let pid = process.processIdentifier
+        guard pid > 0 else { return }
         DispatchQueue.global().asyncAfter(deadline: .now() + 3) {
-            // 既に終了していればESRCHが返るだけで害はない。
+            // Why not PIDだけでkillするか: 3秒以内に正常終了したPIDが別プロセスへ
+            // 再利用されていると、無関係なプロセスを強制終了してしまうため。
+            guard state.isTerminationTargetAlive else { return }
             kill(pid, SIGKILL)
         }
     }

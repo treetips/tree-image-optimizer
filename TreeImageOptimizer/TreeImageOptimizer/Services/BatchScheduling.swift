@@ -83,6 +83,10 @@ actor UpscaledQueue {
 
     func next() async -> UpscaledItem? {
         while true {
+            // 残りが無く受付も閉じているなら、停止中でもワーカーを終わらせる。
+            // Why not 停止解除を待つか: 最後の1件を処理している間に停止し、その間に
+            // アップスケール群が終わると、再開するまでジョブが完了表示へ到達しない（ADR 0054）。
+            if items.isEmpty, finished { return nil }
             await control.waitWhilePaused()
             if await control.isCancelled { return nil }
             if !items.isEmpty {

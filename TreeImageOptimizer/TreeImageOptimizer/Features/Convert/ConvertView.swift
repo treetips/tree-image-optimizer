@@ -149,6 +149,15 @@ struct ConvertView: View {
                         ConvertRunControlsView(jobStore: jobStore, lang: lang)
                     }
 
+                    // 実行が終わると操作ボタンごと消えるため、結果（成功・混在・キャンセル）は
+                    // この位置に残す。Why not 通知だけに任せるか: 通知を切っている設定でも
+                    // キャンセル後に何が起きたか分からなくなるため。
+                    if !jobStore.isRunning, !jobStore.resultMessage.isEmpty {
+                        Text(jobStore.resultMessage)
+                            .appFont(.body)
+                            .foregroundStyle(.secondary)
+                    }
+
                     GlassCard {
 
                         VStack(alignment: .leading, spacing: 8) {

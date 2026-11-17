@@ -20,6 +20,11 @@
   },
   "batchConvert": {
     "targetFilter": "sevenDays",
+    "showWaiting": true,
+    "showRunning": true,
+    "showSuccess": true,
+    "showFailure": true,
+    "showCancelled": true,
     "scale": 2,
     "model": "realesr-animevideov3-x4",
     "format": "jpegXl",

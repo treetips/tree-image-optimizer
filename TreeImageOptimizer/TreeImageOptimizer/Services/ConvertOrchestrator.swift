@@ -225,39 +225,39 @@ struct ConvertOrchestrator: Sendable {
             control: control, scheduler: scheduler, queue: queue)
 
         // アップスケール群が終わったらキューを閉じ、圧縮群を排水する。
-        let upscaleTask = startUpscaleWorkers(
+        // Why not 非構造化 Task で起動するか: 親のキャンセルが伝わらず、キャンセルしても
+        // 実行中の upscayl / Real-CUGAN が終わるまで待たされてしまう（ADR 0054）。
+        async let upscaleCounts = runUpscaleWorkers(
             count: upscaleWorkers, scheduler: scheduler, context: upscaleContext, queue: queue)
         var total = await runCompressionWorkers(
             count: compressionWorkers, queue: queue, context: compressionContext)
-        total.merge(await upscaleTask.value)
+        total.merge(await upscaleCounts)
         cancelMonitor.cancel()
         await Self.removeRemaining(queue)
         return (total.success, total.failure)
     }
 
-    /// アップスケールワーカー群を起動する。全員が終わったらキューを閉じるタスクを返す。
-    private func startUpscaleWorkers(
+    /// アップスケールワーカー群を起動する。全員が終わったらキューを閉じる。
+    private func runUpscaleWorkers(
         count: Int,
         scheduler: BatchScheduler,
         context: UpscaleBatchContext,
         queue: UpscaledQueue
-    ) -> Task<RunCounts, Never> {
-        Task { () -> RunCounts in
-            let counts = await withTaskGroup(of: RunCounts.self) { group in
-                for _ in 0..<count {
-                    group.addTask {
-                        await self.upscaleWorker(scheduler: scheduler, context: context)
-                    }
+    ) async -> RunCounts {
+        let counts = await withTaskGroup(of: RunCounts.self) { group in
+            for _ in 0..<count {
+                group.addTask {
+                    await self.upscaleWorker(scheduler: scheduler, context: context)
                 }
-                var total = RunCounts()
-                for await counts in group {
-                    total.merge(counts)
-                }
-                return total
             }
-            await queue.finish()
-            return counts
+            var total = RunCounts()
+            for await counts in group {
+                total.merge(counts)
+            }
+            return total
         }
+        await queue.finish()
+        return counts
     }
 
     /// 圧縮ワーカー群を起動し、全員の完了を待つ。

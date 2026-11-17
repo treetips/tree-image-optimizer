@@ -107,7 +107,16 @@ final class ConvertJobStore {
         isPaused = false
         closePauseWindow()
         let control = self.control
-        Task { await control?.cancel() }
+        let runTask = self.runTask
+        // Why not control のフラグを立てるだけか: 実行中の子プロセスを止めるのは
+        // ProcessRunner の withTaskCancellationHandler であり、タスクをキャンセルしないと
+        // upscayl / Real-CUGAN が終わるまで待たされる（ADR 0054）。
+        // Why not 先にタスクをキャンセルするか: CancellationError が control のフラグより先に
+        // 飛ぶと、ワーカーがそれを通常の失敗として数えてしまうため。
+        Task {
+            await control?.cancel()
+            runTask?.cancel()
+        }
     }
 
     private func execute(
@@ -196,8 +205,13 @@ final class ConvertJobStore {
         status == .success || status == .failure ? status : .cancelled
     }
 
+    /// キャンセルで未完了になった行の数。途中で失敗した行は失敗として数えるため除く。
+    /// Why not 単純に .cancelled を持つ行を数えるか: 失敗した行も後段が .cancelled に
+    /// 変わるため、失敗件数と二重に計上され、結果メッセージとフッターが食い違う。
     private var cancelledCount: Int {
-        rows.filter { [$0.upscale, $0.compress, $0.output].contains(.cancelled) }.count
+        rows.filter { row in
+            !Self.isFailure(row) && [row.upscale, row.compress, row.output].contains(.cancelled)
+        }.count
     }
 
     /// 一時停止していた時間を除いた実行時間。

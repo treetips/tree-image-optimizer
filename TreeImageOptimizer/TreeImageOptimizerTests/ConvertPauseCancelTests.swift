@@ -138,4 +138,14 @@ struct ConvertPauseCancelTests {
         #expect(await queue.next() == nil)
         #expect(await queue.drainRemaining().map(\.index) == [0])
     }
+
+    @Test("受付を閉じたあと残りが無ければ、停止中でもワーカーは終わる")
+    func queueFinishesWhilePaused() async {
+        let control = RunControl()
+        let queue = UpscaledQueue(control: control)
+        // 最後の1件を処理している間に停止し、そのままアップスケール群が終わる状況。
+        await control.pause()
+        await queue.finish()
+        #expect(await queue.next() == nil, "再開を待たずにワーカーが終わること")
+    }
 }
