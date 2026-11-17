@@ -1,0 +1,32 @@
+{
+  "exclude": [
+    "**/.build/**",
+    "**/xcuserdata/**",
+    "**/*.xcodeproj/**",
+    "**/*.xcassets/**",
+    "**/package-lock.json",
+    "tools/**"
+  ],
+  "rules": [
+    {
+      "path": "TreeImageOptimizer/TreeImageOptimizerTests/**/*.swift",
+      "merge_system_rule": true,
+      "rule": "テストは「何を保証するか(What)」を検証しているか。実装の詳細やprivate関数の呼び出し順に依存していないか。既存テストの削除・`XCTSkip`による無効化は、仕様変更が明確な場合を除いて指摘する。テスト名とアサーションが1つの振る舞いに対応しているか。"
+    },
+    {
+      "path": "TreeImageOptimizer/**/*.swift",
+      "merge_system_rule": true,
+      "rule": "Swift 6.0 / macOS 26.0 前提。並行性は actor isolation と Sendable で表現されているか（@unchecked Sendable や DispatchQueue による回避を指摘）。UIの更新は @MainActor 上で行っているか。外部プロセスは shell 文字列ではなく引数配列で起動し、パスは AppPaths 経由で解決しているか（ADR 0008）。エラーの握りつぶし（try? でログも残さない、空の catch）や fatalError の濫用を指摘する。ユーザー向け文言は L10n 経由でローカライズされているか。コードコメントは「なぜそうしないか(Why not)」を説明しているか。"
+    },
+    {
+      "path": ".github/workflows/*.yml",
+      "merge_system_rule": true,
+      "rule": "Xcode は .xcode-version を参照して選択しているか。actions はメジャー固定のタグで参照されているか。Secrets をログに出力していないか。paths フィルタが実際にビルド対象となるファイルと整合しているか。"
+    },
+    {
+      "path": "docs/adr/**/*.md",
+      "merge_system_rule": true,
+      "rule": "新しい技術的決定には ADR が必要か。ADR は「背景・決定・影響」を含み、docs/adr/INDEX.md の表に追記されているか。既存 ADR と矛盾する決定を、置き換え先の明示なしに追加していないか。"
+    }
+  ]
+}
