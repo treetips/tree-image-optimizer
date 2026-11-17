@@ -93,12 +93,18 @@ extension ConvertOrchestrator {
             batch: batch, inputDirectory: inputDirectory, outputDirectory: outputDirectory,
             context: context)
         guard !prepared.prepared.isEmpty else { return prepared.counts }
+        // キャンセル直後にバッチを受け取ったワーカーが、新しい超解像プロセスを起動しないようにする。
+        // 起動してしまうとキャンセルがバッチ1回分（数分）遅れる（ADR 0054）。
+        if await context.control.isCancelled { return prepared.counts }
 
         // 失敗しても部分的な出力が残ることがあるため、ここでは投げずに後段でファイル単位に検証する。
         do {
             try await runUpscaleBatch(
                 inputDirectory: inputDirectory, outputDirectory: outputDirectory,
                 batch: batch, scale: scale, config: context.config, paths: context.paths)
+        } catch is CancellationError {
+            // タスクキャンセルで止めたプロセスの失敗は失敗件数に数えない。
+            return prepared.counts
         } catch {
             // キャンセルで止めたプロセスの失敗は失敗件数に数えない。
             // 行は呼び出し側が「キャンセル」として表示する（ADR 0054）。
@@ -285,6 +291,10 @@ extension ConvertOrchestrator {
                 await context.onOutcome(
                     FileOutcome(index: item.index, stage: .output, succeeded: true, fileDone: true))
                 counts.success += 1
+            } catch is CancellationError {
+                // タスクキャンセルで止めた圧縮・出力は失敗に数えず、このワーカーを終える（ADR 0054）。
+                try? fileManager.removeItem(at: item.tempDirectory)
+                break
             } catch {
                 // キャンセルで止めた圧縮・出力は失敗に数えず、このワーカーを終える（ADR 0054）。
                 if await context.control.isCancelled {

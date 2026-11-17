@@ -41,6 +41,17 @@
 - コミットメッセージは [Conventional Commits](https://www.conventionalcommits.org/ja/v1.0.0/) に準拠し、日本語で記述。Pull Requestのタイトルも同様。
 - mainブランチへの直接pushは禁止。必ずfeatureブランチからPRを作成。
 
+## コードレビュー
+
+- [Open Code Review](https://open-codereview.ai/) でレビューする。
+- 初回だけAPIキーを Keychain に登録し、`~/.opencodereview/config.json` を設定する。
+- 疎通確認: `ocr llm test`
+- 実行: `ocr review`（ワークスペース）、`ocr review --from main --to <branch>`（ブランチ区間）
+  重要な内容の際は `--effort high`、モデルを上げるときは `ocr config set model deepseek-v4-pro`。
+- レビューはPR作成前に実行する。
+  - 指摘はそのまま適用せず、本当に必要かどうかを検討する。
+- レビュー観点は `.opencodereview/rule.json` で共有。観点を変える場合はすぐに確認する。
+
 ## 禁止事項
 
 - .envファイルの内容をコミット・表示しないこと。
