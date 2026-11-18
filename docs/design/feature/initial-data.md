@@ -76,7 +76,7 @@
 - ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/libjxl` フォルダに同梱してください。
 - バイナリは以下だけを抽出してプロジェクトに同梱してください。
   - cjxl （エンコード用）
-- `~/Library/Application Support/tree-image-optimizer/tools/libjxl/.version` を作成し、現在のバージョンを書き込んでください。（例）v0.12.0
+- `~/Library/Application Support/tree-image-optimizer/tools/libjxl/.version` を作成し、現在のバージョンを書き込んでください。（例）v0.13.0
   - 現在のバージョンから更新されていた場合のみ、 `.version` を更新してください。
 - アップデートする際は、元のファイルを全削除してから更新してください。
 

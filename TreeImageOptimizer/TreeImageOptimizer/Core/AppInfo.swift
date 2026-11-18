@@ -6,8 +6,8 @@ enum AppInfo {
     static let upscalBinVersion = "upscayl-bin-20251207-174704"
     static let realcuganVersion = "realcugan-ncnn-vulkan-20220728"
     static let jpegVersion = "v1.5.6"
-    static let pngVersion = "v0.5.4"
-    static let jpegXlVersion = "v0.12.0"
+    static let pngVersion = "v0.6.3"
+    static let jpegXlVersion = "v0.13.0"
     static let av1Version = "v1.4.2"
     static let webpVersion = "1.6.0"
 
