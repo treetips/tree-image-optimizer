@@ -203,7 +203,7 @@ cjxl \
 
 ```shell
 ❯ cjxl --help
-JPEG XL encoder v0.12.0 0.12.0 [_NEON_BF16_,NEON] {AppleClang 21.0.0.21000099}
+JPEG XL encoder v0.13.0 [_NEON_BF16_,NEON] {AppleClang 21.0.0.21000401}
 Usage: cjxl INPUT OUTPUT [OPTIONS...]
  INPUT
     the input can be JXL, PPM, PNM, PFM, PAM, PGX, PNG, APNG, GIF, JPEG, EXR
@@ -237,6 +237,9 @@ Mutually exclusive with --quality.
     -1 = encoder chooses (default). 0 = buffer entire image (most memory, best compression).
     1 = stream input for large images. 2 = stream input with a lower threshold.
     3 = deprecated; use --output_mode to control output streaming.
+ --jpeg_reconstruction_lfs=-1|0|1
+    Disable/enable LF Smoothing for lossless JPEG reconstruction.
+    -1 = default (let encoder decide), 0 = disable, 1 = enable.
 
  -h, --help
     Prints this help message. Add -v (up to a total of 4 times) to see more options.
