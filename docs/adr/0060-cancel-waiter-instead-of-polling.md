@@ -38,7 +38,11 @@ Task {
 - `waitUntilCancelled()` は actor の再入があるため、再開後にループ先頭で
   `cancelled` を読み直す。既にキャンセル済みの場合は待機に入らず即座に返る（ADR 0052）。
 - 監視役の `Task` は従来どおり呼び出し側が `cancel()` で終わらせる。
-  待機の再開条件はキャンセルのみで、`Task.isCancelled` による打ち切りは行わない。
+  待機の再開条件はキャンセルだけではなく、**監視タスク自身の取り消し**も含める。
+  `waitUntilCancelled()` は `withTaskCancellationHandler` で取り消し時にも waiter を起こし、
+  ループ先頭で `Task.isCancelled` を読み直して抜ける。
+  取り消しで待機を解かないと、誰も起こさない `CheckedContinuation` に止まったタスクが
+  `RunControl` とワーカー群を掴んだまま解放されない（実行のたびに1つ残留する）。
 
 ## 代替案
 
@@ -56,5 +60,6 @@ Task {
 - キャンセルの反映が周期に依存しなくなり、押した直後に待機中のワーカーが起きる。
 - 変換中の無駄な周期起床がなくなる。監視役が周期を決めなくてよい。
 - 一時停止・再開ではキャンセルの待機者は起きないため、従来の挙動は変わらない。
+- 実行完了で監視タスクを取り消しても待機が解けるため、タスクが残留しない。
 - 変更箇所: `Services/BatchScheduling.swift`、`Services/ConvertOrchestrator.swift`。
   回帰テスト: `TreeImageOptimizerTests/ConvertPauseCancelTests.swift`。

@@ -165,7 +165,7 @@ final class ConvertViewModel {
     private func loadBatchFields() {
         isLoading = true
         defer { isLoading = false }
-        guard let file = try? store.load(maxParallel: Int(maxParallel)) else { return }
+        guard let file = try? store.load(maxParallel: Int(settings.maxParallel)) else { return }
         let batch = file.batch
         if let filter = TargetFilter(rawValue: batch.targetFilter) { targetFilter = filter }
         inputFolderPath = batch.inputFolderPath ?? ""
@@ -184,7 +184,7 @@ final class ConvertViewModel {
         guard !isLoading else { return }
         // Why not `load()` してから `save()` するか: 入力欄の1文字ごとに設定ファイル
         // 全体を読み直すことになる。差分更新ならI/Oは書き込みの1回だけになる。
-        store.updateBatch(maxParallel: Int(maxParallel)) { batch in
+        store.updateBatch(maxParallel: Int(settings.maxParallel)) { batch in
             batch.targetFilter = targetFilter.rawValue
             batch.inputFolderPath = inputFolderPath.isEmpty ? nil : inputFolderPath
             batch.outputFolderPath = outputFolderPath.isEmpty ? nil : outputFolderPath

@@ -146,7 +146,7 @@ struct ConvertViewModelRealCUGANTests {
 
         let relaunched = try makeViewModel(base: base)
         #expect(relaunched.engine == .realCUGAN)
-        #expect(relaunched.selectedModelID == "models-se/up2x-denoise1x")
+        #expect(relaunched.settings.selectedModelID == "models-se/up2x-denoise1x")
 
         let reloaded = try store.load(maxParallel: 8)
         #expect(reloaded.batch.engine == "realCUGAN")

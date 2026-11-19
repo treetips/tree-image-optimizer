@@ -42,15 +42,30 @@ actor RunControl {
         }
     }
 
-    /// キャンセルされるまで待つ。既にキャンセル済みなら即座に返る。
+    /// キャンセルされるか、この待機タスク自体が取り消されるまで待つ。
+    /// 既にキャンセル済みなら即座に返る。
     /// Why not ポーリングでキャンセルを監視するか: 100ms周期の起床はCPUを消費し、
     /// キャンセルの反映も最大100ms遅れる。待機は1回の再開で済み、
     /// 監視役が自分で周期を決めなくてよくなる。
+    /// Why not 単純に `!cancelled` のループだけにするか: 監視タスクは実行完了時に
+    /// `cancel()` される。取り消しで待機を解かないと、誰も起こさないcontinuationに
+    /// 止まったタスクが残り、`RunControl` とワーカー群を掴んだまま解放されない。
     func waitUntilCancelled() async {
-        // actorはawaitで再入するため、再開後もフラグを読み直す（ADR 0052）。
-        while !cancelled {
-            await withCheckedContinuation { cancelWaiters.append($0) }
+        if cancelled { return }
+        await withTaskCancellationHandler {
+            // actorはawaitで再入するため、再開後もフラグを読み直す（ADR 0052）。
+            while !cancelled, !Task.isCancelled {
+                await withCheckedContinuation { cancelWaiters.append($0) }
+            }
+        } onCancel: {
+            Task { await self.wakeCancelWaiters() }
         }
+    }
+
+    /// 待機者をキャンセル状態にせずに起こす。待機タスクの取り消しで使う。
+    /// 呼び出された待機側はループ先頭で `Task.isCancelled` を見て抜ける。
+    func wakeCancelWaiters() {
+        releaseCancelWaiters()
     }
 
     private func releasePauseWaiters() {
