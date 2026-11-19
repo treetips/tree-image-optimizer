@@ -108,7 +108,7 @@ struct EasyConvertTests {
 
         // 再生成後も選択が復元される。
         let reloaded = EasyConvertViewModel(paths: paths, store: store)
-        #expect(reloaded.selectedModelID == "models-se/up2x-denoise3x")
+        #expect(reloaded.settings.selectedModelID == "models-se/up2x-denoise3x")
     }
 
     @Test("一括画面と設定が独立している")
@@ -144,7 +144,7 @@ struct EasyConvertTests {
         let paths = AppPaths(baseURL: base)
         let viewModel = EasyConvertViewModel(paths: paths, store: SettingsStore(paths: paths))
         // 初期化はブートストラップの完了前に走るため、この時点では未配置扱い。
-        #expect(!viewModel.realCuganAvailable)
+        #expect(!viewModel.settings.realCuganAvailable)
 
         // 展開完了を再現して配置し、再読込する。
         let se = base.appendingPathComponent("tools/realcugan/models-se", isDirectory: true)
@@ -162,7 +162,7 @@ struct EasyConvertTests {
         FileManager.default.createFile(atPath: bin.path, contents: Data("x".utf8))
         viewModel.reloadTools()
 
-        #expect(viewModel.realCuganAvailable)
-        #expect(viewModel.realCuganModels.count == 2)
+        #expect(viewModel.settings.realCuganAvailable)
+        #expect(viewModel.settings.realCuganModels.count == 2)
     }
 }

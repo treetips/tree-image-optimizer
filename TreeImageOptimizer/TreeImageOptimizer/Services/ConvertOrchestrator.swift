@@ -219,8 +219,8 @@ struct ConvertOrchestrator: Sendable {
             paths: paths, control: control, onOutcome: trackedOutcome)
 
         // キャンセル時は待機中のワーカーを起こして終了させる（ADR 0054）。
-        // Why not continuationで待つか: 停止待ちの解除とキュー詰まりの解消を
-        // 1か所で扱う必要があり、ポーリングの方が待機解除の取りこぼしが無い。
+        // Why not ここでポーリングするか: キャンセルの反映が周期ぶん遅れ、起床も無駄になる。
+        // `RunControl` がキャンセルの待機者を起こすため、通知は1回で届く。
         let cancelMonitor = Self.cancelMonitor(
             control: control, scheduler: scheduler, queue: queue)
 
@@ -281,14 +281,15 @@ struct ConvertOrchestrator: Sendable {
     /// キャンセルを監視して、待機中のワーカーを起こす。
     /// Why not 各ワーカーへ直接伝えるか: スケジューラの空き枠待ちとキューの取り出し待ちは
     /// continuationで止まっており、状態を変えるだけでは起きない（ADR 0054）。
+    /// Why not 一定周期でキャンセルをポーリングするか: 起床のたびにCPUを使い、
+    /// 反映も周期ぶん遅れる。`waitUntilCancelled()` なら起床はキャンセルの1回だけで、
+    /// 監視役が周期を決めなくてよい。awaitから戻ったあとは `isCancelled` を
+    /// 読み直してから後始末する（ADR 0052）。
     private static func cancelMonitor(
         control: RunControl, scheduler: BatchScheduler, queue: UpscaledQueue
     ) -> Task<Void, Never> {
         Task {
-            while !Task.isCancelled {
-                if await control.isCancelled { break }
-                try? await Task.sleep(nanoseconds: 100_000_000)
-            }
+            await control.waitUntilCancelled()
             guard await control.isCancelled else { return }
             await scheduler.close()
             await queue.finish()

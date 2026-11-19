@@ -190,6 +190,25 @@ struct AppSettingsFile: Codable, Equatable {
 final class SettingsStore: Sendable {
     let fileURL: URL
     private let lock = NSLock()
+    /// 直近に読んだ（または書いた）内容と、その引数。
+    /// Why not 保存のたびに `load()` し直すか: `load()` はファイル全体の読み込みと
+    /// 値の補正を行い、補正があれば書き戻しもする。入力欄やスライダーの操作ごとに
+    /// 呼ぶと1文字・1ステップごとにディスクI/Oが発生するため、同じ条件の結果を
+    /// 使い回す（差分保存の基点にもなる）。
+    private struct Cached {
+        var maxParallel: Int
+        var file: AppSettingsFile
+        /// 読み込み・書き込み時点のファイル更新日時。
+        /// Why not 時刻ではなく内容のハッシュで比較するか: 毎回の `load()` で
+        /// ファイルを読む必要が生まれ、キャッシュの意味がなくなるため。
+        var modifiedAt: Date?
+    }
+    /// 読み書きは `lock` で直列化するため、検査器にはunsafeと宣言して
+    /// `Sendable` を保つ。Why not `@unchecked` を外すか: 呼び出し側はactor境界を
+    /// またいでこのstoreを渡しており、不適合にすると多数の呼び出し箇所が壊れる。
+    /// Why not actor化するか: `load` / `save` は同期的に使われており、
+    /// 全面な非同期化はViewModel全体へ波及するため別の変更として扱う。
+    private nonisolated(unsafe) var cached: Cached?
 
     init(fileURL: URL) {
         self.fileURL = fileURL
@@ -199,6 +218,26 @@ final class SettingsStore: Sendable {
         self.init(fileURL: paths.settingsFileURL)
     }
 
+    /// 前回と同じ条件で、かつファイルが外部から書き換えられていなければ、
+    /// キャッシュした内容をそのまま返す。ディスクI/Oと値の補正を省く。
+    /// Why not 無条件でキャッシュを返すか: 設定画面など別の画面（別インスタンス）や
+    /// 外部の書き換えを取りこぼすと、古い値へ上書きして変更を消してしまうため。
+    private func currentCached(maxParallel: Int) -> AppSettingsFile? {
+        guard let cached, cached.maxParallel == maxParallel else { return nil }
+        let modifiedAt = Self.modificationDate(atPath: fileURL.path)
+        // 更新日時が取れない環境（ファイルが無い等）では安全側に倒して読み直す。
+        guard let modifiedAt, let recorded = cached.modifiedAt else { return nil }
+        // 更新日時が記録より後なら、他画面・他プロセスが書き換えたと判断して読み直す。
+        // Why not 内容のハッシュで比較するか: 毎回ファイルを読む必要が生まれ、
+        // キャッシュの意味がなくなるため。更新日時はディスクI/Oなしに取れる。
+        guard modifiedAt <= recorded else { return nil }
+        return cached.file
+    }
+
+    private static func modificationDate(atPath path: String) -> Date? {
+        try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate] as? Date
+    }
+
     /// 読み込む。無い・壊れている場合は初期値を保存して返す。
     /// 不正値は補正し、補正時はファイルを書き換える。
     /// 旧形式の `convert` / `batch` キーは `batchConvert` へ、
@@ -206,6 +245,16 @@ final class SettingsStore: Sendable {
     func load(maxParallel: Int) throws -> AppSettingsFile {
         lock.lock()
         defer { lock.unlock() }
+        if let cached = currentCached(maxParallel: maxParallel) {
+            return cached
+        }
+        let resolved = try loadUncached(maxParallel: maxParallel)
+        rememberLocked(resolved, maxParallel: maxParallel)
+        return resolved
+    }
+
+    /// キャッシュを使わずに読み込む。呼び出し側でロックを保持していること。
+    private func loadUncached(maxParallel: Int) throws -> AppSettingsFile {
         let defaults = AppSettingsFile(
             settings: .defaults(),
             batch: .defaults(maxParallel: maxParallel),
@@ -249,6 +298,54 @@ final class SettingsStore: Sendable {
         lock.lock()
         defer { lock.unlock() }
         try writeLocked(file)
+        rememberLocked(file, maxParallel: cached?.maxParallel ?? 0)
+    }
+
+    /// `settings.json` の一部だけを書き換える。現在の内容は `load()` と同じ条件で
+    /// 取得するため、呼び出し側が `load()` を先に呼ぶ必要がない。
+    /// Why not `load()` と `save()` を呼び出し側で組み合わせるか: 2回の間に別の画面が
+    /// 書き換えると古い内容で全体を上書きしてしまう。更新はこの中で直列化する。
+    /// - Parameter maxParallel: `load()` と同じ補正条件。値の範囲補正に使う。
+    /// - Returns: 書き込んだ内容。失敗した場合はnil。
+    @discardableResult
+    func update(
+        maxParallel: Int,
+        mutate: (inout AppSettingsFile) -> Void
+    ) -> AppSettingsFile? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard var file = try? loadUncached(maxParallel: maxParallel) else { return nil }
+        mutate(&file)
+        guard (try? writeLocked(file)) != nil else { return nil }
+        rememberLocked(file, maxParallel: maxParallel)
+        return file
+    }
+
+    /// セクション単位の差分更新。`update` へ渡すクロージャを組み立てるだけの糖衣。
+    /// Why not セクションごとに専用メソッドを増やすか: 設定型が増えるたびに
+    /// ほぼ同じ並びのメソッドが増え、変更点が散らばるため。
+    @discardableResult
+    func updateBatch(
+        maxParallel: Int, mutate: (inout BatchSettings) -> Void
+    ) -> BatchSettings? {
+        update(maxParallel: maxParallel) { file in
+            mutate(&file.batch)
+        }.map(\.batch)
+    }
+
+    /// `easyConvert` セクションの差分更新。`updateBatch` と対になる。
+    @discardableResult
+    func updateEasy(
+        maxParallel: Int, mutate: (inout EasyConvertSettings) -> Void
+    ) -> EasyConvertSettings? {
+        update(maxParallel: maxParallel) { file in
+            mutate(&file.easy)
+        }.map(\.easy)
+    }
+
+    private func rememberLocked(_ file: AppSettingsFile, maxParallel: Int) {
+        cached = Cached(
+            maxParallel: maxParallel, file: file, modifiedAt: Self.modificationDate(atPath: fileURL.path))
     }
 
     private func writeLocked(_ file: AppSettingsFile) throws {

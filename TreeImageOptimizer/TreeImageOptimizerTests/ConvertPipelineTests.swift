@@ -101,10 +101,10 @@ struct ConvertPipelineTests {
 
     @Test("SVT-AV1を使う種別は4:2:0のみ（4:4:4はエンコードに失敗する）")
     func avifCodecMatchesYuv() {
-        for (optimizeType, codec) in CompressionService.avifCodec {
-            let yuv = CompressionService.avifYuv[optimizeType, default: 420]
-            if codec == "svt" {
-                #expect(yuv == 420, "\(optimizeType) はSVT-AV1を使うため420である必要がある")
+        for optimizeType in OptimizeType.allCases {
+            let profile = CompressionService.profile(optimizeType: optimizeType, quality: 80)
+            if profile.avifCodec == AvifCodec.svt.rawValue {
+                #expect(profile.avifYuv == 420, "\(optimizeType) はSVT-AV1を使うため420である必要がある")
             }
         }
     }
@@ -625,6 +625,36 @@ struct ConvertPipelineRealCUGANTests {
         }
     }
 
+    @Test("Real-CUGAN実行後検証は静止画のみを通しマルチフレームを落とす")
+    func realCuganPostVerifyStillImageOnly() throws {
+        let fm = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: base, withIntermediateDirectories: true)
+        // 静止画の入力は総フレーム数1なので従来どおり通る。
+        let still = base.appendingPathComponent("still.png", isDirectory: false)
+        try Self.writePNG(width: 10, height: 8, to: still)
+        #expect(UpscaleService.imageFrameCount(of: still) == 1)
+        let stillOutput = base.appendingPathComponent("still-out.png", isDirectory: false)
+        try Self.writePNG(width: 20, height: 16, to: stillOutput)
+        let service = UpscaleService()
+        try service.postVerify(output: stillOutput, input: still, scale: 2)
+
+        // マルチフレーム入力は静止画専用の前提から外れるため検証で落ちる。
+        // 先頭フレームだけを見ると2枚目以降を見逃すため、前提の崩れを明示的に失敗にする。
+        let animated = base.appendingPathComponent("animated.gif", isDirectory: false)
+        try Self.writeAnimatedGIF(width: 10, height: 8, frameCount: 3, to: animated)
+        guard let frames = UpscaleService.imageFrameCount(of: animated), frames > 1 else {
+            Issue.record("テスト用GIFがマルチフレームとして読めなかった")
+            return
+        }
+        let animatedOutput = base.appendingPathComponent("animated-out.png", isDirectory: false)
+        try Self.writePNG(width: 20, height: 16, to: animatedOutput)
+        #expect(throws: AppError.self) {
+            try service.postVerify(output: animatedOutput, input: animated, scale: 2)
+        }
+    }
+
     /// テスト用の単色PNGを書き出す。
     static func writePNG(width: Int, height: Int, to url: URL) throws {
         let context = CGContext(
@@ -644,6 +674,30 @@ struct ConvertPipelineRealCUGANTests {
             throw CocoaError(.fileWriteUnknown)
         }
         CGImageDestinationAddImage(dest, image, nil)
+        guard CGImageDestinationFinalize(dest) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+    }
+
+    /// テスト用のマルチフレームGIFを書き出す。静止画専用の前提を外す入力の再現に使う。
+    static func writeAnimatedGIF(width: Int, height: Int, frameCount: Int, to url: URL) throws {
+        guard
+            let dest = CGImageDestinationCreateWithURL(url as CFURL, "com.compuserve.gif" as CFString, frameCount, nil)
+        else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        for frame in 0..<frameCount {
+            let context = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            guard let ctx = context else { throw CocoaError(.fileWriteUnknown) }
+            let level = Double(frame + 1) / Double(frameCount)
+            ctx.setFillColor(CGColor(red: level, green: level, blue: level, alpha: 1))
+            ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            guard let image = ctx.makeImage() else { throw CocoaError(.fileWriteUnknown) }
+            CGImageDestinationAddImage(dest, image, nil)
+        }
         guard CGImageDestinationFinalize(dest) else {
             throw CocoaError(.fileWriteUnknown)
         }

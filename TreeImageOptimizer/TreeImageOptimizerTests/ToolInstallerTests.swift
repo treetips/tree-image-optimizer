@@ -121,27 +121,72 @@ struct ToolInstallerTests {
 
     @Test("libwebpアーカイブ名の決定")
     func libwebpArchiveNames() {
+        // macOS専用のためarm64/x86_64のみを分岐する。
         #expect(
-            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "macos", arch: "arm64")
+            ToolInstaller.libwebpArchiveName(version: "1.6.0", arch: "arm64")
                 == "libwebp-1.6.0-mac-arm64.tar.gz")
         #expect(
-            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "macos", arch: "x86_64")
+            ToolInstaller.libwebpArchiveName(version: "1.6.0", arch: "x86_64")
                 == "libwebp-1.6.0-mac-x86-64.tar.gz")
-        #expect(
-            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "linux", arch: "x86_64")
-                == "libwebp-1.6.0-linux-x86-64.tar.gz")
-        #expect(
-            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "linux", arch: "aarch64")
-                == "libwebp-1.6.0-linux-aarch64.tar.gz")
-        #expect(
-            ToolInstaller.libwebpArchiveName(version: "1.6.0", platform: "windows", arch: "x86_64")
-                == "libwebp-1.6.0-windows-x64.zip")
     }
 
     @Test("SHA-256計算")
     func sha256() {
         let hex = ToolInstaller.sha256Hex(of: Data("abc".utf8))
         #expect(hex == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+    }
+
+    @Test("期待SHA-256が一致すれば検証を通る")
+    func verifyArchiveAcceptsMatchingDigest() throws {
+        let (installer, _) = try makeInstaller()
+        let payload = Data("archive-bytes".utf8)
+        let digest = ToolInstaller.sha256Hex(of: payload)
+        try installer.verifyArchive(data: payload, expected: digest, name: "sample.tar.gz")
+    }
+
+    @Test("期待SHA-256が不一致ならverificationFailedで落ちる")
+    func verifyArchiveRejectsMismatchedDigest() throws {
+        let (installer, _) = try makeInstaller()
+        // 大文字の期待値も小文字化して比較するため、大小文字違いは一致とみなす。
+        let digest = ToolInstaller.sha256Hex(of: Data("archive-bytes".utf8)).uppercased()
+        try installer.verifyArchive(data: Data("archive-bytes".utf8), expected: digest, name: "sample.tar.gz")
+
+        let wrong = ToolInstaller.sha256Hex(of: Data("tampered".utf8))
+        do {
+            try installer.verifyArchive(data: Data("archive-bytes".utf8), expected: wrong, name: "sample.tar.gz")
+            Issue.record("改ざんされたアーカイブが検証を通った")
+        } catch let error as AppError {
+            guard case .verificationFailed(let message) = error else {
+                Issue.record("想定外のエラー: \(error)")
+                return
+            }
+            #expect(message.contains("checksum mismatch for sample.tar.gz"))
+        }
+    }
+
+    @Test("期待SHA-256が未設定なら検証をスキップする")
+    func verifyArchiveSkipsWhenNotConfigured() throws {
+        let (installer, _) = try makeInstaller()
+        // Why not 未設定で落とさないか: ハッシュ未設定では検証自体が不可能であり、
+        // 取得を止めるより警告を残して継続する方が復旧しやすいため。
+        try installer.verifyArchive(data: Data("x".utf8), expected: nil, name: "unknown.zip")
+        try installer.verifyArchive(data: Data("x".utf8), expected: "", name: "unknown.zip")
+    }
+
+    @Test("一時的なネットワークエラーだけを再試行対象にする")
+    func classifiesTransientNetworkErrors() {
+        let timeout = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+        let connectionLost = NSError(domain: NSURLErrorDomain, code: NSURLErrorNetworkConnectionLost)
+        let reset = NSError(domain: NSPOSIXErrorDomain, code: Int(ECONNRESET))
+        #expect(ToolInstaller.isTransientNetworkError(timeout))
+        #expect(ToolInstaller.isTransientNetworkError(connectionLost))
+        #expect(ToolInstaller.isTransientNetworkError(reset))
+
+        // 恒久的失敗（証書エラー等）は再試行しない。
+        let badServer = NSError(domain: NSURLErrorDomain, code: NSURLErrorBadServerResponse)
+        let cancelled = NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled)
+        #expect(!ToolInstaller.isTransientNetworkError(badServer))
+        #expect(!ToolInstaller.isTransientNetworkError(cancelled))
     }
 
     @Test("Real-CUGANは必須ツール（未配置では未インストール・配置すれば判定が変わる）")

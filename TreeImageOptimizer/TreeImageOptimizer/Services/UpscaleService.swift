@@ -127,10 +127,36 @@ struct UpscaleService: Sendable {
     }
 
     /// 実行後検証。出力が存在しサイズが0より大きく、寸法が入力のscale倍であること。
+    ///
+    /// ここでの「寸法」は**総フレーム数と先頭フレーム**を見る。
+    /// 前提: 入力は静止画1枚（`TargetFiles.supportedExtensions` の jpg/jpeg/png/webp）。
+    /// `realcugan-ncnn-vulkan` と `upscayl-bin` はマルチフレーム（GIF/APNG/HEIF）を
+    /// アニメーションとして扱わず静止画として読み出すため、対応外としている。
+    ///
+    /// 静止画専用と割り切る理由（ADR 0063）:
+    /// 全フレームを検証するには、各フレームを `CGImageSourceCreateImageAtIndex` で
+    /// デコードして比較する必要があり、対象ファイルが数千枚になる一括変換では
+    /// アップスケール本体より検証のI/OとCPUが高くつく。現状は入力フィルタで
+    /// アニメーションを通さないため、先頭フレーム＋総フレーム数の検査で
+    /// 「モデル不在による黒画像」という検出したい失敗は十分に捕らえられる。
+    ///
+    /// Why not `CGImageSourceCopyPropertiesAtIndex(source, 0, nil)` だけで済ませるか:
+    /// index 0 が読めれば総フレーム数に関わらず検証が通ってしまい、
+    /// マルチフレーム入力が紛れたときに黙って見逃す。総フレーム数も見て
+    /// 前提が崩れたことを明示的に失敗にする。
     func postVerify(output: URL, input: URL, scale: Int) throws {
         let fm = FileManager.default
-        guard let inputDims = Self.imageDimensions(of: input) else {
+        guard let inputFrames = Self.imageFrameCount(of: input), inputFrames > 0,
+            let inputDims = Self.imageDimensions(of: input)
+        else {
             throw AppError.verificationFailed("input is not readable image: \(input.path)")
+        }
+        // マルチフレーム入力は静止画専用の前提から外れるため検証で落とす。
+        // Why not そのまま通すか: 先頭フレームだけ見ると2枚目以降が正しく
+        // 処理されていなくても成功扱いになり、前提が崩れていることに気づけない。
+        guard inputFrames == 1 else {
+            throw AppError.verificationFailed(
+                "input is multi-frame (\(inputFrames) frames), still images only: \(input.path)")
         }
         let expectedWidth = inputDims.width * scale
         let expectedHeight = inputDims.height * scale
@@ -158,10 +184,25 @@ struct UpscaleService: Sendable {
     }
 
     /// PNG等の寸法を `CGImageSource` で読む。失敗時はnil。
+    /// index 0（先頭フレーム）の寸法を返す。
     static func imageDimensions(of url: URL) -> (width: Int, height: Int)? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        return Self.dimensions(at: 0, of: source)
+    }
+
+    /// 画像の総フレーム数。`CGImageSourceGetCount` が使えない形式はnil。
+    /// 静止画は1、アニメーションGIF/APNGは2以上になる。
+    static func imageFrameCount(of url: URL) -> Int? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let count = CGImageSourceGetCount(source)
+        // Why not 0をそのまま返すか: デコードできない画像を「フレーム数0の正常な
+        // 画像」として扱うと、後段が0枚の画像を圧縮に回してしまう。
+        return count > 0 ? count : nil
+    }
+
+    private static func dimensions(at index: Int, of source: CGImageSource) -> (width: Int, height: Int)? {
         guard
-            let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+            let props = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
             let width = props[kCGImagePropertyPixelWidth] as? Int,
             let height = props[kCGImagePropertyPixelHeight] as? Int
         else { return nil }

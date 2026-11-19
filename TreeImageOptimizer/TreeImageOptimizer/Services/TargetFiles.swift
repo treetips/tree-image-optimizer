@@ -2,6 +2,11 @@ import Foundation
 
 /// 対象ファイル選定。Flutter版 `ConvertRepository.getTargetFiles` に対応する。
 enum TargetFiles {
+    /// 入力として受け付ける拡張子。**静止画のみ**。
+    /// `gif` と `heic` を含めない根拠: 外部アップスケーラ（`upscayl-bin` /
+    /// `realcugan-ncnn-vulkan`）はアニメーションをマルチフレームとして扱わず、
+    /// 先頭フレームだけを静止画として読み出す。出力検証（`UpscaleService.postVerify`）
+    /// も静止画1フレームを前提にしているため、ここで対象外にして前提を保つ（ADR 0063）。
     static let supportedExtensions = ["jpg", "jpeg", "png", "webp"]
 
     /// 更新日数が `days` 以内のファイルに絞る。`days == nil` で全件。

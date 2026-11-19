@@ -52,7 +52,16 @@ final class ConvertViewModel {
     let jobStore: ConvertJobStore
 
     // MARK: - ConversionSettings へのプロキシ
-    // Why not: 画面とテストのバインディングを変えずに、設定の実体を1か所へ寄せるため。
+    //
+    // Why not ここに並ぶプロキシをすべて残すか: 設定の実体が `settings` にあり、
+    // プロキシは同じ名前を二重に定義するだけになる。読み取り専用のものから
+    // `viewModel.settings.xxx` へ段階的に移し、ここは「画面が直接バインドする
+    // 可変項目」だけに絞る。`settings` は `@Observable` なため `@Bindable` で
+    // 直接バインドでき、SwiftUIの更新も伝わる。
+    //
+    // Why not 可変のプロキシも一度に消すか: `ConvertSettingsView` と
+    // `ConvertViewModelTests` が `$viewModel.scale` の形式で参照しており、
+    // 一括変更は差分が大きく回帰を見落としやすいため。
 
     var scale: Double {
         get { settings.scale }
@@ -62,7 +71,6 @@ final class ConvertViewModel {
         get { settings.selectedModel }
         set { settings.selectedModel = newValue }
     }
-    var models: [String] { settings.models }
     var engine: UpscaleEngine {
         get { settings.engine }
         set { settings.engine = newValue }
@@ -71,11 +79,6 @@ final class ConvertViewModel {
         get { settings.selectedRealCuganModel }
         set { settings.selectedRealCuganModel = newValue }
     }
-    var realCuganModels: [RealCUGANModel] { settings.realCuganModels }
-    var realCuganAvailable: Bool { settings.realCuganAvailable }
-    var scaleRange: ClosedRange<Double> { settings.scaleRange }
-    var modelOptions: [UpscaleModelOption] { settings.modelOptions }
-    var selectedModelID: String { settings.selectedModelID }
     var format: OutputFormat {
         get { settings.format }
         set { settings.format = newValue }
@@ -108,7 +111,6 @@ final class ConvertViewModel {
         get { settings.parallelCount }
         set { settings.parallelCount = newValue }
     }
-    var maxParallel: Double { settings.maxParallel }
 
     func selectModel(id: String) {
         settings.selectModel(id: id)
@@ -163,7 +165,7 @@ final class ConvertViewModel {
     private func loadBatchFields() {
         isLoading = true
         defer { isLoading = false }
-        guard let file = try? store.load(maxParallel: Int(maxParallel)) else { return }
+        guard let file = try? store.load(maxParallel: Int(settings.maxParallel)) else { return }
         let batch = file.batch
         if let filter = TargetFilter(rawValue: batch.targetFilter) { targetFilter = filter }
         inputFolderPath = batch.inputFolderPath ?? ""
@@ -179,18 +181,20 @@ final class ConvertViewModel {
 
     /// 画面固有の項目だけを保存する。変換設定は `ConversionSettings` が保存する。
     private func saveBatchFields() {
-        guard !isLoading, let file = try? store.load(maxParallel: Int(maxParallel)) else { return }
-        var updated = file
-        updated.batch.targetFilter = targetFilter.rawValue
-        updated.batch.inputFolderPath = inputFolderPath.isEmpty ? nil : inputFolderPath
-        updated.batch.outputFolderPath = outputFolderPath.isEmpty ? nil : outputFolderPath
-        updated.batch.showWaiting = showWaiting
-        updated.batch.showRunning = showRunning
-        updated.batch.showSuccess = showSuccess
-        updated.batch.showFailure = showFailure
-        updated.batch.showCancelled = showCancelled
-        updated.batch.modeNoteExpanded = modeNoteExpanded
-        try? store.save(updated)
+        guard !isLoading else { return }
+        // Why not `load()` してから `save()` するか: 入力欄の1文字ごとに設定ファイル
+        // 全体を読み直すことになる。差分更新ならI/Oは書き込みの1回だけになる。
+        store.updateBatch(maxParallel: Int(settings.maxParallel)) { batch in
+            batch.targetFilter = targetFilter.rawValue
+            batch.inputFolderPath = inputFolderPath.isEmpty ? nil : inputFolderPath
+            batch.outputFolderPath = outputFolderPath.isEmpty ? nil : outputFolderPath
+            batch.showWaiting = showWaiting
+            batch.showRunning = showRunning
+            batch.showSuccess = showSuccess
+            batch.showFailure = showFailure
+            batch.showCancelled = showCancelled
+            batch.modeNoteExpanded = modeNoteExpanded
+        }
     }
 
     private func validateFolders() {

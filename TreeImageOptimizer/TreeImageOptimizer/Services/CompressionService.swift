@@ -12,12 +12,55 @@ struct CompressionProfile: Sendable, Equatable {
     var pngQuality: Int
     var jxlEffort: Int
     var jxlExtra: [String]
-    var avifCodec: String
-    var avifSpeed: Int
-    var avifYuv: Int
-    var avifAdvanced: [String]
     var webpPreset: String
     var webpMethod: Int
+    /// `init` は `AvifParameters` をまとめて受け取り、codec と advanced の組み合わせが
+    /// 崩れないようにする。各値は既存の呼び出し・テストのため計算プロパティからも読める。
+    private var avif: AvifParameters
+
+    init(
+        quality: Int,
+        jpegQuality: Int,
+        pngQuality: Int,
+        jxlEffort: Int,
+        jxlExtra: [String],
+        avif: AvifParameters,
+        webpPreset: String,
+        webpMethod: Int
+    ) {
+        self.quality = quality
+        self.jpegQuality = jpegQuality
+        self.pngQuality = pngQuality
+        self.jxlEffort = jxlEffort
+        self.jxlExtra = jxlExtra
+        self.avif = avif
+        self.webpPreset = webpPreset
+        self.webpMethod = webpMethod
+    }
+
+    var avifCodec: String { avif.codec.rawValue }
+    var avifSpeed: Int { avif.speed }
+    var avifYuv: Int { avif.yuv }
+    var avifAdvanced: [String] { avif.advanced }
+}
+
+extension OptimizeTypeParameters {
+    /// 1ファイル分のエンコーダ設定に落とし込む。
+    /// JPEG / PNG の品質は最適化種別ごとの固定値だが、自動モードでは画質プリセットの
+    /// 品質を使うため、両方を外から差し替えられるようにしている。
+    func profile(quality: Int, lossyQuality: Int? = nil) -> CompressionProfile {
+        let lossy = lossyQuality ?? jpegQuality
+        return CompressionProfile(
+            quality: quality,
+            jpegQuality: lossy,
+            pngQuality: lossyQuality ?? pngQuality,
+            jxlEffort: jxlEffort,
+            jxlExtra: jxlExtra,
+            avif: avif,
+            webpPreset: webpPreset,
+            webpMethod: webpMethod
+        )
+    }
 }
 
 /// 画像圧縮実行。Flutter版 `CompressionService` に対応する。
@@ -31,107 +74,110 @@ struct CompressionService: Sendable {
 
     // MARK: - Tables
 
-    static let jpegQuality: [OptimizeType: Int] = [
-        .anime: 75, .photo: 80, .speed: 60, .quality: 95
+    /// 最適化種別ごとのパラメータ。値は実測で決めたもので、`OptimizeType` の追加は
+    /// この1か所だけで済む（ADR 0061）。
+    /// AVIF の値の根拠は ADR 0037（エンコーダ振り分け）と ADR 0040（速度とクオリティ）。
+    static let parameters: [OptimizeType: OptimizeTypeParameters] = [
+        .anime: OptimizeTypeParameters(
+            jpegQuality: 75,
+            pngQuality: 75,
+            jxlEffort: 7,
+            jxlExtra: ["--lossless_jpeg=0"],
+            // 4:4:4 を指定するため libaom を使う。`cq-level` はサイズ増を抑えるため
+            // 20→22 に上げた（VMAF は実測で不変。ADR 0040）。
+            avif: AvifParameters(
+                codec: .aom, speed: 3, yuv: 444,
+                advanced: ["-a", "end-usage=q", "-a", "cq-level=22"]),
+            webpPreset: "drawing",
+            webpMethod: 4
+        ),
+        .photo: OptimizeTypeParameters(
+            jpegQuality: 80,
+            pngQuality: 80,
+            jxlEffort: 7,
+            jxlExtra: ["--lossless_jpeg=0"],
+            // SVT-AV1 は 4:2:0 のみ。`--speed` は 4→6 に上げて2.9倍速くし、
+            // 増えたサイズを `crf` 11→12 で抑えた（ADR 0040）。
+            avif: AvifParameters(
+                codec: .svt, speed: 6, yuv: 420,
+                advanced: ["-a", "crf=12"]),
+            webpPreset: "photo",
+            webpMethod: 4
+        ),
+        .speed: OptimizeTypeParameters(
+            jpegQuality: 60,
+            pngQuality: 60,
+            jxlEffort: 7,
+            jxlExtra: ["--lossless_jpeg=0"],
+            // 品質は advanced option を渡さず `-q` に従わせるため、advanced は空。
+            avif: AvifParameters(codec: .svt, speed: 8, yuv: 420, advanced: []),
+            webpPreset: "default",
+            webpMethod: 0
+        ),
+        .quality: OptimizeTypeParameters(
+            jpegQuality: 95,
+            pngQuality: 95,
+            jxlEffort: 9,
+            jxlExtra: ["--lossless_jpeg=0"],
+            // 4:4:4 のため libaom。`--speed` は画質優先で据え置き（ADR 0040）。
+            avif: AvifParameters(
+                codec: .aom, speed: 4, yuv: 444,
+                advanced: ["-a", "end-usage=q", "-a", "cq-level=18"]),
+            webpPreset: "photo",
+            webpMethod: 6
+        )
     ]
 
-    static let pngQuality: [OptimizeType: Int] = [
-        .anime: 75, .photo: 80, .speed: 60, .quality: 95
+    /// 自動モードでコンテンツ種別から選ぶ AVIF のエンコーダ本体。
+    /// 実写は SVT-AV1（4:2:0）、それ以外は libaom（4:4:4）で、固定モードと同じ対応。
+    /// `--speed` は画質プリセットごとに変わるため、コンテンツ種別が決めるのは
+    /// エンコーダとクロマサブサンプリングと advanced option だけ。
+    static let autoAvif: [ContentType: AvifParameters] = [
+        .anime: AvifParameters(codec: .aom, speed: 0, yuv: 444, advanced: ["-a", "end-usage=q"]),
+        .photo: AvifParameters(codec: .svt, speed: 0, yuv: 420, advanced: [])
     ]
 
-    static let jxlEffort: [OptimizeType: Int] = [
-        .anime: 7, .photo: 7, .speed: 7, .quality: 9
-    ]
-
-    static let jxlExtraOpts: [OptimizeType: [String]] = [
-        .anime: ["--lossless_jpeg=0"],
-        .photo: ["--lossless_jpeg=0"],
-        .speed: ["--lossless_jpeg=0"],
-        .quality: ["--lossless_jpeg=0"]
-    ]
-
-    /// 速度プリセット。アニメ・画質最優先はlibaom、実写・速度優先はSVT-AV1を使う。
-    /// 実写を4→6に上げ、AVIFとJPEG XLの速度差を広げた（ADR 0040）。
-    /// libaom側は画質優先のため据え置く。
-    static let avifSpeed: [OptimizeType: Int] = [
-        .anime: 3, .photo: 6, .speed: 8, .quality: 4
-    ]
-
-    /// 出力のクロマサブサンプリング。SVT-AV1が4:2:0のみ対応のため、
-    /// SVTを使う種別は必ず420にする（ADR 0037）。
-    static let avifYuv: [OptimizeType: Int] = [
-        .anime: 444, .photo: 420, .speed: 420, .quality: 444
-    ]
-
-    /// AVIFのエンコーダ選択。SVT-AV1は4:2:0しか受け付けないため、
-    /// 4:4:4を指定する種別はlibaomのままにする（ADR 0037）。
-    static let avifCodec: [OptimizeType: String] = [
-        .anime: "aom", .photo: "svt", .speed: "svt", .quality: "aom"
-    ]
-
-    /// libaomのadvanced option。速度を上げた分のサイズ増を抑えるため、
-    /// クオリティ指定を一段下げた（アニメ20→22、画質16→18）。VMAFは実測で不変（ADR 0040）。
-    static let avifAomOpts: [OptimizeType: [String]] = [
-        .anime: ["-a", "end-usage=q", "-a", "cq-level=22"],
-        .photo: ["-a", "end-usage=q", "-a", "cq-level=22"],
-        .speed: [],
-        .quality: ["-a", "end-usage=q", "-a", "cq-level=18"]
-    ]
-
-    /// SVT-AV1のadvanced option。品質はCRFで決めるため、libaomの `cq-level` とは
-    /// 値の意味が違う。photoは `--speed` を6に上げたため、サイズ増を抑える目的で
-    /// `crf` を12にした（1536x2752で 113KB→116KB、VMAF 95.41→95.38、速度2.9倍。ADR 0040）。
-    /// 速度優先はlibaomと同じくadvanced optionを渡さず `-q` に従わせる。
-    static let avifSvtOpts: [OptimizeType: [String]] = [
-        .photo: ["-a", "crf=12"],
-        .speed: []
-    ]
-
-    static let webpPreset: [OptimizeType: String] = [
-        .anime: "drawing", .photo: "photo", .speed: "default", .quality: "photo"
-    ]
-
-    static let webpMethod: [OptimizeType: Int] = [
-        .anime: 4, .photo: 4, .speed: 0, .quality: 6
+    /// 自動モードでコンテンツ種別から選ぶ WebP のプリセット。
+    static let autoWebpPreset: [ContentType: String] = [
+        .anime: "drawing",
+        .photo: "photo"
     ]
 
     // MARK: - Profiles
 
+    /// 最適化種別のパラメータ。`OptimizeType` は `CaseIterable` なので網羅されており、
+    /// Why not `default:` でフォールバックするか: 表の漏れを既定値で隠さず、
+    /// 新 case の追加時にここで気づけるようにするため。
+    static func params(_ optimizeType: OptimizeType) -> OptimizeTypeParameters {
+        guard let parameters = parameters[optimizeType] else {
+            AppLogger.shared.error("missing optimize type parameters: \(optimizeType.rawValue)")
+            return Self.parameters[.anime]!
+        }
+        return parameters
+    }
+
     /// 固定モードのプロファイル。従来の最適化種別の表をそのまま使う。
     static func profile(optimizeType: OptimizeType, quality: Int) -> CompressionProfile {
-        let codec = avifCodec[optimizeType, default: "aom"]
-        return CompressionProfile(
-            quality: quality,
-            jpegQuality: jpegQuality[optimizeType, default: 80],
-            pngQuality: pngQuality[optimizeType, default: 80],
-            jxlEffort: jxlEffort[optimizeType, default: 7],
-            jxlExtra: jxlExtraOpts[optimizeType] ?? [],
-            avifCodec: codec,
-            avifSpeed: avifSpeed[optimizeType, default: 6],
-            avifYuv: avifYuv[optimizeType, default: 420],
-            avifAdvanced: codec == "svt" ? (avifSvtOpts[optimizeType] ?? []) : (avifAomOpts[optimizeType] ?? []),
-            webpPreset: webpPreset[optimizeType, default: "default"],
-            webpMethod: webpMethod[optimizeType, default: 4]
-        )
+        params(optimizeType).profile(quality: quality)
     }
 
     /// 自動モードのプロファイル。品質値はプリセットを起点にBPPで補正したもの。
     /// Why not: 従来の `cq-level` / `crf` を併用すると、`-q` より優先されて
     /// 画質プリセットの変更が効かなくなるため、自動モードでは渡さない。
     static func profile(contentType: ContentType, preset: QualityPreset, quality: Int) -> CompressionProfile {
-        let codec = contentType == .photo ? "svt" : "aom"
+        let presetParameters = preset.parameters
+        var avif = autoAvif[contentType] ?? autoAvif[.anime]!
+        // 固定モードは種別ごとの実測値を使うが、自動モードは画質プリセットで速度を決める。
+        avif.speed = presetParameters.avifSpeed
         return CompressionProfile(
             quality: quality,
             jpegQuality: quality,
             pngQuality: quality,
-            jxlEffort: preset.jxlEffort,
-            jxlExtra: jxlExtraOpts[.anime] ?? [],
-            avifCodec: codec,
-            avifSpeed: preset.avifSpeed,
-            avifYuv: contentType == .photo ? 420 : 444,
-            avifAdvanced: codec == "aom" ? ["-a", "end-usage=q"] : [],
-            webpPreset: contentType == .photo ? "photo" : "drawing",
-            webpMethod: preset.webpMethod
+            jxlEffort: presetParameters.jxlEffort,
+            jxlExtra: params(.anime).jxlExtra,
+            avif: avif,
+            webpPreset: autoWebpPreset[contentType] ?? "drawing",
+            webpMethod: presetParameters.webpMethod
         )
     }
 
@@ -331,38 +377,6 @@ struct CompressionService: Sendable {
         CGImageDestinationAddImage(dest, image, nil)
         guard CGImageDestinationFinalize(dest) else {
             throw AppError.processFailed(executable: "CGImageDestination", exitCode: -1, output: output.path)
-        }
-    }
-}
-
-extension QualityPreset {
-    /// JPEG XL の effort。画質を優先するほど高い。
-    var jxlEffort: Int {
-        switch self {
-        case .best: return 9
-        case .high: return 7
-        case .medium: return 5
-        case .low: return 3
-        }
-    }
-
-    /// AVIF の `--speed`。数値が大きいほど高速・低画質。
-    var avifSpeed: Int {
-        switch self {
-        case .best: return 2
-        case .high: return 4
-        case .medium: return 6
-        case .low: return 8
-        }
-    }
-
-    /// WebP の `-m`。数値が大きいほど高画質・低速。
-    var webpMethod: Int {
-        switch self {
-        case .best: return 6
-        case .high: return 4
-        case .medium: return 2
-        case .low: return 0
         }
     }
 }
