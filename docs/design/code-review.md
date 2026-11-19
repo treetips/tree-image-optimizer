@@ -10,8 +10,8 @@
 - 疎通確認: `ocr llm test`
 - 実行: `ocr review`（ワークスペース）、`ocr review --from main --to <branch>`（ブランチ区間）
   重要な内容の際は `--effort high`、モデルを上げるときは `ocr config set model deepseek-v4-pro`。
-- `ocr` のレビュー対象はコードのみで、Markdown は対象外（`unsupported_ext`）。
-  ドキュメントだけの変更では指摘が 0 件になるため、別途レビューする。
+- レビュー対象はSwift関連のみで、`.md` 等のドキュメントは不要。
+  - `ocr` はMarkdownをレビューしない（`unsupported_ext`）。ドキュメントだけの変更では指摘が0件になる。
 - レビューはPR作成前に実行する。
   - 指摘はそのまま適用せず、本当に必要かどうかを検討する。
 - レビュー観点は `.opencodereview/rule.json` で共有。観点を変える場合はすぐに確認する。
