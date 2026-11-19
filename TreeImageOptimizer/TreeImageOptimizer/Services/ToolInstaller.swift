@@ -420,17 +420,17 @@ extension ToolInstaller {
         if nsError.domain == NSURLErrorDomain {
             switch nsError.code {
             case NSURLErrorTimedOut,
-                 NSURLErrorCannotFindHost,
-                 NSURLErrorCannotConnectToHost,
-                 NSURLErrorNetworkConnectionLost,
-                 NSURLErrorDNSLookupFailed,
-                 NSURLErrorNotConnectedToInternet,
-                 NSURLErrorInternationalRoamingOff,
-                 NSURLErrorCallIsActive,
-                 NSURLErrorDataNotAllowed,
-                 NSURLErrorRequestBodyStreamExhausted,
-                 NSURLErrorDownloadDecodingFailedMidStream,
-                 NSURLErrorBackgroundSessionWasDisconnected:
+                NSURLErrorCannotFindHost,
+                NSURLErrorCannotConnectToHost,
+                NSURLErrorNetworkConnectionLost,
+                NSURLErrorDNSLookupFailed,
+                NSURLErrorNotConnectedToInternet,
+                NSURLErrorInternationalRoamingOff,
+                NSURLErrorCallIsActive,
+                NSURLErrorDataNotAllowed,
+                NSURLErrorRequestBodyStreamExhausted,
+                NSURLErrorDownloadDecodingFailedMidStream,
+                NSURLErrorBackgroundSessionWasDisconnected:
                 return true
             default:
                 return false
