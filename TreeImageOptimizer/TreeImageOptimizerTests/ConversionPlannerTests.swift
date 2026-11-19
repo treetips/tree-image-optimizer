@@ -113,6 +113,49 @@ struct ConversionPlannerTests {
         #expect(same.height == 2880)
     }
 
+    @Test("パラメータ表は全ての最適化種別を網羅する")
+    func parametersCoverAllOptimizeTypes() {
+        for optimizeType in OptimizeType.allCases {
+            #expect(
+                CompressionService.parameters[optimizeType] != nil,
+                "\(optimizeType) のパラメータが1テーブルに定義されていること")
+        }
+        #expect(CompressionService.parameters.count == OptimizeType.allCases.count)
+    }
+
+    @Test("自動モードのAVIFとWebPは全てのコンテンツ種別を網羅する")
+    func autoTablesCoverAllContentTypes() {
+        for contentType in ContentType.allCases {
+            #expect(CompressionService.autoAvif[contentType] != nil)
+            #expect(CompressionService.autoWebpPreset[contentType] != nil)
+        }
+        #expect(CompressionService.autoAvif.count == ContentType.allCases.count)
+        #expect(CompressionService.autoWebpPreset.count == ContentType.allCases.count)
+    }
+
+    @Test("SVT-AV1には4:2:0以外を指定できない")
+    func svtForcesYuv420() {
+        // 444を渡してもSVT-AV1では420に矯正される（444のままだとエンコードに失敗する）。
+        let avif = AvifParameters(codec: .svt, speed: 6, yuv: 444, advanced: [])
+        #expect(avif.yuv == 420)
+        #expect(AvifParameters(codec: .aom, speed: 3, yuv: 444, advanced: []).yuv == 444)
+    }
+
+    @Test("画質プリセットの調整値は1テーブルで対応が決まる")
+    func qualityPresetParameters() {
+        for preset in QualityPreset.allCases {
+            #expect(preset.jxlEffort == preset.parameters.jxlEffort)
+            #expect(preset.avifSpeed == preset.parameters.avifSpeed)
+            #expect(preset.webpMethod == preset.parameters.webpMethod)
+        }
+        // 画質を優先するほど低速・高圧縮へ振れる。
+        let best = QualityPreset.best.parameters
+        let low = QualityPreset.low.parameters
+        #expect(best.jxlEffort > low.jxlEffort)
+        #expect(best.avifSpeed < low.avifSpeed)
+        #expect(best.webpMethod > low.webpMethod)
+    }
+
     @Test("自動モードのアニメは4:4:4のlibaom、実写は4:2:0のSVT-AV1")
     func autoProfiles() {
         let anime = CompressionService.profile(

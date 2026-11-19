@@ -57,6 +57,67 @@ enum OptimizeType: String, Hashable, Identifiable, CaseIterable {
     var id: String { rawValue }
 }
 
+// MARK: - Compression parameters
+
+/// AVIFエンコーダの種別。
+/// Why not `String` で `"aom"` / `"svt"` を持つか: タイポが実行時まで検出されず、
+/// 値を見て別のパラメータ表を選ぶ分岐（`codec == "svt"`）が生まれていたため。ADR 0061。
+enum AvifCodec: String, Hashable, Sendable, Equatable {
+    case aom
+    case svt
+
+    /// SVT-AV1 は 4:2:0 しか受け付けないため、使えるクロマサブサンプリングが決まる（ADR 0037）。
+    var supportsYuv444: Bool {
+        switch self {
+        case .aom: return true
+        case .svt: return false
+        }
+    }
+}
+
+/// AVIF のエンコーダ設定。
+/// codec と advanced を1つに持つことで、呼び出し側が codec の値を見て
+/// 別の表を引き直す分岐を書かずに済む（ADR 0061）。
+struct AvifParameters: Sendable, Equatable {
+    var codec: AvifCodec
+    var speed: Int
+    var yuv: Int
+    var advanced: [String]
+
+    /// SVT-AV1 は 4:2:0 のみ。4:4:4 を指定するとエンコードが失敗するため生成時に担保する。
+    init(codec: AvifCodec, speed: Int, yuv: Int, advanced: [String]) {
+        self.codec = codec
+        self.speed = speed
+        self.yuv = codec.supportsYuv444 ? yuv : 420
+        self.advanced = advanced
+    }
+}
+
+/// 最適化種別ごとの圧縮パラメータ。
+/// Why not 種別→値の辞書を項目ごとに持つか: 1種別を追加・変更するのに8〜11か所の
+/// 修正が必要で、表の対応が崩れても気づけなかったため。ADR 0061 で1テーブルに集約した。
+struct OptimizeTypeParameters: Sendable, Equatable {
+    var jpegQuality: Int
+    var pngQuality: Int
+    var jxlEffort: Int
+    var jxlExtra: [String]
+    var avif: AvifParameters
+    var webpPreset: String
+    var webpMethod: Int
+}
+
+/// 画質プリセットごとのエンコーダ調整値。
+/// Why not `QualityPreset` に計算プロパティを3本並べるか: プリセット間の対応
+/// （JPEG XL effort / AVIF speed / WebP method）が離れた場所に散らばり、
+/// 自動モードの1プリセットを調整するのに3か所を見比べる必要があったため。ADR 0061。
+struct QualityPresetParameters: Sendable, Equatable {
+    var jxlEffort: Int
+    /// AVIF の `--speed`。数値が大きいほど高速・低画質。
+    var avifSpeed: Int
+    /// WebP の `-m`。数値が大きいほど高画質・低速。
+    var webpMethod: Int
+}
+
 /// 変換モード。`fixed` は従来どおり全ファイル共通の設定で変換し、
 /// `auto` は画像ごとに目標解像度と圧縮品質を決める（ADR 0049）。
 enum ConvertMode: String, Hashable, Identifiable, CaseIterable, Sendable {
@@ -158,6 +219,25 @@ enum QualityPreset: String, Hashable, Identifiable, CaseIterable, Sendable {
         case .low: return 40
         }
     }
+
+    /// プリセットごとのエンコーダ調整値。画質を優先するほど低速・高圧縮に振る。
+    var parameters: QualityPresetParameters {
+        switch self {
+        case .best: return QualityPresetParameters(jxlEffort: 9, avifSpeed: 2, webpMethod: 6)
+        case .high: return QualityPresetParameters(jxlEffort: 7, avifSpeed: 4, webpMethod: 4)
+        case .medium: return QualityPresetParameters(jxlEffort: 5, avifSpeed: 6, webpMethod: 2)
+        case .low: return QualityPresetParameters(jxlEffort: 3, avifSpeed: 8, webpMethod: 0)
+        }
+    }
+
+    /// JPEG XL の effort。画質を優先するほど高い。
+    var jxlEffort: Int { parameters.jxlEffort }
+
+    /// AVIF の `--speed`。数値が大きいほど高速・低画質。
+    var avifSpeed: Int { parameters.avifSpeed }
+
+    /// WebP の `-m`。数値が大きいほど高画質・低速。
+    var webpMethod: Int { parameters.webpMethod }
 }
 
 /// アップスケーラーのエンジン。`upscayl-bin` と `realcugan-ncnn-vulkan` の二択。

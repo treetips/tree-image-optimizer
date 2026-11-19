@@ -101,10 +101,10 @@ struct ConvertPipelineTests {
 
     @Test("SVT-AV1を使う種別は4:2:0のみ（4:4:4はエンコードに失敗する）")
     func avifCodecMatchesYuv() {
-        for (optimizeType, codec) in CompressionService.avifCodec {
-            let yuv = CompressionService.avifYuv[optimizeType, default: 420]
-            if codec == "svt" {
-                #expect(yuv == 420, "\(optimizeType) はSVT-AV1を使うため420である必要がある")
+        for optimizeType in OptimizeType.allCases {
+            let profile = CompressionService.profile(optimizeType: optimizeType, quality: 80)
+            if profile.avifCodec == AvifCodec.svt.rawValue {
+                #expect(profile.avifYuv == 420, "\(optimizeType) はSVT-AV1を使うため420である必要がある")
             }
         }
     }
