@@ -177,7 +177,7 @@ struct ToolInstallerTests {
     func classifiesTransientNetworkErrors() {
         let timeout = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
         let connectionLost = NSError(domain: NSURLErrorDomain, code: NSURLErrorNetworkConnectionLost)
-        let reset = NSError(domain: NSPOSIXErrorDomain, code: ECONNRESET)
+        let reset = NSError(domain: NSPOSIXErrorDomain, code: Int(ECONNRESET))
         #expect(ToolInstaller.isTransientNetworkError(timeout))
         #expect(ToolInstaller.isTransientNetworkError(connectionLost))
         #expect(ToolInstaller.isTransientNetworkError(reset))
