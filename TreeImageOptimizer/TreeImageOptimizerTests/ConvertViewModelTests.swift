@@ -51,14 +51,14 @@ struct ConvertViewModelRealCUGANTests {
         let viewModel = try makeViewModel(base: base)
         viewModel.engine = .realCUGAN
         viewModel.selectModel(id: "models-se/up2x-denoise3x")
-        #expect(viewModel.selectedModelID == "models-se/up2x-denoise3x")
+        #expect(viewModel.settings.selectedModelID == "models-se/up2x-denoise3x")
 
         // プルダウンで選択した値がそのまま設定ファイルへ書き込まれている。
         #expect(try store.load(maxParallel: 8).batch.realCuganModel == "models-se/up2x-denoise3x")
 
         // 画面遷移などでViewModelを再生成しても選択が復元される。
         let reloaded = try makeViewModel(base: base)
-        #expect(reloaded.selectedModelID == "models-se/up2x-denoise3x")
+        #expect(reloaded.settings.selectedModelID == "models-se/up2x-denoise3x")
     }
 
     @Test("拡大率を変えると対応する拡大率のモデルへ切り替わり、保存もされる")
@@ -78,9 +78,9 @@ struct ConvertViewModelRealCUGANTests {
         // 拡大率4に合わせて4xモデルへ切り替わる（拡大率2のまま残らない）。
         viewModel.scale = 4
         // フォールバックは保守版（ncnn版の既定値）。一覧は弱い順に no-denoise → conservative。
-        #expect(viewModel.selectedModelID == "models-se/up4x-conservative")
+        #expect(viewModel.settings.selectedModelID == "models-se/up4x-conservative")
         #expect(
-            viewModel.modelOptions.map(\.id)
+            viewModel.settings.modelOptions.map(\.id)
                 == ["models-se/up4x-no-denoise", "models-se/up4x-conservative"])
         #expect(try store.load(maxParallel: 8).batch.realCuganModel == "models-se/up4x-conservative")
     }
@@ -99,7 +99,7 @@ struct ConvertViewModelRealCUGANTests {
         let viewModel = try makeViewModel(base: base)
         viewModel.engine = .realCUGAN
         #expect(
-            viewModel.modelOptions.map(\.id) == [
+            viewModel.settings.modelOptions.map(\.id) == [
                 "models-se/up2x-no-denoise", "models-se/up2x-conservative",
                 "models-se/up2x-denoise1x", "models-se/up2x-denoise2x", "models-se/up2x-denoise3x"
             ])
@@ -118,7 +118,7 @@ struct ConvertViewModelRealCUGANTests {
 
         // tools/realcugan が無い状態（起動時ダウンロード前）でも選択は維持される。
         let viewModel = try makeViewModel(base: base)
-        #expect(viewModel.selectedModelID == "models-se/up4x-denoise3x")
+        #expect(viewModel.settings.selectedModelID == "models-se/up4x-denoise3x")
         #expect(try store.load(maxParallel: 8).batch.realCuganModel == "models-se/up4x-denoise3x")
     }
 
@@ -159,8 +159,8 @@ struct ConvertViewModelRealCUGANTests {
         let base = try makeBase()
         let viewModel = try makeViewModel(base: base)
         // 初期化はブートストラップの完了前に走るため、この時点では未配置扱い。
-        #expect(!viewModel.realCuganAvailable)
-        #expect(viewModel.models == ["realesr-animevideov3-x4"])
+        #expect(!viewModel.settings.realCuganAvailable)
+        #expect(viewModel.settings.models == ["realesr-animevideov3-x4"])
 
         // 展開完了を再現して配置し、再読込する。
         try makeRealCuganTools(base: base, names: ["up2x-conservative", "up4x-conservative"])
@@ -170,9 +170,9 @@ struct ConvertViewModelRealCUGANTests {
             atPath: models.appendingPathComponent("m.bin").path, contents: Data("x".utf8))
         viewModel.reloadTools()
 
-        #expect(viewModel.realCuganAvailable)
-        #expect(viewModel.realCuganModels.count == 2)
-        #expect(viewModel.models == ["m"])
+        #expect(viewModel.settings.realCuganAvailable)
+        #expect(viewModel.settings.realCuganModels.count == 2)
+        #expect(viewModel.settings.models == ["m"])
     }
 }
 
