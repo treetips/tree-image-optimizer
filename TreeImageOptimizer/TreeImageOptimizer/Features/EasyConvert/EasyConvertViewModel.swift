@@ -26,7 +26,14 @@ final class EasyConvertViewModel {
     let jobStore: EasyConvertJobStore
 
     // MARK: - ConversionSettings へのプロキシ
-    // Why not: 画面とテストのバインディングを変えずに、設定の実体を1か所へ寄せるため。
+    //
+    // Why not 読み取り専用のプロキシ（`models` `modelOptions` `realCuganAvailable` 等）を
+    // 残すか: 実体が `settings` にあり二重定義になる。`settings` は `@Observable` なので
+    // `viewModel.settings.xxx` で直接バインドでき、SwiftUIの更新も伝わる。
+    // 一括変換画面の `ConvertViewModel` と方針を揃える。
+    //
+    // Why not 可変のプロキシも一度に消すか: `EasyConvertView` が `$viewModel.scale` の
+    // 形式で参照しており、一括変更は差分が大きく回帰を見落としやすいため。
 
     var scale: Double {
         get { settings.scale }
@@ -36,7 +43,6 @@ final class EasyConvertViewModel {
         get { settings.selectedModel }
         set { settings.selectedModel = newValue }
     }
-    var models: [String] { settings.models }
     var engine: UpscaleEngine {
         get { settings.engine }
         set { settings.engine = newValue }
@@ -45,11 +51,6 @@ final class EasyConvertViewModel {
         get { settings.selectedRealCuganModel }
         set { settings.selectedRealCuganModel = newValue }
     }
-    var realCuganModels: [RealCUGANModel] { settings.realCuganModels }
-    var realCuganAvailable: Bool { settings.realCuganAvailable }
-    var scaleRange: ClosedRange<Double> { settings.scaleRange }
-    var modelOptions: [UpscaleModelOption] { settings.modelOptions }
-    var selectedModelID: String { settings.selectedModelID }
     var format: OutputFormat {
         get { settings.format }
         set { settings.format = newValue }
@@ -62,7 +63,6 @@ final class EasyConvertViewModel {
         get { settings.quality }
         set { settings.quality = newValue }
     }
-    var maxParallel: Double { settings.maxParallel }
 
     func selectModel(id: String) {
         settings.selectModel(id: id)
@@ -93,6 +93,9 @@ final class EasyConvertViewModel {
 
     private let store: SettingsStore
     private var isLoading = false
+    /// 並列数の上限。保存値の範囲補正に使う。画面には出さないため `settings` から取り、
+    /// ViewModel外部へは公開しない（画面側のプロキシを増やさないため）。
+    private var maxParallel: Double { settings.maxParallel }
 
     init(
         paths: AppPaths = AppPaths(),
@@ -117,10 +120,12 @@ final class EasyConvertViewModel {
 
     /// 画面固有の項目だけを保存する。変換設定は `ConversionSettings` が保存する。
     private func saveEasyFields() {
-        guard !isLoading, let file = try? store.load(maxParallel: Int(maxParallel)) else { return }
-        var updated = file
-        updated.easy.outputFolderPath = outputFolderPath.isEmpty ? nil : outputFolderPath
-        try? store.save(updated)
+        guard !isLoading else { return }
+        // Why not `load()` してから `save()` するか: 設定ファイル全体の読み直しが
+        // 入力のたびに走る。差分更新なら書き込みの1回だけで済む。
+        store.updateEasy(maxParallel: Int(maxParallel)) { easy in
+            easy.outputFolderPath = outputFolderPath.isEmpty ? nil : outputFolderPath
+        }
     }
 
     private func validateOutputFolder() {

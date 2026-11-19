@@ -148,4 +148,42 @@ struct ConvertPauseCancelTests {
         await queue.finish()
         #expect(await queue.next() == nil, "再開を待たずにワーカーが終わること")
     }
+
+    // MARK: - キャンセル待機（ポーリング排除）
+
+    @Test("キャンセル待ちは通知で再開し、一時停止・再開では起きない")
+    func waitUntilCancelledWakesOnlyOnCancel() async {
+        let control = RunControl()
+        let waiter = Task { await control.waitUntilCancelled() }
+        // 待機に入る前に操作すると取りこぼすため、少し待ってから一時停止・再開する。
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        await control.pause()
+        await control.resume()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        #expect(!waiter.isCancelled, "一時停止・再開では待機が終わらないこと")
+        await control.cancel()
+        await waiter.value
+        #expect(await control.isCancelled)
+    }
+
+    @Test("キャンセル済みのcontrolに対する待機は即座に返る")
+    func waitUntilCancelledReturnsImmediatelyWhenAlreadyCancelled() async {
+        let control = RunControl()
+        await control.cancel()
+        // ポーリング実装だと周期ぶん待たされるが、通知であれば即座に戻る。
+        await control.waitUntilCancelled()
+        #expect(await control.isCancelled)
+    }
+
+    @Test("複数の待機者がいても全員がキャンセルで再開する")
+    func waitUntilCancelledWakesAllWaiters() async {
+        let control = RunControl()
+        let first = Task { await control.waitUntilCancelled() }
+        let second = Task { await control.waitUntilCancelled() }
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        await control.cancel()
+        await first.value
+        await second.value
+        #expect(await control.isCancelled)
+    }
 }

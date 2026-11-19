@@ -207,32 +207,37 @@ final class ConversionSettings {
     }
 
     private func persist() {
-        guard !isLoading, let file = try? store.load(maxParallel: Int(maxParallel)) else { return }
-        var updated = file
+        guard !isLoading else { return }
+        // Why not `load()` してから `save()` するか: 保存のたびに設定ファイル全体を
+        // 読み直すと、スライダーや入力欄の操作ごとにディスクI/Oが発生する。
+        // 差分更新なら現在の内容の取得と書き込みがstore内で直列化される。
         switch scope {
         case .batch:
-            updated.batch.scale = Int(scale)
-            updated.batch.model = selectedModel
-            updated.batch.format = format.rawValue
-            updated.batch.optimizeType = optimizeType.rawValue
-            updated.batch.quality = Int(quality)
-            updated.batch.mode = mode.rawValue
-            updated.batch.contentType = contentType.rawValue
-            updated.batch.targetSize = targetSize.rawValue
-            updated.batch.qualityPreset = qualityPreset.rawValue
-            updated.batch.parallelCount = Int(parallelCount)
-            updated.batch.engine = engine.rawValue
-            updated.batch.realCuganModel = selectedRealCuganModel
+            store.updateBatch(maxParallel: Int(maxParallel)) { batch in
+                batch.scale = Int(scale)
+                batch.model = selectedModel
+                batch.format = format.rawValue
+                batch.optimizeType = optimizeType.rawValue
+                batch.quality = Int(quality)
+                batch.mode = mode.rawValue
+                batch.contentType = contentType.rawValue
+                batch.targetSize = targetSize.rawValue
+                batch.qualityPreset = qualityPreset.rawValue
+                batch.parallelCount = Int(parallelCount)
+                batch.engine = engine.rawValue
+                batch.realCuganModel = selectedRealCuganModel
+            }
         case .easy:
-            updated.easy.scale = Int(scale)
-            updated.easy.model = selectedModel
-            updated.easy.format = format.rawValue
-            updated.easy.optimizeType = optimizeType.rawValue
-            updated.easy.quality = Int(quality)
-            updated.easy.parallelCount = Int(parallelCount)
-            updated.easy.engine = engine.rawValue
-            updated.easy.realCuganModel = selectedRealCuganModel
+            store.updateEasy(maxParallel: Int(maxParallel)) { easy in
+                easy.scale = Int(scale)
+                easy.model = selectedModel
+                easy.format = format.rawValue
+                easy.optimizeType = optimizeType.rawValue
+                easy.quality = Int(quality)
+                easy.parallelCount = Int(parallelCount)
+                easy.engine = engine.rawValue
+                easy.realCuganModel = selectedRealCuganModel
+            }
         }
-        try? store.save(updated)
     }
 }

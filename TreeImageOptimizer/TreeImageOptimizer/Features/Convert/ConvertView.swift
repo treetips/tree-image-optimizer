@@ -90,11 +90,11 @@ struct ConvertView: View {
 
                         HStack {
                             Text(t("c.label.parallel")).appFont(.headline)
-                            Slider(value: $viewModel.parallelCount, in: 1...viewModel.maxParallel, step: 1)
+                            Slider(value: $viewModel.parallelCount, in: 1...viewModel.settings.maxParallel, step: 1)
                                 .tint(
                                     SliderLoadLevel.parallelLevel(
                                         parallel: viewModel.parallelCount,
-                                        maxParallel: viewModel.maxParallel
+                                        maxParallel: viewModel.settings.maxParallel
                                     ).tint
                                 )
                             Text("\(Int(viewModel.parallelCount))").appFont(.body).frame(width: 30)

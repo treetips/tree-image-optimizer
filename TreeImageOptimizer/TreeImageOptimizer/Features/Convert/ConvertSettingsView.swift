@@ -53,11 +53,11 @@ struct ConvertSettingsView: View {
                             Picker(
                                 t("c.label.model"),
                                 selection: Binding(
-                                    get: { viewModel.selectedModelID },
+                                    get: { viewModel.settings.selectedModelID },
                                     set: { viewModel.selectModel(id: $0) }
                                 )
                             ) {
-                                ForEach(viewModel.modelOptions) { option in
+                                ForEach(viewModel.settings.modelOptions) { option in
                                     Text(option.label).appFont(.body).tag(option.id)
                                 }
                             }
@@ -73,7 +73,7 @@ struct ConvertSettingsView: View {
                     GridRow {
                         Text(t("c.label.scale")).appFont(.headline)
                         HStack {
-                            Slider(value: $viewModel.scale, in: viewModel.scaleRange, step: 1)
+                            Slider(value: $viewModel.scale, in: viewModel.settings.scaleRange, step: 1)
                                 .tint(SliderLoadLevel.scaleLevel(for: viewModel.scale).tint)
                             Text("\(Int(viewModel.scale))").appFont(.body).frame(width: 30)
                             Spacer()
@@ -103,7 +103,7 @@ struct ConvertSettingsView: View {
                         }
                     }
                 }
-                if viewModel.engine == .realCUGAN && !viewModel.realCuganAvailable {
+                if viewModel.engine == .realCUGAN && !viewModel.settings.realCuganAvailable {
                     GridRow {
                         Text("").appFont(.headline)
                         Text(t("c.realcugan.unavailable"))
