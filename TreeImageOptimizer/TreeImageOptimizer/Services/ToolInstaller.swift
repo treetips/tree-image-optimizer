@@ -35,6 +35,24 @@ struct ToolInstaller: Sendable {
     static let realcuganFullVersion = "realcugan-ncnn-vulkan-20220728"
     static let realcuganBaseURL = "https://github.com/nihui/realcugan-ncnn-vulkan/releases/download"
 
+    /// 取得アーカイブの期待SHA-256（小文字hex）。実行権を与える前に整合性を担保する。
+    /// - Why not 空文字を許すか: 上流がハッシュを公開しておらず、将来の未更新時もある。
+    ///   未設定（空文字）のときは検証をスキップして警告を出し、取得自体は成立させる。
+    ///   ダミー値を入れると不一致で取得が成立せずデバッグも困難になるため避ける。
+    /// - 要実測: 以下は `curl -sL <URL> | shasum -a 256` の実測値（2回取得して一致を確認済み）。
+    ///   バージョンを上げた際は同コマンドで測り直して更新すること。
+    static let realcuganArchiveSHA256 = "0df908cbb98b480f85897221b96d37b0bdb70f82d81b2c7037fe950dd5c0fa33"
+    /// libwebpはアーキテクチャごとに別アーカイブなので、期待ハッシュもアーカイブ名単位で持つ。
+    static let libwebpArchiveSHA256: [String: String] = [
+        "libwebp-1.6.0-mac-arm64.tar.gz": "bc6bf84cc70f3f8574fba797d1e4a7dea4feebe9fa4be919f202413ea2b3b8f2",
+        "libwebp-1.6.0-mac-x86-64.tar.gz": "f112dd83b420ab2a4b27d46610d9827ddf4200216023281de378647ecca31c2a"
+    ]
+
+    /// 一時的とみなして再試行する最大回数（初回を除く）。
+    static let maxDownloadRetries = 3
+    /// 指数バックオフの初回待ち秒数。1秒→2秒→4秒。
+    static let retryBaseDelaySeconds: UInt64 = 1
+
     let paths: AppPaths
     let runner: ProcessRunner
 
@@ -218,6 +236,9 @@ extension ToolInstaller {
         AppLogger.shared.info("realcugan download: url=\(url.absoluteString)")
         let data = try await download(url: url)
         AppLogger.shared.info("realcugan download: received bytes=\(data.count) dest=\(paths.realCuganRootURL.path)")
+        // Why not 展開前に検証するか: 実行権を付与したバイナリが残ると改ざんされたまま
+        // 起動され得るため、配置・権限付与より前のこの時点で落とす。
+        try verifyArchive(data: data, expected: Self.realcuganArchiveSHA256, name: archiveName)
         let tmpDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: tmpDir) }
@@ -317,18 +338,12 @@ extension ToolInstaller {
 
     // MARK: ネットワーク取得
     /// 現在のアーキテクチャに応じたlibwebpアーカイブ名。
-    static func libwebpArchiveName(version: String, platform: String, arch: String) -> String {
-        let a = arch.lowercased()
-        if platform == "windows" {
-            return "libwebp-\(version)-windows-x64.zip"
-        }
-        if platform == "linux" {
-            if a.contains("aarch64") || a.contains("arm64") {
-                return "libwebp-\(version)-linux-aarch64.tar.gz"
-            }
-            return "libwebp-\(version)-linux-x86-64.tar.gz"
-        }
-        if a.contains("x86_64") {
+    /// macOS専用のためWindows/Linuxの分岐は持たない。
+    static func libwebpArchiveName(version: String, arch: String) -> String {
+        // Why not x86_64 を前方一致でなく完全一致気味に見るか: `uname -m` は
+        // Rosetta配下でも `x86_64` を返し得るため、部分一致だと遅いRosettaを選ばないよう
+        // 素の `x86_64` のみをIntel向けとみなす。
+        if arch.lowercased().contains("x86_64") {
             return "libwebp-\(version)-mac-x86-64.tar.gz"
         }
         return "libwebp-\(version)-mac-arm64.tar.gz"
@@ -340,13 +355,15 @@ extension ToolInstaller {
         let arch = withUnsafePointer(to: &sysinfo.machine) {
             $0.withMemoryRebound(to: CChar.self, capacity: 1) { String(cString: $0) }
         }
-        let name = Self.libwebpArchiveName(version: Self.webpVersion, platform: "macos", arch: arch)
+        let name = Self.libwebpArchiveName(version: Self.webpVersion, arch: arch)
         guard let url = URL(string: "\(Self.webpBaseURL)/\(name)") else {
             throw AppError.networkError("invalid libwebp URL")
         }
         AppLogger.shared.info("libwebp download: arch=\(arch) url=\(url.absoluteString)")
         let data = try await download(url: url)
         AppLogger.shared.info("libwebp download: received bytes=\(data.count) dest=\(paths.cwebpBinURL.path)")
+        // 実行権を付与する cwebp を配置する前に改ざんを検出する（realcuganと同じ方針）。
+        try verifyArchive(data: data, expected: Self.libwebpArchiveSHA256[name], name: name)
         let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmpDir) }
@@ -395,25 +412,108 @@ extension ToolInstaller {
         return nil
     }
 
-    func download(url: URL) async throws -> Data {
+    /// 一時的とみなせるURLエラーか。再試行の対象を決める。
+    /// - Why not 全エラーを再試行するか: 恒久的失敗は何度試しても成功せず、
+    ///   ユーザーへのフィードバックが遅れるだけになるため。
+    static func isTransientNetworkError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case NSURLErrorTimedOut,
+                 NSURLErrorCannotFindHost,
+                 NSURLErrorCannotConnectToHost,
+                 NSURLErrorNetworkConnectionLost,
+                 NSURLErrorDNSLookupFailed,
+                 NSURLErrorNotConnectedToInternet,
+                 NSURLErrorInternationalRoamingOff,
+                 NSURLErrorCallIsActive,
+                 NSURLErrorDataNotAllowed,
+                 NSURLErrorRequestBodyStreamExhausted,
+                 NSURLErrorDownloadDecodingFailedMidStream,
+                 NSURLErrorBackgroundSessionWasDisconnected:
+                return true
+            default:
+                return false
+            }
+        }
+        // POSIXの接続断（ECONNRESET/ECONNREFUSED等）も一時的とみなす。
+        // Why not Int32(...) で包むか: NSError.code は Int だが、POSIXのエラー定数は
+        // Int32 で定義されているため、そのままswitchのパターンに使うと型が合わない。
+        if nsError.domain == NSPOSIXErrorDomain {
+            switch Int32(nsError.code) {
+            case ECONNRESET, ECONNREFUSED, ETIMEDOUT, EHOSTUNREACH, ENETUNREACH, ENETDOWN, EADDRNOTAVAIL:
+                return true
+            default:
+                return false
+            }
+        }
+        return false
+    }
+
+    private func fetchOnce(url: URL) async throws -> Data {
         var request = URLRequest(url: url)
         request.timeoutInterval = 300
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            let statusCode = (response as? HTTPURLResponse)?.statusCode
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                AppLogger.shared.error(
-                    "download failed: url=\(url.absoluteString) status=\(statusCode.map(String.init) ?? "unknown")")
-                throw AppError.networkError("download failed: \(url)")
-            }
-            return data
-        } catch let error as AppError {
-            throw error
-        } catch {
+        // Why not ローカルキャッシュを使わないか: 再試行時に途中まで壊れたレスポンスを
+        // 再利用しないよう、常に上流から取り直す（ADR 0051と同じ方針）。
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let statusCode = (response as? HTTPURLResponse)?.statusCode
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             AppLogger.shared.error(
-                "download error: url=\(url.absoluteString) error=\(error.localizedDescription)")
-            throw AppError.networkError("\(error)")
+                "download failed: url=\(url.absoluteString) status=\(statusCode.map(String.init) ?? "unknown")")
+            throw AppError.networkError("download failed: \(url)")
         }
+        return data
+    }
+
+    func download(url: URL) async throws -> Data {
+        var lastError: Error?
+        for attempt in 0...Self.maxDownloadRetries {
+            do {
+                return try await fetchOnce(url: url)
+            } catch let error as AppError {
+                // HTTPの恒久的失敗（404等）は即座に打ち切る。再試行しても結果は変わらない。
+                AppLogger.shared.error(
+                    "download error: url=\(url.absoluteString) error=\(error.localizedDescription)")
+                throw error
+            } catch {
+                lastError = error
+                guard Self.isTransientNetworkError(error), attempt < Self.maxDownloadRetries else {
+                    AppLogger.shared.error(
+                        "download error: url=\(url.absoluteString) error=\(error.localizedDescription)")
+                    throw AppError.networkError("\(error)")
+                }
+                let delay = Self.retryBaseDelaySeconds << attempt
+                AppLogger.shared.warning(
+                    """
+                    download retry: url=\(url.absoluteString) \
+                    attempt=\(attempt + 1)/\(Self.maxDownloadRetries) \
+                    delay=\(delay)s error=\(error.localizedDescription)
+                    """)
+                try await Task.sleep(nanoseconds: delay * 1_000_000_000)
+            }
+        }
+        throw AppError.networkError("\(lastError.map { "\($0)" } ?? "download failed: \(url)")")
+    }
+
+    /// 取得したアーカイブが期待SHA-256と一致するか検証する。
+    /// - Why not 期待値なしで落とすか: ハッシュ未設定の環境では検証不能であり、
+    ///   ダウンロード自体を止めるより警告を残して続ける方が復旧しやすいため。
+    ///   改ざん検証の担保は期待値が設定されていることが前提になる（ADR 0057）。
+    func verifyArchive(data: Data, expected: String?, name: String) throws {
+        guard let expected, !expected.isEmpty else {
+            AppLogger.shared.warning(
+                "checksum skipped: no expected sha256 configured for \(name)")
+            return
+        }
+        let actual = Self.sha256Hex(of: data)
+        guard actual == expected.lowercased() else {
+            AppLogger.shared.error(
+                "checksum mismatch: \(name) expected=\(expected) actual=\(actual)")
+            throw AppError.verificationFailed(
+                "checksum mismatch for \(name): expected \(expected), got \(actual)")
+        }
+        AppLogger.shared.info("checksum ok: \(name) sha256=\(actual)")
     }
 
     /// SHA-256 hexを計算する。
