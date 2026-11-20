@@ -19,21 +19,32 @@ struct ToolsUpdateService: Sendable {
         ToolsInfoStore(paths: paths)
     }
 
+    /// 対応する `tools-info.json` のスキーマ番号。
+    static let supportedSchemaVersion = 1
+
     /// `tools-info.json` を取得して `ToolsInfo` にデコードする。
     /// 再試行・キャッシュ無効化済みの `ToolInstaller.download` を再利用する。
     func fetchToolsInfo() async throws -> ToolsInfo {
         AppLogger.shared.info("tools update: fetch info start \(ToolsInfoStore.toolsInfoURL)")
         let data = try await ToolInstaller(paths: paths, runner: runner)
             .download(url: ToolsInfoStore.toolsInfoURL)
+        let info: ToolsInfo
         do {
-            let info = try JSONDecoder().decode(ToolsInfo.self, from: data)
-            AppLogger.shared.info("tools update: fetch info ok tools=\(info.tools.count)")
-            return info
+            info = try JSONDecoder().decode(ToolsInfo.self, from: data)
         } catch {
             AppLogger.shared.error("tools update: decode info failed \(error.localizedDescription)")
             throw AppError.networkError(
                 "tools-info.json の解析に失敗しました: \(error.localizedDescription)")
         }
+        // Why not スキーマを検証しないか: 将来の v2 で項目の意味が変わると
+        // 旧クライアントが誤ったアーカイブを配置・記録し得る。不一致は更新を中止する。
+        guard info.schemaVersion == Self.supportedSchemaVersion else {
+            AppLogger.shared.error("tools update: unsupported schema \(info.schemaVersion)")
+            throw AppError.networkError(
+                "未対応の tools-info.json スキーマです: \(info.schemaVersion)")
+        }
+        AppLogger.shared.info("tools update: fetch info ok tools=\(info.tools.count)")
+        return info
     }
 
     /// リモートの `tools-info.json` と突き合わせ、差分のあるツールだけを更新する。
@@ -63,19 +74,26 @@ struct ToolsUpdateService: Sendable {
             let fraction = Double(index) / total
             onProgress(fraction, tool.name)
             try await install(tool: tool)
-            // ツール単位で記録へ反映。途中で失敗してもここまでの確定分は次回起動で
-            // 差分判定され、未完了のツールだけが再度更新対象になる（ADR 0064）。
+            // ツール単位で記録へ反映・保存する。途中で失敗してもここまでの
+            // 確定分は次回起動で差分判定され、未完了のツールだけが再度更新
+            // 対象になる（ADR 0064）。
             updated.tools[tool.name] = tool.version
+            try store.saveInstalled(updated)
             onProgress(Double(index + 1) / total, tool.name)
         }
 
-        try store.saveInstalled(updated)
         AppLogger.shared.info("tools update: completed count=\(targets.count)")
         return updated
     }
 
     /// 単一ツールの ZIP を download → 検証 → 展開 → 配置する。
     private func install(tool: ToolMetadata) async throws {
+        // Why not リモート由来の name をそのまま配置先へ使うか: パストラバーサルや
+        // 想定外フォルダへの書き込みを防ぐため、既知のツール名だけを許可する。
+        let allowedNames = Set(ToolInstaller.toolBinaryChecks.map(\.folder))
+        guard allowedNames.contains(tool.name) else {
+            throw AppError.toolMissing("unknown tool name: \(tool.name)")
+        }
         guard let url = URL(string: tool.url) else {
             throw AppError.networkError("invalid tool URL: \(tool.url)")
         }
@@ -104,6 +122,14 @@ struct ToolsUpdateService: Sendable {
             throw AppError.toolMissing("\(tool.name) not found in archive")
         }
         try place(extractedRoot: root, name: tool.name, installer: installer)
+        // Why not 配置後の検証を省くか: バイナリを含まない不正な ZIP だと
+        // 記録だけが新バージョンになり、次回起動の差分判定で更新が検出されない。
+        guard let check = ToolInstaller.toolBinaryChecks.first(where: { $0.folder == tool.name }),
+            FileManager.default.fileExists(
+                atPath: paths.toolsURL.appendingPathComponent(check.binary).path)
+        else {
+            throw AppError.toolMissing("\(tool.name) binary not found after install")
+        }
         AppLogger.shared.info("tools update: install ok name=\(tool.name) version=\(tool.version)")
     }
 
@@ -114,12 +140,16 @@ struct ToolsUpdateService: Sendable {
         // Why not 親ディレクトリを作らないか: 未作成だと copyItem/removeItem が
         // 「ソース・移動先不在」をまとめて出すため、先に作って失敗を分離する。
         try fm.createDirectory(at: paths.toolsURL, withIntermediateDirectories: true)
+        // Why not 直接削除して置くか: 削除後にコピー・実行権付与が失敗すると
+        // 必須ツールが欠落・実行権なしで残る。ステージング先へ整えてから置換する。
+        let staging = paths.toolsURL.appendingPathComponent(
+            ".staging-\(name)-\(UUID().uuidString)", isDirectory: true)
+        try fm.copyItem(at: source, to: staging)
+        defer { try? fm.removeItem(at: staging) }
+        try installer.makeExecutable(in: staging)
         if fm.fileExists(atPath: dest.path) {
-            // 中断時の不完全な配置を上書きせず全削除してから置き、次回起動の
-            // 存在チェック・バージョン不一致検知が確実に働くようにする。
             try fm.removeItem(at: dest)
         }
-        try fm.copyItem(at: source, to: dest)
-        try installer.makeExecutable(in: dest)
+        try fm.moveItem(at: staging, to: dest)
     }
 }

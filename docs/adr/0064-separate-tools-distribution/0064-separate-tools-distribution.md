@@ -54,7 +54,9 @@ ADR 0048 で「配布ビルドにツール一式を同梱する」方針を採�
 
 - `Tree-Image-Optimizer-vX.Y.Z-macos.zip`（アプリ本体のみ。tools を含まない）
 - `tools-info.json`（全ツールのバージョン・URL・SHA-256 の一覧）
-- `tools-<name>-<version>.zip`（ツール単位。更新のあったツールのみ）
+- `tools-<name>-<version>.zip`（ツール単位。**v1 は全ツールを毎リリース配布**する。
+  前リリースの `tools-info.json` との差分で「更新のあったツールのみ」に絞る最適化は
+  配布基盤が安定してから行う）
 
 `tools-info.json` の形式（案）:
 

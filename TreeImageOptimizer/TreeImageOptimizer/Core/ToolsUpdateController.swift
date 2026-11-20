@@ -38,6 +38,9 @@ final class ToolsUpdateController {
     var card: ToolsUpdateCard?
     /// 確認ダイアログで表示・使用する更新対象のメタデータ。
     var availableInfo: ToolsInfo?
+    /// 実際に更新対象となる差分ツール名。確認ダイアログに全ツールではなく
+    /// 差分だけを表示するために保持する。
+    var pendingToolNames: [String] = []
     /// 更新処理中かどうか。重複実行を防ぐ。
     var isInstalling = false
     /// 更新失敗の詳細理由。エラーダイアログ表示に使う。
@@ -66,6 +69,8 @@ final class ToolsUpdateController {
                 let updates = store.updatesNeeded(info: info, installed: installed)
                 // 差分が無ければカードを出さない。既存の tools をそのまま使う。
                 guard !updates.isEmpty else { return }
+                // 確認ダイアログには全ツールではなく差分ツール名だけを表示する。
+                pendingToolNames = updates.map(\.name)
                 card = .available(info)
             } catch {
                 // 取得失敗時はカードを出さず、既存 tools でフォールバックする。
@@ -93,7 +98,11 @@ final class ToolsUpdateController {
         isInstalling = true
         // 確認ダイアログを閉じ、以降の進捗はサイドナビのカードだけで示す。
         availableInfo = nil
-        card = .installing(.indeterminate(""))
+        // Why not 不確定（fraction=nil）から始めるか: applyProgress の
+        // ガードは「不確定へ進んだ後の確定値への後退」を無視するため、
+        // 先頭を nil にすると以後の確定進捗がすべて破棄され、バーが
+        // 不確定のままになる。確定 0 から始める。
+        card = .installing(ToolsUpdateProgress(fraction: 0, label: ""))
         let installed = store.loadInstalled()
         Task {
             let onProgress: @Sendable (Double, String) -> Void = { [weak self] fraction, label in

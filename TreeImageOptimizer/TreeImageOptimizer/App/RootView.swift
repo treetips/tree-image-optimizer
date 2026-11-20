@@ -202,9 +202,15 @@ struct RootView: View {
                     backgroundImage
                     switch navigation.selection {
                     case .convert:
-                        ConvertView(jobStore: convertJobStore, toolsReady: bootstrap.isReady)
+                        // ツール更新中は tools/<name> が一時的に置換されるため、
+                        // 変換を抑止する（toolsReady を false にする）。
+                        ConvertView(
+                            jobStore: convertJobStore,
+                            toolsReady: bootstrap.isReady && !toolsUpdate.isInstalling)
                     case .easyConvert:
-                        EasyConvertView(jobStore: easyConvertJobStore, toolsReady: bootstrap.isReady)
+                        EasyConvertView(
+                            jobStore: easyConvertJobStore,
+                            toolsReady: bootstrap.isReady && !toolsUpdate.isInstalling)
                     case .settings:
                         SettingsView(viewModel: settings)
                     case .about:
@@ -330,8 +336,8 @@ struct RootView: View {
                 }
             }
         } message: {
-            if let info = toolsUpdate.availableInfo {
-                Text(toolsUpdateMessage(for: info, language: settings.language))
+            if toolsUpdate.availableInfo != nil {
+                Text(toolsUpdateMessage(language: settings.language))
                     .font(AppTheme.font(.body, scale: fontScale))
             }
         }
@@ -641,10 +647,10 @@ struct RootView: View {
         .accessibilityElement(children: .contain)
     }
 
-    /// ツール更新の確認ダイアログ本文。差分のあるツール名を列挙して提示する。
+    /// ツール更新の確認ダイアログ本文。差分のあるツール名だけを列挙して提示する。
     /// 現状はツール名の一覧のみで、合計サイズは提示しない（サイズ情報はメタデータに無いため）。
-    private func toolsUpdateMessage(for info: ToolsInfo, language: String) -> String {
-        let names = info.tools.map(\.name).joined(separator: ", ")
+    private func toolsUpdateMessage(language: String) -> String {
+        let names = toolsUpdate.pendingToolNames.joined(separator: ", ")
         return String(format: L10n.string("a.toolsConfirmInstallMsg", language: language), names)
     }
 

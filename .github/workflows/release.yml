@@ -230,13 +230,13 @@ jobs:
           APPINFO="TreeImageOptimizer/TreeImageOptimizer/Core/AppInfo.swift"
 
           # name|version のペアを標準出力する関数。引数はツール名。
-          # ・.version があればそれを採用
+          # ・.version があればそれを採用（1行目・前後空白/CRを除去）
           # ・無ければ AppInfo.swift の対応定数から取得
           tool_version() {
             local name="$1"
             local vfile="tools/${name}/.version"
             if [[ -f "$vfile" ]]; then
-              cat "$vfile"
+              tr -d '\r' < "$vfile" | head -n1 | tr -d '[:space:]'
               return
             fi
             local key
@@ -246,15 +246,15 @@ jobs:
               libwebp)   key='webpVersion' ;;
               *) echo "::error::No version source for tool: $name" >&2; exit 1 ;;
             esac
+            # Why not マッチ失敗をそのまま落とすか: pipefail では grep の非0が
+            # 代入を失敗させ、直後の `-z` 分岐の説明文が出ず原因が分かりにくい。
             grep -E "static let ${key} = \"" "$APPINFO" \
               | sed -E "s/.*\"([^\"]+)\".*/\1/" \
-              | head -n1
+              | head -n1 || true
           }
 
           TOOLS=(upscal jpegoptim pngoptim libjxl libavif libwebp realcugan)
 
-          JSON_DIR="dist-release/tools"
-          mkdir -p "$JSON_DIR"
           TOOLS_JSON='{"schemaVersion":1,"tools":['
           FIRST=1
           for NAME in "${TOOLS[@]}"; do
@@ -264,12 +264,23 @@ jobs:
               exit 1
             fi
 
-            ZIP_NAME="tools-${NAME}-${TOOL_VERSION}.zip"
+            # Why not ディレクトリ存在だけで済ませるか: Git LFS の実体が
+            # 取得できずポインタや空のまま残ると、壊れた ZIP を配布して
+            # ユーザー側の正常なツールを破壊するため、空でないことも確認する。
+            if [[ ! -d "tools/${NAME}" ]] || [[ -z "$(ls -A "tools/${NAME}")" ]]; then
+              echo "::error::Tool directory is empty or missing: tools/${NAME}"
+              exit 1
+            fi
+
+            TOOL_ZIP_NAME="tools-${NAME}-${TOOL_VERSION}.zip"
             # tools/<name> ディレクトリ自体を ZIP のルートとして含める。
-            ditto -c -k --keepParent "tools/${NAME}" "dist-release/${ZIP_NAME}"
-            TOOL_SHA256="$(cd dist-release && shasum -a 256 "${ZIP_NAME}" | awk '{print $1}')"
-            TOOL_URL="${{ env.REPO_URL }}/releases/download/v${VERSION}/${ZIP_NAME}"
-            echo "Created: dist-release/${ZIP_NAME} (sha256=${TOOL_SHA256})"
+            # --norsrc / --noextattr で AppleDouble（._*）の混入を防ぐ。
+            ditto -c -k --norsrc --noextattr --keepParent "tools/${NAME}" "dist-release/${TOOL_ZIP_NAME}"
+            TOOL_SHA256="$(cd dist-release && shasum -a 256 "${TOOL_ZIP_NAME}" | awk '{print $1}')"
+            # アプリ ZIP の SHA256SUMS.txt へツール ZIP も追記し、検証経路を一本化する。
+            echo "${TOOL_SHA256}  ${TOOL_ZIP_NAME}" >> dist-release/SHA256SUMS.txt
+            TOOL_URL="${{ env.REPO_URL }}/releases/download/v${VERSION}/${TOOL_ZIP_NAME}"
+            echo "Created: dist-release/${TOOL_ZIP_NAME} (sha256=${TOOL_SHA256})"
 
             [[ "$FIRST" -eq 1 ]] || TOOLS_JSON+=','
             FIRST=0

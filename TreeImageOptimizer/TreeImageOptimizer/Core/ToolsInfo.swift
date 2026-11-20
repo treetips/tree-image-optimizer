@@ -66,26 +66,51 @@ struct ToolsInfoStore: Sendable {
     }
 
     /// `tools-info.json` の取得先 URL。アプリ本体の `update-info.json` と同様に
-    /// GitHub Releases の latest を参照する。
+    /// GitHub Releases の latest を参照する。`AppInfo.githubURL` から導出して
+    /// 配布元の二重管理を避ける。
     static var toolsInfoURL: URL {
-        URL(string: "https://github.com/treetips/tree-image-optimizer/releases/latest/download/tools-info.json")!
+        AppInfo.githubURL.appending(path: "releases/latest/download/tools-info.json")
     }
+
+    /// 同梱ツールのバージョン。`.installed.json` が無い環境（既存ユーザー）を
+    /// マイグレーションする際の初期値。ツール名は `ToolMetadata.name` と一致させる。
+    /// `AppInfo` の定数は `update-image-tools` スキルでツール側 `.version` と
+    /// 常に一致させる運用のため、ここを正とする。
+    static let bundledVersions: [String: String] = [
+        "upscal": AppInfo.upscalBinVersion,
+        "realcugan": AppInfo.realcuganVersion,
+        "jpegoptim": AppInfo.jpegVersion,
+        "pngoptim": AppInfo.pngVersion,
+        "libjxl": AppInfo.jpegXlVersion,
+        "libavif": AppInfo.av1Version,
+        "libwebp": AppInfo.webpVersion
+    ]
 
     /// ローカル記録 `.installed.json` の場所。
     var installedFileURL: URL {
         paths.toolsURL.appendingPathComponent(".installed.json", isDirectory: false)
     }
 
-    /// ローカル記録を読み込む。ファイルが無ければ空を返す。
+    /// ローカル記録を読み込む。ファイルが無ければ同梱ツールのバージョンで
+    /// 初期化した記録を返す（既存ユーザーのマイグレーション）。
     func loadInstalled() -> InstalledTools {
         let fm = FileManager.default
         guard fm.fileExists(atPath: installedFileURL.path) else {
-            return InstalledTools()
+            // Why not 空を返すか: 既存ユーザーは .installed.json が無いため、
+            // 空だと全ツールが「更新対象」と誤判定され、起動のたびに全件
+            // 再ダウンロードされる。同梱バージョンで初期化して「更新なし」にする。
+            return InstalledTools(tools: Self.bundledVersions)
         }
-        guard let data = try? Data(contentsOf: installedFileURL) else {
-            return InstalledTools()
+        do {
+            let data = try Data(contentsOf: installedFileURL)
+            return try JSONDecoder().decode(InstalledTools.self, from: data)
+        } catch {
+            // Why not 空を返すか: 破損・権限エラーを空と同一視すると全件再DLに
+            // つながる。原因をログへ残し、同梱バージョンへフォールバックする。
+            AppLogger.shared.error(
+                "tools installed state read failed: \(installedFileURL.path) \(error.localizedDescription)")
+            return InstalledTools(tools: Self.bundledVersions)
         }
-        return (try? JSONDecoder().decode(InstalledTools.self, from: data)) ?? InstalledTools()
     }
 
     /// ローカル記録を書き込む。親ディレクトリが無ければ作る。
