@@ -38,10 +38,12 @@ struct ToolsInfoTests {
         #expect(info.metadata(for: "missing") == nil)
     }
 
-    @Test("インストール済み記録が無ければ空を返す")
+    @Test("インストール済み記録が無ければ同梱バージョンで初期化する")
     func loadsEmptyWhenMissing() throws {
         let (store, _) = try makeStore()
-        #expect(store.loadInstalled() == InstalledTools())
+        // .installed.json が無い既存環境では、全ツールを「更新対象」と誤判定
+        // しないよう、同梱ツールのバージョンで初期化する。
+        #expect(store.loadInstalled() == InstalledTools(tools: ToolsInfoStore.bundledVersions))
     }
 
     @Test("インストール済み記録を保存して読み戻せる")
