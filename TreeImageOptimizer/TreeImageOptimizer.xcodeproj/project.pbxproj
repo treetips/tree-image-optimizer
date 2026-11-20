@@ -75,7 +75,15 @@
 		E40000000000000000000017 /* AppLoggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000017 /* AppLoggerTests.swift */; };
 		E40000000000000000000006 /* MediaServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000006 /* MediaServicesTests.swift */; };
 		E50000000000000000000001 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000001 /* assets */; };
+		F3000000000000000000002D /* ToolsInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsInfo.swift; sourceTree = "<group>"; };
+		F3000000000000000000002E /* ToolsUpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsUpdateService.swift; sourceTree = "<group>"; };
+		F3000000000000000000002F /* ToolsUpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsUpdateController.swift; sourceTree = "<group>"; };
+		F4000000000000000000001A /* ToolsInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsInfoTests.swift; sourceTree = "<group>"; };
 		E50000000000000000000002 /* TreeImageOptimizer.icns in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000002 /* TreeImageOptimizer.icns */; };
+		E3000000000000000000002D /* ToolsInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002D /* ToolsInfo.swift */; };
+		E3000000000000000000002E /* ToolsUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002E /* ToolsUpdateService.swift */; };
+		E3000000000000000000002F /* ToolsUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002F /* ToolsUpdateController.swift */; };
+		E4000000000000000000001A /* ToolsInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4000000000000000000001A /* ToolsInfoTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -223,6 +231,7 @@
 				F40000000000000000000015 /* ConvertViewModelTests.swift */,
 				F40000000000000000000016 /* ConvertWindowTests.swift */,
 				F40000000000000000000018 /* ConversionPlannerTests.swift */,
+				F4000000000000000000001A /* ToolsInfoTests.swift */,
 			);
 			path = TreeImageOptimizerTests;
 			sourceTree = "<group>";
@@ -251,6 +260,7 @@
 				F30000000000000000000022 /* SettingsStoreValues.swift */,
 				F30000000000000000000026 /* SettingsStoreResolve.swift */,
 				F30000000000000000000023 /* RealCUGANModels.swift */,
+				F3000000000000000000002E /* ToolsUpdateService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -281,6 +291,8 @@
 				F30000000000000000000021 /* GlassCard.swift */,
 				F30000000000000000000025 /* HardwareInfo.swift */,
 				F3000000000000000000002B /* ConversionSettings.swift */,
+				F3000000000000000000002D /* ToolsInfo.swift */,
+				F3000000000000000000002F /* ToolsUpdateController.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -373,7 +385,6 @@
 				B10000000000000000000003 /* Frameworks */,
 				B10000000000000000000002 /* Sources */,
 				B10000000000000000000004 /* Resources */,
-				B10000000000000000000005 /* Copy Tools */,
 			);
 			buildRules = (
 			);
@@ -435,28 +446,6 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		B10000000000000000000005 /* Copy Tools */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Copy Tools";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -euo pipefail\n\n# Why not 全構成でコピーするか: 開発中は Info.plist の DevToolsPath が\n# リポジトリ直下の tools を指すため、Debug ビルドでは約434MBの複製が不要。\n# 配布ビルドだけアプリ内へ同梱し、初回起動時の復元元にする。\nif [ \"${CONFIGURATION}\" != \"Release\" ]; then\n  echo \"skip tools copy: configuration=${CONFIGURATION}\"\n  exit 0\nfi\n\nSOURCE_DIR=\"${SRCROOT}/../tools\"\nDEST_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/tools\"\n\nif [ ! -d \"${SOURCE_DIR}\" ]; then\n  echo \"error: tools directory not found: ${SOURCE_DIR}\" >&2\n  exit 1\nfi\n\n# 前回ビルドの残骸を残さない。DEST_DIR はビルド成果物配下に限定される。\nrm -rf \"${DEST_DIR:?}\"\n/usr/bin/ditto \"${SOURCE_DIR}\" \"${DEST_DIR}\"\necho \"copied tools: ${SOURCE_DIR} -> ${DEST_DIR}\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		B40000000000000000000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -480,6 +469,7 @@
 				E40000000000000000000015 /* ConvertViewModelTests.swift in Sources */,
 				E40000000000000000000016 /* ConvertWindowTests.swift in Sources */,
 				E40000000000000000000018 /* ConversionPlannerTests.swift in Sources */,
+				E4000000000000000000001A /* ToolsInfoTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -534,6 +524,9 @@
 				E30000000000000000000021 /* GlassCard.swift in Sources */,
 				E30000000000000000000025 /* HardwareInfo.swift in Sources */,
 				E3000000000000000000002B /* ConversionSettings.swift in Sources */,
+				E3000000000000000000002D /* ToolsInfo.swift in Sources */,
+				E3000000000000000000002E /* ToolsUpdateService.swift in Sources */,
+				E3000000000000000000002F /* ToolsUpdateController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

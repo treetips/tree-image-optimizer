@@ -175,14 +175,19 @@ jobs:
       # ------------------------------------------------------------
       # Package release assets
       # 自前アップデート（UpdateService）が読むのは .app の zip と
-      # update-info.json のみ。単一 tools ZIP 配布基盤は未実装のため、
-      # tools の zip 化・ハッシュ埋め込みは行わない（migrate.md §9参照）。
+      # update-info.json。加えて、tools をツール単位の ZIP として
+      # 配布し、全ツールのメタデータを tools-info.json にまとめる
+      # （ADR 0064: separate-tools-distribution）。
       # ------------------------------------------------------------
       - name: Package release assets
         id: package
         shell: bash
         run: |
           set -euo pipefail
+          # Why not AppleDouble（._*）を残すか: macOSの ditto は拡張属性を
+          # `._*` としてアーカイブへ含める。tools ZIP に混入すると展開先の
+          # tools ディレクトリへゴミが残るため、生成を無効化する。
+          export COPYFILE_DISABLE=1
           VERSION="${{ steps.version.outputs.version }}"
           BUILD="${{ steps.version.outputs.build_number }}"
 
@@ -216,10 +221,83 @@ jobs:
           echo "Created: dist-release/update-info.json"
           cat dist-release/update-info.json
 
+          # ----------------------------------------------------------
+          # tools のツール単位 ZIP 生成と tools-info.json の生成。
+          # 各ツールのバージョンは .version ファイルを正本とし、
+          # 無いツール（jpegoptim / pngoptim / libwebp）は AppInfo.swift
+          # の定数から grep で取得する。全ツールを必須（required=true）扱い。
+          # ----------------------------------------------------------
+          APPINFO="TreeImageOptimizer/TreeImageOptimizer/Core/AppInfo.swift"
+
+          # name|version のペアを標準出力する関数。引数はツール名。
+          # ・.version があればそれを採用（1行目・前後空白/CRを除去）
+          # ・無ければ AppInfo.swift の対応定数から取得
+          tool_version() {
+            local name="$1"
+            local vfile="tools/${name}/.version"
+            if [[ -f "$vfile" ]]; then
+              tr -d '\r' < "$vfile" | head -n1 | tr -d '[:space:]'
+              return
+            fi
+            local key
+            case "$name" in
+              jpegoptim) key='jpegVersion' ;;
+              pngoptim)  key='pngVersion' ;;
+              libwebp)   key='webpVersion' ;;
+              *) echo "::error::No version source for tool: $name" >&2; exit 1 ;;
+            esac
+            # Why not マッチ失敗をそのまま落とすか: pipefail では grep の非0が
+            # 代入を失敗させ、直後の `-z` 分岐の説明文が出ず原因が分かりにくい。
+            grep -E "static let ${key} = \"" "$APPINFO" \
+              | sed -E "s/.*\"([^\"]+)\".*/\1/" \
+              | head -n1 || true
+          }
+
+          TOOLS=(upscal jpegoptim pngoptim libjxl libavif libwebp realcugan)
+
+          TOOLS_JSON='{"schemaVersion":1,"tools":['
+          FIRST=1
+          for NAME in "${TOOLS[@]}"; do
+            TOOL_VERSION="$(tool_version "$NAME")"
+            if [[ -z "$TOOL_VERSION" ]]; then
+              echo "::error::Could not determine version for tool: $NAME"
+              exit 1
+            fi
+
+            # Why not ディレクトリ存在だけで済ませるか: Git LFS の実体が
+            # 取得できずポインタや空のまま残ると、壊れた ZIP を配布して
+            # ユーザー側の正常なツールを破壊するため、空でないことも確認する。
+            if [[ ! -d "tools/${NAME}" ]] || [[ -z "$(ls -A "tools/${NAME}")" ]]; then
+              echo "::error::Tool directory is empty or missing: tools/${NAME}"
+              exit 1
+            fi
+
+            TOOL_ZIP_NAME="tools-${NAME}-${TOOL_VERSION}.zip"
+            # tools/<name> ディレクトリ自体を ZIP のルートとして含める。
+            # --norsrc / --noextattr で AppleDouble（._*）の混入を防ぐ。
+            ditto -c -k --norsrc --noextattr --keepParent "tools/${NAME}" "dist-release/${TOOL_ZIP_NAME}"
+            TOOL_SHA256="$(cd dist-release && shasum -a 256 "${TOOL_ZIP_NAME}" | awk '{print $1}')"
+            # アプリ ZIP の SHA256SUMS.txt へツール ZIP も追記し、検証経路を一本化する。
+            echo "${TOOL_SHA256}  ${TOOL_ZIP_NAME}" >> dist-release/SHA256SUMS.txt
+            TOOL_URL="${{ env.REPO_URL }}/releases/download/v${VERSION}/${TOOL_ZIP_NAME}"
+            echo "Created: dist-release/${TOOL_ZIP_NAME} (sha256=${TOOL_SHA256})"
+
+            [[ "$FIRST" -eq 1 ]] || TOOLS_JSON+=','
+            FIRST=0
+            TOOLS_JSON+="{\"name\":\"${NAME}\",\"version\":\"${TOOL_VERSION}\",\"url\":\"${TOOL_URL}\",\"sha256\":\"${TOOL_SHA256}\",\"required\":true}"
+          done
+          TOOLS_JSON+=']}'
+
+          TOOLS_INFO="dist-release/tools-info.json"
+          printf '%s\n' "$TOOLS_JSON" > "$TOOLS_INFO"
+          echo "Created: $TOOLS_INFO"
+          cat "$TOOLS_INFO"
+
           echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
           echo "zip_path=dist-release/$ZIP_NAME" >> "$GITHUB_OUTPUT"
           echo "checksum_path=dist-release/SHA256SUMS.txt" >> "$GITHUB_OUTPUT"
           echo "update_info_path=dist-release/update-info.json" >> "$GITHUB_OUTPUT"
+          echo "tools_info_path=$TOOLS_INFO" >> "$GITHUB_OUTPUT"
           echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
 
       # ------------------------------------------------------------
@@ -251,5 +329,7 @@ jobs:
             "${{ steps.package.outputs.zip_path }}" \
             "${{ steps.package.outputs.checksum_path }}" \
             "${{ steps.package.outputs.update_info_path }}" \
+            "${{ steps.package.outputs.tools_info_path }}" \
+            dist-release/tools-*.zip \
             --title "$TITLE" \
             --generate-notes

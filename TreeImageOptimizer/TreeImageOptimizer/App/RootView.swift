@@ -18,6 +18,7 @@ struct RootView: View {
     @State private var navigation: SidebarNavigation
     @State private var settings: SettingsViewModel
     @State private var updateCheck: UpdateCheckController
+    @State private var toolsUpdate: ToolsUpdateController
     @State private var convertJobStore: ConvertJobStore
     @State private var easyConvertJobStore: EasyConvertJobStore
     @State private var bootstrap = ToolBootstrapModel()
@@ -30,12 +31,14 @@ struct RootView: View {
         navigation: SidebarNavigation = SidebarNavigation(),
         settings: SettingsViewModel = SettingsViewModel(),
         updateCheck: UpdateCheckController = UpdateCheckController(),
+        toolsUpdate: ToolsUpdateController = ToolsUpdateController(),
         convertJobStore: ConvertJobStore = ConvertJobStore(),
         easyConvertJobStore: EasyConvertJobStore = EasyConvertJobStore()
     ) {
         _navigation = State(initialValue: navigation)
         _settings = State(initialValue: settings)
         _updateCheck = State(initialValue: updateCheck)
+        _toolsUpdate = State(initialValue: toolsUpdate)
         _convertJobStore = State(initialValue: convertJobStore)
         _easyConvertJobStore = State(initialValue: easyConvertJobStore)
     }
@@ -153,6 +156,45 @@ struct RootView: View {
                             .padding(.vertical, 8)
                         }
                     }
+                    // ツール更新カード。アプリ本体更新とは独立した「ツール更新」の状態を示す。
+                    // 差分がある場合のみ表示し、クリックで確認ダイアログを出す。
+                    if let card = toolsUpdate.card {
+                        Divider()
+                        switch card {
+                        case .available:
+                            Button {
+                                toolsUpdate.showInstallDialog()
+                            } label: {
+                                updateCardLabel(
+                                    text: L10n.string("nav.toolsUpdateAvailable", language: settings.language),
+                                    icon: "shippingbox.and.arrow.backward.fill",
+                                    fontScale: fontScale
+                                )
+                                .glassEffect(
+                                    .regular
+                                        .tint(Color.accentColor.opacity(GlassStyle.updateCardTintOpacity))
+                                        .interactive(),
+                                    in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
+                                )
+                                .bold()
+                                .foregroundStyle(availableTextColor)
+                                .onHover { hovering in
+                                    if hovering {
+                                        NSCursor.pointingHand.push()
+                                    } else {
+                                        NSCursor.pop()
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                        case .installing(let progress):
+                            toolsInstallingCard(progress: progress)
+                        case .installFailed:
+                            toolsInstallFailedCard()
+                        }
+                    }
                 }
             } detail: {
                 ZStack {
@@ -160,9 +202,15 @@ struct RootView: View {
                     backgroundImage
                     switch navigation.selection {
                     case .convert:
-                        ConvertView(jobStore: convertJobStore, toolsReady: bootstrap.isReady)
+                        // ツール更新中は tools/<name> が一時的に置換されるため、
+                        // 変換を抑止する（toolsReady を false にする）。
+                        ConvertView(
+                            jobStore: convertJobStore,
+                            toolsReady: bootstrap.isReady && !toolsUpdate.isInstalling)
                     case .easyConvert:
-                        EasyConvertView(jobStore: easyConvertJobStore, toolsReady: bootstrap.isReady)
+                        EasyConvertView(
+                            jobStore: easyConvertJobStore,
+                            toolsReady: bootstrap.isReady && !toolsUpdate.isInstalling)
                     case .settings:
                         SettingsView(viewModel: settings)
                     case .about:
@@ -178,6 +226,8 @@ struct RootView: View {
                 logAppearance(context: "appear")
                 // 起動時にサイレント確認し、サイドナビ通知に反映する。
                 updateCheck.refreshAvailability()
+                // ツール更新も起動時に差分を確認し、サイドナビ通知に反映する。
+                toolsUpdate.refreshAvailability()
                 // 初回はtools展開が必要なため、揃うまで操作をブロックする。
                 bootstrap.start()
             }
@@ -261,6 +311,52 @@ struct RootView: View {
             }
         } message: {
             Text(updateCheck.errorDialog ?? "")
+                .font(AppTheme.font(.body, scale: fontScale))
+        }
+        // ツール更新の確認ダイアログ。クリックで表示し、更新対象ツールを提示する。
+        .alert(
+            Text(L10n.string("a.toolsConfirmInstall", language: settings.language))
+                .font(AppTheme.font(.headline, scale: fontScale)),
+            isPresented: Binding(
+                get: { toolsUpdate.availableInfo != nil },
+                set: { if !$0 { toolsUpdate.dismissInstallDialog() } }
+            )
+        ) {
+            Button(role: .cancel) {
+            } label: {
+                Text(L10n.string("a.cancel", language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            }
+            if let info = toolsUpdate.availableInfo {
+                Button {
+                    toolsUpdate.install(info)
+                } label: {
+                    Text(L10n.string("a.install", language: settings.language))
+                        .font(AppTheme.font(.body, scale: fontScale))
+                }
+            }
+        } message: {
+            if toolsUpdate.availableInfo != nil {
+                Text(toolsUpdateMessage(language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            }
+        }
+        // ツール更新の失敗ダイアログ。失敗理由を提示する。
+        .alert(
+            Text(L10n.string("nav.installFailed", language: settings.language))
+                .font(AppTheme.font(.headline, scale: fontScale)),
+            isPresented: Binding(
+                get: { toolsUpdate.errorDialog != nil },
+                set: { if !$0 { toolsUpdate.errorDialog = nil } }
+            )
+        ) {
+            Button {
+            } label: {
+                Text(L10n.string("a.ok", language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            }
+        } message: {
+            Text(toolsUpdate.errorDialog ?? "")
                 .font(AppTheme.font(.body, scale: fontScale))
         }
     }
@@ -461,6 +557,101 @@ struct RootView: View {
         .padding(.vertical, 8)
         // 再実行ボタンを読み上げ対象に残すため、進捗カードの combine は使わない。
         .accessibilityElement(children: .contain)
+    }
+
+    /// ツール更新のインストール中カード。確認ダイアログを閉じた後の進捗をここへ集約する。
+    /// ダウンロード中は受信バイト数の確定バー、検証・展開中は不確定バーを出す。
+    private func toolsInstallingCard(progress: ToolsUpdateProgress) -> some View {
+        VStack(spacing: 6) {
+            Label {
+                Text(L10n.string("nav.installing", language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            } icon: {
+                Image(systemName: "shippingbox.and.arrow.backward")
+            }
+            .bold()
+            Text(toolsInstallingDetail(for: progress))
+                .font(AppTheme.font(.caption, scale: fontScale))
+                .opacity(0.8)
+            if let fraction = progress.fraction {
+                DeterminateLinearBar(progress: fraction * 100, tint: availableTextColor)
+            } else {
+                IndeterminateLinearBar(tint: availableTextColor)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .glassEffect(
+            .regular.tint(Color.accentColor.opacity(GlassStyle.updateCardTintOpacity)),
+            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
+        )
+        .foregroundStyle(availableTextColor)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// ツール更新のインストール中の補足文言。進捗率はダウンロード段階だけ表示する。
+    private func toolsInstallingDetail(for progress: ToolsUpdateProgress) -> String {
+        guard let fraction = progress.fraction else {
+            // 進捗が無い段階（検証・展開）では対象ツール名だけを示す。
+            return progress.label.isEmpty
+                ? L10n.string("nav.installing", language: settings.language)
+                : progress.label
+        }
+        return String(
+            format: L10n.string("nav.downloadingPercent", language: settings.language),
+            Int((fraction * 100).rounded(.down))
+        )
+    }
+
+    /// ツール更新の失敗カード。赤背景で失敗を示し、カード内の `再実行` から
+    /// 最初からやり直せる。失敗の詳細理由はエラーダイアログに出す。
+    private func toolsInstallFailedCard() -> some View {
+        VStack(spacing: 6) {
+            Label {
+                Text(L10n.string("nav.installFailed", language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+            }
+            .bold()
+            Button {
+                toolsUpdate.retryInstall()
+            } label: {
+                Text(L10n.string("nav.retry", language: settings.language))
+                    .font(AppTheme.font(.caption, scale: fontScale))
+                    .bold()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(availableTextColor.opacity(0.18), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .glassEffect(
+            .regular.tint(Color.red.opacity(GlassStyle.updateCardTintOpacity)),
+            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
+        )
+        .foregroundStyle(availableTextColor)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .contain)
+    }
+
+    /// ツール更新の確認ダイアログ本文。差分のあるツール名だけを列挙して提示する。
+    /// 現状はツール名の一覧のみで、合計サイズは提示しない（サイズ情報はメタデータに無いため）。
+    private func toolsUpdateMessage(language: String) -> String {
+        let names = toolsUpdate.pendingToolNames.joined(separator: ", ")
+        return String(format: L10n.string("a.toolsConfirmInstallMsg", language: language), names)
     }
 
     /// 実行中のメニューはアイコンをローディング表示に切り替える。
