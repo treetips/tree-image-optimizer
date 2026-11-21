@@ -65,6 +65,7 @@
 		E30000000000000000000012 /* WallpaperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000012 /* WallpaperService.swift */; };
 		E30000000000000000000013 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000013 /* NotificationService.swift */; };
 		E30000000000000000000014 /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000014 /* UpdateService.swift */; };
+		E30000000000000000000031 /* CompressionServiceImageIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000031 /* CompressionServiceImageIO.swift */; };
 		E30000000000000000000032 /* SupportedFormatsCallout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000032 /* SupportedFormatsCallout.swift */; };
 		E30000000000000000000033 /* CalloutContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000033 /* CalloutContainer.swift */; };
 		E40000000000000000000001 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000001 /* AppPathsTests.swift */; };
@@ -150,6 +151,7 @@
 		F30000000000000000000012 /* WallpaperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperService.swift; sourceTree = "<group>"; };
 		F30000000000000000000013 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		F30000000000000000000014 /* UpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateService.swift; sourceTree = "<group>"; };
+		F30000000000000000000031 /* CompressionServiceImageIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompressionServiceImageIO.swift; sourceTree = "<group>"; };
 		F30000000000000000000032 /* SupportedFormatsCallout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportedFormatsCallout.swift; sourceTree = "<group>"; };
 		F30000000000000000000033 /* CalloutContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalloutContainer.swift; sourceTree = "<group>"; };
 		F40000000000000000000001 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
@@ -261,6 +263,7 @@
 				F30000000000000000000012 /* WallpaperService.swift */,
 				F30000000000000000000013 /* NotificationService.swift */,
 				F30000000000000000000014 /* UpdateService.swift */,
+				F30000000000000000000031 /* CompressionServiceImageIO.swift */,
 				F30000000000000000000022 /* SettingsStoreValues.swift */,
 				F30000000000000000000026 /* SettingsStoreResolve.swift */,
 				F30000000000000000000023 /* RealCUGANModels.swift */,
@@ -521,6 +524,7 @@
 				E30000000000000000000012 /* WallpaperService.swift in Sources */,
 				E30000000000000000000013 /* NotificationService.swift in Sources */,
 				E30000000000000000000014 /* UpdateService.swift in Sources */,
+				E30000000000000000000031 /* CompressionServiceImageIO.swift in Sources */,
 				E30000000000000000000032 /* SupportedFormatsCallout.swift in Sources */,
 				E30000000000000000000033 /* CalloutContainer.swift in Sources */,
 				E30000000000000000000015 /* GlassCTAButton.swift in Sources */,

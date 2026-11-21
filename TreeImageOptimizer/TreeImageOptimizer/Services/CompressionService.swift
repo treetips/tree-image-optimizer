@@ -280,13 +280,16 @@ struct CompressionService: Sendable {
         format: OutputFormat,
         profile: CompressionProfile,
         threads: Int,
-        paths: AppPaths
+        paths: AppPaths,
+        source: URL? = nil
     ) async throws {
         switch format {
         case .jpeg:
-            try await compressJpeg(input: input, output: output, profile: profile, paths: paths)
+            try await compressJpeg(
+                input: input, output: output, profile: profile, paths: paths, source: source)
         case .png:
-            try await compressPng(input: input, output: output, profile: profile, paths: paths)
+            try await compressPng(
+                input: input, output: output, profile: profile, paths: paths, source: source)
         case .jpegXL:
             let bin = paths.cjxlBinURL
             try await runBinary(
@@ -311,72 +314,11 @@ struct CompressionService: Sendable {
         }
     }
 
-    private func runBinary(_ bin: URL, args: [String], workingDirectory: String) async throws {
+    func runBinary(_ bin: URL, args: [String], workingDirectory: String) async throws {
         guard FileManager.default.fileExists(atPath: bin.path) else {
             AppLogger.shared.error("encoder binary missing: \(bin.path)")
             throw AppError.toolMissing(bin.path)
         }
         _ = try await runner.run(bin.path, args: args, workingDirectory: workingDirectory)
-    }
-
-    private func compressJpeg(input: URL, output: URL, profile: CompressionProfile, paths: AppPaths) async throws {
-        let quality = profile.jpegQuality
-        // jpegoptim はJPEG入力のみ対応のため、一旦JPEGを生成する。
-        try Self.convertToJPEG(input: input, output: output, quality: 1.0)
-        do {
-            let bin = paths.jpegoptimBinURL
-            try await runBinary(
-                bin, args: Self.jpegoptimArguments(output: output.path, quality: quality),
-                workingDirectory: bin.deletingLastPathComponent().path)
-        } catch {
-            AppLogger.shared.warning(
-                "jpegoptim failed, falling back to re-encode: \(error.localizedDescription)")
-            // フォールバック：指定品質で再エンコードする。
-            try Self.convertToJPEG(input: output, output: output, quality: Double(quality) / 100.0)
-        }
-    }
-
-    private func compressPng(input: URL, output: URL, profile: CompressionProfile, paths: AppPaths) async throws {
-        let quality = profile.pngQuality
-        try Self.convertToPNG(input: input, output: output)
-        do {
-            let bin = paths.pngoptimBinURL
-            try await runBinary(
-                bin, args: Self.pngoptimArguments(output: output.path, quality: quality),
-                workingDirectory: bin.deletingLastPathComponent().path)
-        } catch {
-            AppLogger.shared.warning(
-                "pngoptim failed, falling back to re-encode: \(error.localizedDescription)")
-            try Self.convertToPNG(input: output, output: output)
-        }
-    }
-
-    // MARK: - ImageIO helpers (Dart `package:image` の代替)
-
-    static func convertToJPEG(input: URL, output: URL, quality: Double) throws {
-        guard let source = CGImageSourceCreateWithURL(input as CFURL, nil),
-            let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
-            let dest = CGImageDestinationCreateWithURL(output as CFURL, UTType.jpeg.identifier as CFString, 1, nil)
-        else {
-            throw AppError.fileNotFound("画像のデコードに失敗しました: \(input.path)")
-        }
-        CGImageDestinationSetProperties(dest, [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
-        CGImageDestinationAddImage(dest, image, nil)
-        guard CGImageDestinationFinalize(dest) else {
-            throw AppError.processFailed(executable: "CGImageDestination", exitCode: -1, output: output.path)
-        }
-    }
-
-    static func convertToPNG(input: URL, output: URL) throws {
-        guard let source = CGImageSourceCreateWithURL(input as CFURL, nil),
-            let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
-            let dest = CGImageDestinationCreateWithURL(output as CFURL, UTType.png.identifier as CFString, 1, nil)
-        else {
-            throw AppError.fileNotFound("画像のデコードに失敗しました: \(input.path)")
-        }
-        CGImageDestinationAddImage(dest, image, nil)
-        guard CGImageDestinationFinalize(dest) else {
-            throw AppError.processFailed(executable: "CGImageDestination", exitCode: -1, output: output.path)
-        }
     }
 }
