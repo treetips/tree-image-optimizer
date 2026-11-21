@@ -213,7 +213,7 @@ struct ConvertView: View {
                                     ConvertPreviewCell(
                                         beforePath: row.sourcePath, afterPath: row.outputPath,
                                         title: t("c.preview.title"), beforeLabel: t("c.col.before"),
-                                        afterLabel: t("c.col.after"))
+                                        afterLabel: t("c.col.after"), isEnabled: row.output == .success)
                                 }
                                 .width(min: 30, ideal: 40, max: 50)
                             }

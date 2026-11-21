@@ -67,12 +67,14 @@ struct BeforeAfterPreviewView: View {
 }
 
 /// 結果表のプレビューセル。クリックで比較ウインドウを別に開く（ADR 0071）。
+/// 出力が完了していない間は「後」が無いため無効化する。
 struct ConvertPreviewCell: View {
     let beforePath: String
     let afterPath: String
     let title: String
     let beforeLabel: String
     let afterLabel: String
+    let isEnabled: Bool
 
     var body: some View {
         Button {
@@ -83,6 +85,7 @@ struct ConvertPreviewCell: View {
             Text("🔍").appFont(.body)
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
     }
 }
 
@@ -115,11 +118,17 @@ struct BeforeAfterPreviewWindowContent: View {
 /// NSWindowデリゲート）で行うため、`@MainActor` 相当の実態を保ちつつ Sendable を宣言する。
 final class ComparisonWindowController: NSObject, NSWindowDelegate, @unchecked Sendable {
     static let shared = ComparisonWindowController()
-    private var windows: [NSWindow] = []
+    /// 変換元パスをキーに、開いている比較ウインドウを保持する。同じ行を複数開かせないため。
+    private var windows: [String: NSWindow] = [:]
 
     func open(
         beforePath: String, afterPath: String, title: String, beforeLabel: String, afterLabel: String
     ) {
+        // 同じ比較（同じ変換元）が既に開いていれば前面へ出すだけで、重複させない。
+        if let existing = windows[beforePath] {
+            existing.makeKeyAndOrderFront(nil)
+            return
+        }
         let content = BeforeAfterPreviewWindowContent(
             beforePath: beforePath, afterPath: afterPath,
             beforeLabel: beforeLabel, afterLabel: afterLabel)
@@ -135,13 +144,17 @@ final class ComparisonWindowController: NSObject, NSWindowDelegate, @unchecked S
         window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.delegate = self
+        window.identifier = NSUserInterfaceItemIdentifier(beforePath)
         window.center()
         window.makeKeyAndOrderFront(nil)
-        windows.append(window)
+        windows[beforePath] = window
     }
 
     func windowWillClose(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow else { return }
-        windows.removeAll { $0 === window }
+        guard
+            let window = notification.object as? NSWindow,
+            let key = window.identifier?.rawValue
+        else { return }
+        windows.removeValue(forKey: key)
     }
 }
