@@ -3,6 +3,7 @@ import SwiftUI
 /// 一括変換の最適化設定。
 /// モードタブを設定カードのガラス面の先頭に置き、直下の「拡大」「圧縮」が
 /// そのモードの対象であることを示す（ADR 0049）。
+/// モードの特徴はモード名を見出しにした開閉パネルで示し、縦の長さを抑える。
 struct ConvertSettingsView: View {
     @Bindable var viewModel: ConvertViewModel
     @Environment(\.locale) private var locale
@@ -18,7 +19,7 @@ struct ConvertSettingsView: View {
                     HelpPopover(text: t("c.help.mode"))
                 }
 
-                ModeNoteAccordion(
+                ModeDescriptionCallout(
                     mode: viewModel.mode, isExpanded: $viewModel.modeNoteExpanded, localize: t)
 
                 upscaleSection
@@ -238,9 +239,11 @@ private struct ConvertModeTabBar: View {
 }
 
 /// 選択中モードの概要と得意・不得意を、GitHub Alerts風のコールアウトで示す。
-/// SwiftUIに同等の標準部品はないため、アイコン・テーマ色・左ボーダーで表現する。
+/// コールアウト自体を見出しにして、モード名をクリックすると開閉できるようにする。
+/// 「モードの特徴」という別ボタンは置かず、モード名と本文を同じパネルにまとめる。
 private struct ModeDescriptionCallout: View {
     let mode: ConvertMode
+    @Binding var isExpanded: Bool
     let localize: (String) -> String
 
     private var tint: Color {
@@ -251,27 +254,21 @@ private struct ModeDescriptionCallout: View {
     }
 
     var body: some View {
-        CalloutContainer(tint: tint) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: mode.symbolName)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 20)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(localize(mode.l10nKey))
-                        .appFont(.headline)
-                        .foregroundStyle(tint)
-                    Text(localize(mode.summaryL10nKey))
-                        .appFont(.callout)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    detailRow(
-                        icon: "checkmark.circle.fill", color: .green,
-                        text: "\(localize("c.mode.good")): \(localize(mode.strengthL10nKey))")
-                    detailRow(
-                        icon: "exclamationmark.triangle.fill", color: .orange,
-                        text: "\(localize("c.mode.bad")): \(localize(mode.weaknessL10nKey))")
-                }
+        CollapsibleCallout(
+            tint: tint, icon: mode.symbolName, title: localize(mode.l10nKey),
+            isExpanded: $isExpanded
+        ) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(localize(mode.summaryL10nKey))
+                    .appFont(.callout)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                detailRow(
+                    icon: "checkmark.circle.fill", color: .green,
+                    text: "\(localize("c.mode.good")): \(localize(mode.strengthL10nKey))")
+                detailRow(
+                    icon: "exclamationmark.triangle.fill", color: .orange,
+                    text: "\(localize("c.mode.bad")): \(localize(mode.weaknessL10nKey))")
             }
         }
     }
@@ -286,61 +283,6 @@ private struct ModeDescriptionCallout: View {
                 .appFont(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
-/// モードの特徴コールアウトを開閉するアコーディオン。
-/// SwiftUIの `DisclosureGroup` ではなく、ガラスカードに合わせたヘッダーと
-/// チューロンで実装する。開閉状態は呼び出し側が保存する。
-private struct ModeNoteAccordion: View {
-    let mode: ConvertMode
-    @Binding var isExpanded: Bool
-    let localize: (String) -> String
-    @State private var isHovering = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button {
-                withAnimation(.snappy(duration: 0.2)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(isHovering ? Color.accentColor : Color.secondary)
-                    Text(localize("c.mode.features"))
-                        .appFont(.headline)
-                    Spacer()
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(isHovering ? Color.accentColor : Color.secondary)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isHovering ? Color.accentColor.opacity(0.08) : Color.clear)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(
-                            isHovering ? Color.accentColor : Color.secondary.opacity(0.25),
-                            lineWidth: isHovering ? 1.5 : 1
-                        )
-                )
-                .animation(.easeOut(duration: 0.12), value: isHovering)
-            }
-            .buttonStyle(.plain)
-            .pointerStyle(.link)
-            .onHover { isHovering = $0 }
-
-            if isExpanded {
-                ModeDescriptionCallout(mode: mode, localize: localize)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
         }
     }
 }

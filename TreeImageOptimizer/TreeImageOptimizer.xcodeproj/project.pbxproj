@@ -70,6 +70,7 @@
 		E30000000000000000000031 /* CompressionServiceImageIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000031 /* CompressionServiceImageIO.swift */; };
 		E30000000000000000000032 /* SupportedFormatsCallout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000032 /* SupportedFormatsCallout.swift */; };
 		E30000000000000000000033 /* CalloutContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000033 /* CalloutContainer.swift */; };
+		E30000000000000000000034 /* CollapsibleCallout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000034 /* CollapsibleCallout.swift */; };
 		E40000000000000000000001 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000001 /* AppPathsTests.swift */; };
 		E40000000000000000000002 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* SettingsStoreTests.swift */; };
 		E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000003 /* ProcessRunnerTests.swift */; };
@@ -158,6 +159,7 @@
 		F30000000000000000000031 /* CompressionServiceImageIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompressionServiceImageIO.swift; sourceTree = "<group>"; };
 		F30000000000000000000032 /* SupportedFormatsCallout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportedFormatsCallout.swift; sourceTree = "<group>"; };
 		F30000000000000000000033 /* CalloutContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalloutContainer.swift; sourceTree = "<group>"; };
+		F30000000000000000000034 /* CollapsibleCallout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollapsibleCallout.swift; sourceTree = "<group>"; };
 		F40000000000000000000001 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000002 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000003 /* ProcessRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunnerTests.swift; sourceTree = "<group>"; };
@@ -306,6 +308,7 @@
 				F3000000000000000000002F /* ToolsUpdateController.swift */,
 				F30000000000000000000032 /* SupportedFormatsCallout.swift */,
 				F30000000000000000000033 /* CalloutContainer.swift */,
+				F30000000000000000000034 /* CollapsibleCallout.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -535,6 +538,7 @@
 				E30000000000000000000031 /* CompressionServiceImageIO.swift in Sources */,
 				E30000000000000000000032 /* SupportedFormatsCallout.swift in Sources */,
 				E30000000000000000000033 /* CalloutContainer.swift in Sources */,
+				E30000000000000000000034 /* CollapsibleCallout.swift in Sources */,
 				E30000000000000000000015 /* GlassCTAButton.swift in Sources */,
 				E30000000000000000000016 /* UpdateCheckController.swift in Sources */,
 				E30000000000000000000017 /* L10n.swift in Sources */,

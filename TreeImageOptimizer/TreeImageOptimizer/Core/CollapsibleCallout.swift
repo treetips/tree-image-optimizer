@@ -1,0 +1,64 @@
+import SwiftUI
+
+/// GitHub Alerts 風のコールアウトを、見出しクリックで開閉できるパネルにする。
+/// 見出しの右に開閉状態を示すシェブロンを置き、縮小中は本文だけを隠す。
+/// 「対応フォーマット」とモードの説明で同じ開閉操作を複製しないよう共通化する。
+/// Why not SwiftUI の `DisclosureGroup` を使うか: ガラスカードの上でコールアウトの
+/// 装飾を保ったまま、見出しのシェブロンだけを差し替えたいため。
+struct CollapsibleCallout<Content: View>: View {
+    let tint: Color
+    let icon: String
+    let title: String
+    @Binding var isExpanded: Bool
+    @ViewBuilder var content: () -> Content
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button {
+            withAnimation(.snappy(duration: 0.2)) {
+                isExpanded.toggle()
+            }
+        } label: {
+            CalloutContainer(tint: tint) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(tint)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 8) {
+                        header
+                        if isExpanded {
+                            content()
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                }
+            }
+            // 余白を含むパネル全面をクリック領域にする。
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .pointerStyle(.link)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .overlay {
+            // ガラスの上でもクリックできると分かるよう、ホバー中だけ枠を強める。
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(tint.opacity(isHovering ? 0.55 : 0), lineWidth: 1.5)
+        }
+    }
+
+    /// モード名やタイトルの右に、開閉状態を示すシェブロンを並べる。
+    private var header: some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .appFont(.headline)
+                .foregroundStyle(tint)
+            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(tint)
+            Spacer(minLength: 0)
+        }
+    }
+}
