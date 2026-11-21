@@ -1,5 +1,8 @@
 # Git運用ルール
 
+Git の操作に関するルールをまとめる。GitHub 上の PR・ラベル・リリースの運用は
+[GitHub運用ルール](./github.md) を参照する。
+
 ## コミットメッセージ
 
 コミットメッセージは [Conventional Commits](https://www.conventionalcommits.org/ja/) を採用する。
@@ -43,9 +46,8 @@ chore(deps): syncfusion_flutter_slidersを更新
 ### 規約
 
 - **description は日本語**で記述する。
-- description は命令形・簡潔に（例: `追加` ではなく `追加` / `修正` ではなく `修正`）。
+- description は簡潔な命令形にする（例: `追加しました` ではなく `追加` / `修正しました` ではなく `修正`）。
 - scope は必要な場合のみ付与する（例: `feat(slider): ...`）。
-- 主要ブランチへの直接pushは禁止。必ず `feature/*` または `fix/*` ブランチから PR を作成する。
 
 ## ブランチ命名規則
 
@@ -63,16 +65,10 @@ fix/tools-app-support
 release/v0.1.0
 ```
 
-## PR運用
-
-- PRタイトルも Conventional Commits 形式を推奨する（例: `feat: 変換結果のサマリーを固定表示`）。
-- PRのラベルはリリースノートの自動分類（`.github/release.yml`）に利用されるため、適切なラベルを付与する。
-
-## リリースタグ
-
-- タグは `vMajor.Minor.Patch` 形式（例: `v0.1.0`）。
-- タグは GitHub Actions の Release ワークフロー（`workflow_dispatch`）で自動作成される。
-
 ## 既存コミットの扱い
 
 Conventional Commits 導入以前のコミット（`first commit` など）は遡って書き換えない。既存PR・既存リリースを壊さないため、**新規コミットから本ルールを適用**する。
+
+## 同時進行
+
+- `git-worktree` を使い、サブエージェントで同時作業が可能な場合は実施する。ただし煩雑でミスが増えそうな場合は無理をしないこと。

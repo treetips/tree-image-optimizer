@@ -207,4 +207,5 @@ hooks は GUI から commit しても動くよう、`tools/` 配下のラッパ�
 - [docs/design/feature/convert-flow/](./design/feature/convert-flow/) : 変換パイプラインのフロー
 - [docs/design/release-flow.md](./design/release-flow.md) : リリース手順
 - [docs/design/git.md](./design/git.md) : Git 運用ルール
+- [docs/design/github.md](./design/github.md) : GitHub 運用ルール
 - [README.md](../README.md) : ユーザー向けの概要

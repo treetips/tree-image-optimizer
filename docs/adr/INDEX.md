@@ -69,6 +69,7 @@
 | 0070 | 変換出力に元画像の EXIF を保持する                                         | Accepted   | 圧縮機能                       |
 | 0071 | 一括変換の結果表に変換前後のプレビュー比較を追加する                       | Accepted   | 一括変換                       |
 | 0072 | Markdownの表をrumdlのMD060で桁揃えする                                     | Accepted   | ドキュメント・CI               |
+| 0073 | GitとGitHubの運用ルールを別ドキュメントに分割する                          | Accepted   | ドキュメント                   |
 
 - ステータス凡例
   - 提案済み (Proposed)
