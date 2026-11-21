@@ -6,6 +6,8 @@ import SwiftUI
 struct BeforeAfterPreviewView: View {
     let beforePath: String
     let afterPath: String
+    /// 画像を読み込めないときに表示する文言（L10n 経由）。
+    let missingMessage: String
 
     @State private var split: CGFloat = 0.5
 
@@ -58,12 +60,27 @@ struct BeforeAfterPreviewView: View {
         } else {
             ZStack {
                 Color.gray.opacity(0.2)
-                Image(systemName: "photo")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
+                VStack(spacing: 6) {
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                    Text(missingMessage)
+                        .appFont(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }
+}
+
+/// 比較ウインドウを開くための入力一式。引数を増やさずに済むよう1つの型にまとめる。
+struct ComparisonRequest {
+    var beforePath: String
+    var afterPath: String
+    var title: String
+    var beforeLabel: String
+    var afterLabel: String
+    var missingMessage: String
 }
 
 /// 結果表のプレビューセル。クリックで比較ウインドウを別に開く（ADR 0071）。
@@ -76,6 +93,7 @@ struct ConvertPreviewCell: View {
     let title: String
     let beforeLabel: String
     let afterLabel: String
+    let missingMessage: String
     let isEnabled: Bool
 
     @State private var isHovering = false
@@ -83,8 +101,10 @@ struct ConvertPreviewCell: View {
     var body: some View {
         Button {
             ComparisonWindowController.shared.open(
-                beforePath: beforePath, afterPath: afterPath,
-                title: title, beforeLabel: beforeLabel, afterLabel: afterLabel)
+                ComparisonRequest(
+                    beforePath: beforePath, afterPath: afterPath, title: title,
+                    beforeLabel: beforeLabel, afterLabel: afterLabel,
+                    missingMessage: missingMessage))
         } label: {
             Image(systemName: "rectangle.split.2x1")
                 .appFont(.body)
@@ -92,6 +112,7 @@ struct ConvertPreviewCell: View {
                 .fontWeight(isEnabled ? .semibold : .regular)
                 .scaleEffect(isHovering && isEnabled ? 1.1 : 1.0)
                 .animation(.easeOut(duration: 0.12), value: isHovering)
+                .accessibilityLabel(title)
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
@@ -117,11 +138,14 @@ struct BeforeAfterPreviewWindowContent: View {
     let afterPath: String
     let beforeLabel: String
     let afterLabel: String
+    let missingMessage: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            BeforeAfterPreviewView(beforePath: beforePath, afterPath: afterPath)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            BeforeAfterPreviewView(
+                beforePath: beforePath, afterPath: afterPath, missingMessage: missingMessage
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             HStack {
                 Text(beforeLabel).appFont(.caption).foregroundStyle(.secondary)
                 Spacer()
@@ -151,20 +175,21 @@ final class ComparisonWindowController: NSObject, NSWindowDelegate, @unchecked S
     /// 変換元パスをキーに、開いている比較ウインドウを保持する。同じ行を複数開かせないため。
     private var windows: [String: NSWindow] = [:]
 
-    func open(
-        beforePath: String, afterPath: String, title: String, beforeLabel: String, afterLabel: String
-    ) {
+    func open(_ request: ComparisonRequest) {
         // 同じ比較（同じ変換元）が既に開いていれば前面へ出すだけで、重複させない。
-        if let existing = windows[beforePath] {
+        if let existing = windows[request.beforePath] {
+            // 最小化中は makeKeyAndOrderFront だけでは復元されないため、先に戻す。
+            existing.deminiaturize(nil)
             existing.makeKeyAndOrderFront(nil)
             return
         }
         let content = BeforeAfterPreviewWindowContent(
-            beforePath: beforePath, afterPath: afterPath,
-            beforeLabel: beforeLabel, afterLabel: afterLabel)
+            beforePath: request.beforePath, afterPath: request.afterPath,
+            beforeLabel: request.beforeLabel, afterLabel: request.afterLabel,
+            missingMessage: request.missingMessage)
         let hosting = NSHostingController(rootView: content)
         let window = PreviewWindow(contentViewController: hosting)
-        window.title = title
+        window.title = request.title
         // 画面の8割を上限に、壁紙サイズでも縮小のジャギーを抑えられる大きさで開く。
         let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         window.setContentSize(
@@ -174,10 +199,10 @@ final class ComparisonWindowController: NSObject, NSWindowDelegate, @unchecked S
         window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.identifier = NSUserInterfaceItemIdentifier(beforePath)
+        window.identifier = NSUserInterfaceItemIdentifier(request.beforePath)
         window.center()
         window.makeKeyAndOrderFront(nil)
-        windows[beforePath] = window
+        windows[request.beforePath] = window
     }
 
     func windowWillClose(_ notification: Notification) {

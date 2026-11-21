@@ -37,11 +37,8 @@ struct ConvertView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Color.clear
-                        .frame(height: 1)
-                        .id("convertTop")
+                    Color.clear.frame(height: 1).id("convertTop")
                     GlassCard {
-
                         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                             GridRow {
                                 Text(t("c.label.targetFolder")).appFont(.headline)
@@ -213,7 +210,8 @@ struct ConvertView: View {
                                     ConvertPreviewCell(
                                         beforePath: row.sourcePath, afterPath: row.outputPath,
                                         title: t("c.preview.title"), beforeLabel: t("c.col.before"),
-                                        afterLabel: t("c.col.after"), isEnabled: row.output == .success)
+                                        afterLabel: t("c.col.after"), missingMessage: t("c.missingFile"),
+                                        isEnabled: row.output == .success)
                                 }
                                 .width(min: 30, ideal: 40, max: 50)
                             }
