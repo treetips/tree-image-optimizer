@@ -39,42 +39,47 @@ struct ConvertView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Color.clear.frame(height: 1).id("convertTop")
                     GlassCard {
-                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                            GridRow {
-                                Text(t("c.label.targetFolder")).appFont(.headline)
-                                HStack {
-                                    Button {
-                                        selectFolder(isInput: true)
-                                    } label: {
-                                        Text(t("c.folderButton")).appFont(.body)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                                GridRow {
+                                    Text(t("c.label.targetFolder")).appFont(.headline)
+                                    HStack {
+                                        Button {
+                                            selectFolder(isInput: true)
+                                        } label: {
+                                            Text(t("c.folderButton")).appFont(.body)
+                                        }
+                                        TextField(t("c.label.targetFolder"), text: $viewModel.inputFolderPath)
+                                            .appFont(.body)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(
+                                                        viewModel.inputFolderHasError ? Color.red : Color.clear,
+                                                        lineWidth: 2
+                                                    )
+                                            )
+                                        HelpPopover(text: t("c.help.targetFolder"))
                                     }
-                                    TextField(t("c.label.targetFolder"), text: $viewModel.inputFolderPath)
-                                        .appFont(.body)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .stroke(
-                                                    viewModel.inputFolderHasError ? Color.red : Color.clear,
-                                                    lineWidth: 2
-                                                )
-                                        )
-                                    HelpPopover(text: t("c.help.targetFolder"))
+                                }
+                                GridRow {
+                                    Text(t("c.label.targetFiles")).appFont(.headline)
+                                    HStack {
+                                        Picker(t("c.label.targetFiles"), selection: $viewModel.targetFilter) {
+                                            Text(t("c.filter.oneDay")).appFont(.body).tag(TargetFilter.oneDay)
+                                            Text(t("c.filter.threeDays")).appFont(.body).tag(TargetFilter.threeDays)
+                                            Text(t("c.filter.sevenDays")).appFont(.body).tag(TargetFilter.sevenDays)
+                                            Text(t("c.filter.thirtyDays")).appFont(.body).tag(TargetFilter.thirtyDays)
+                                            Text(t("c.filter.all")).appFont(.body).tag(TargetFilter.all)
+                                        }
+                                        .labelsHidden()
+                                        Spacer()
+                                        HelpPopover(text: t("c.help.targetFiles"))
+                                    }
                                 }
                             }
-                            GridRow {
-                                Text(t("c.label.targetFiles")).appFont(.headline)
-                                HStack {
-                                    Picker(t("c.label.targetFiles"), selection: $viewModel.targetFilter) {
-                                        Text(t("c.filter.oneDay")).appFont(.body).tag(TargetFilter.oneDay)
-                                        Text(t("c.filter.threeDays")).appFont(.body).tag(TargetFilter.threeDays)
-                                        Text(t("c.filter.sevenDays")).appFont(.body).tag(TargetFilter.sevenDays)
-                                        Text(t("c.filter.thirtyDays")).appFont(.body).tag(TargetFilter.thirtyDays)
-                                        Text(t("c.filter.all")).appFont(.body).tag(TargetFilter.all)
-                                    }
-                                    .labelsHidden()
-                                    Spacer()
-                                    HelpPopover(text: t("c.help.targetFiles"))
-                                }
-                            }
+                            // 対応している入力形式を、対象ファイルの絞り込み直下で示す。
+                            SupportedFormatsCallout(localize: t, extensions: TargetFiles.supportedExtensions)
                         }
                         .padding(.vertical, 4)
                     } label: {
@@ -114,12 +119,9 @@ struct ConvertView: View {
                             TextField(t("c.label.outputFolder"), text: $viewModel.outputFolderPath)
                                 .appFont(.body)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(
-                                            viewModel.outputFolderHasError ? Color.red : Color.clear,
-                                            lineWidth: 2
-                                        )
-                                )
+                                    RoundedRectangle(cornerRadius: 6).stroke(
+                                        viewModel.outputFolderHasError ? Color.red : Color.clear,
+                                        lineWidth: 2))
                             HelpPopover(text: t("c.help.outputFolder"))
                         }
                         .padding(.vertical, 4)
@@ -146,14 +148,7 @@ struct ConvertView: View {
                         ConvertRunControlsView(jobStore: jobStore, lang: lang)
                     }
 
-                    // 実行が終わると操作ボタンごと消えるため、結果（成功・混在・キャンセル）は
-                    // この位置に残す。Why not 通知だけに任せるか: 通知を切っている設定でも
-                    // キャンセル後に何が起きたか分からなくなるため。
-                    if !jobStore.isRunning, !jobStore.resultMessage.isEmpty {
-                        Text(jobStore.resultMessage)
-                            .appFont(.body)
-                            .foregroundStyle(.secondary)
-                    }
+                    ConvertResultSummary(jobStore: jobStore, lang: lang)
 
                     GlassCard {
 
@@ -221,9 +216,7 @@ struct ConvertView: View {
                     } label: {
                         Text(t("c.group.result")).appFont(.headline)
                     }
-                    Color.clear
-                        .frame(height: 1)
-                        .id("convertBottom")
+                    Color.clear.frame(height: 1).id("convertBottom")
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 0)
@@ -241,6 +234,13 @@ struct ConvertView: View {
                             icon: "xmark.circle", iconColor: .red,
                             text: "\(t("c.footer.failure")): \(jobStore.failureCount)")
                         FooterStat(icon: "clock", text: String(format: t("c.elapsed"), jobStore.elapsedMinutes))
+                        // キャンセル待ちは完了件数が増えないため、残り時間を出さない。
+                        let eta =
+                            jobStore.isRunning && !jobStore.isCancelling
+                            ? jobStore.estimatedRemainingMinutes : nil
+                        if let eta {
+                            FooterStat(icon: "hourglass", text: String(format: t("c.remaining"), eta))
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 6)
@@ -327,49 +327,30 @@ private struct ConvertRunControlsView: View {
     }
 }
 
-/// 変換前後の画像をFinderで表示するリンクセル。
-/// ファイルが存在しない場合はポップオーバーで通知する（Why not: 選択するとFinderが空振りするため）。
-private struct FileLinkCell: View {
-    var path: String
-    var missingMessage: String
+/// 実行結果メッセージと、失敗のみ再実行のボタン（ADR 0066）。
+/// `ConvertView` 本体の行数制限（type_body_length）を守るため分離する。
+private struct ConvertResultSummary: View {
+    var jobStore: ConvertJobStore
+    var lang: String
 
-    @State private var showsMissing = false
+    private func t(_ key: String) -> String { L10n.string(key, language: lang) }
 
     var body: some View {
-        Button {
-            let url = URL(fileURLWithPath: path)
-            if FileManager.default.fileExists(atPath: url.path) {
-                NSWorkspace.shared.activateFileViewerSelecting([url])
-            } else {
-                showsMissing = true
-            }
-        } label: {
-            Text("🔗").appFont(.body)
-        }
-        .buttonStyle(.plain)
-        .popover(isPresented: $showsMissing) {
-            Text(missingMessage)
+        // 実行が終わると操作ボタンごと消えるため、結果（成功・混在・キャンセル）は
+        // この位置に残す。Why not 通知だけに任せるか: 通知を切っている設定でも
+        // キャンセル後に何が起きたか分からなくなるため。
+        if !jobStore.isRunning, !jobStore.resultMessage.isEmpty {
+            Text(jobStore.resultMessage)
                 .appFont(.body)
-                .padding()
+                .foregroundStyle(.secondary)
         }
-    }
-}
-
-/// フッターの統計1項目。Apple Musicのダイナミックタブバーのように
-/// アイコンの下にテキストを配置する。
-private struct FooterStat: View {
-    var icon: String
-    var iconColor: Color?
-    var text: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Image(systemName: icon)
-                .appFont(.headline)
-                .foregroundStyle(iconColor ?? .primary)
-            Text(text)
-                .appFont(.caption)
+        // 実行中でなく失敗行があるときのみ表示する（ADR 0066）。
+        if jobStore.canRetryFailed {
+            GlassCTAButton(
+                title: t("c.retryFailed"), disabled: false, systemImage: "arrow.clockwise"
+            ) {
+                jobStore.retryFailed()
+            }
         }
-        .frame(maxWidth: .infinity)
     }
 }

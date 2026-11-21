@@ -35,4 +35,50 @@ struct ConvertJobStoreTests {
             ])
         #expect(rows.allSatisfy { $0.upscale == .waiting && $0.compress == .waiting && $0.output == .waiting })
     }
+    @Test("失敗行があるときだけ再実行可能と判定する")
+    func canRetryFailed() throws {
+        let fileManager = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: base) }
+
+        let store = ConvertJobStore(paths: AppPaths(baseURL: base))
+        store.rows = [
+            FileRow(fileName: "ok.png", upscale: .success, compress: .success, output: .success),
+            FileRow(fileName: "ng.png", upscale: .success, compress: .failure, output: .waiting)
+        ]
+        #expect(store.canRetryFailed, "失敗行があれば再実行可能であること")
+
+        store.rows = [FileRow(fileName: "ok.png", upscale: .success, compress: .success, output: .success)]
+        #expect(!store.canRetryFailed, "失敗行が無ければ再実行不可であること")
+    }
+
+    @Test("直近の実行設定が無ければ再実行は何もしない")
+    func retryFailedRequiresLastRun() throws {
+        let fileManager = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: base) }
+
+        let store = ConvertJobStore(paths: AppPaths(baseURL: base))
+        store.rows = [
+            FileRow(fileName: "ng.png", upscale: .failure, compress: .waiting, output: .waiting)
+        ]
+        store.retryFailed()
+        #expect(!store.isRunning, "設定が無いため実行を開始しないこと")
+    }
+
+    @Test("残り時間の概算計算")
+    func estimatedRemainingMinutes() {
+        #expect(
+            ConvertJobStore.estimatedRemainingMinutes(elapsed: 10, completed: 0, total: 100) == nil,
+            "完了0件では見積もり不能であること")
+        #expect(
+            ConvertJobStore.estimatedRemainingMinutes(elapsed: 10, completed: 100, total: 100) == nil,
+            "全件完了後は残り0なので表示しないこと")
+        let eta = ConvertJobStore.estimatedRemainingMinutes(elapsed: 10, completed: 50, total: 100)
+        #expect(eta == 10.0, "完了50件で10分なら残り50件で10分と見積もること")
+    }
 }

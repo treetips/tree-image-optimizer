@@ -3,11 +3,17 @@ import Foundation
 /// 対象ファイル選定。Flutter版 `ConvertRepository.getTargetFiles` に対応する。
 enum TargetFiles {
     /// 入力として受け付ける拡張子。**静止画のみ**。
-    /// `gif` と `heic` を含めない根拠: 外部アップスケーラ（`upscayl-bin` /
+    /// `gif` とアニメーション形式を含めない根拠: 外部アップスケーラ（`upscayl-bin` /
     /// `realcugan-ncnn-vulkan`）はアニメーションをマルチフレームとして扱わず、
     /// 先頭フレームだけを静止画として読み出す。出力検証（`UpscaleService.postVerify`）
     /// も静止画1フレームを前提にしているため、ここで対象外にして前提を保つ（ADR 0063）。
-    static let supportedExtensions = ["jpg", "jpeg", "png", "webp"]
+    /// `heic` / `heif` / `avif` は静止画として受け付け、パイプライン直前でPNGへデコードする（ADR 0069）。
+    static let supportedExtensions = ["jpg", "jpeg", "png", "webp", "heic", "heif", "avif"]
+
+    /// 外部ツールが直接読めないため、中間PNGへのデコードが必要か（ADR 0069）。
+    static func needsDecodeToPNG(_ url: URL) -> Bool {
+        ["heic", "heif", "avif"].contains(url.pathExtension.lowercased())
+    }
 
     /// 更新日数が `days` 以内のファイルに絞る。`days == nil` で全件。
     static func list(in folder: URL, modifiedWithinDays days: Double?) throws -> [URL] {
