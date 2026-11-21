@@ -53,6 +53,7 @@ struct BeforeAfterPreviewView: View {
         if let image = NSImage(contentsOfFile: path) {
             Image(nsImage: image)
                 .resizable()
+                .interpolation(.high)
                 .scaledToFit()
         } else {
             ZStack {
@@ -65,7 +66,7 @@ struct BeforeAfterPreviewView: View {
     }
 }
 
-/// 結果表のプレビューセル。クリックで比較シートを開く（ADR 0071）。
+/// 結果表のプレビューセル。クリックで比較ウインドウを別に開く（ADR 0071）。
 struct ConvertPreviewCell: View {
     let beforePath: String
     let afterPath: String
@@ -73,28 +74,74 @@ struct ConvertPreviewCell: View {
     let beforeLabel: String
     let afterLabel: String
 
-    @State private var isPresented = false
-
     var body: some View {
         Button {
-            isPresented = true
+            ComparisonWindowController.shared.open(
+                beforePath: beforePath, afterPath: afterPath,
+                title: title, beforeLabel: beforeLabel, afterLabel: afterLabel)
         } label: {
             Text("🔍").appFont(.body)
         }
         .buttonStyle(.plain)
-        .sheet(isPresented: $isPresented) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(title).appFont(.headline)
-                BeforeAfterPreviewView(beforePath: beforePath, afterPath: afterPath)
-                    .frame(minHeight: 320)
-                HStack {
-                    Text(beforeLabel).appFont(.caption).foregroundStyle(.secondary)
-                    Spacer()
-                    Text(afterLabel).appFont(.caption).foregroundStyle(.secondary)
-                }
+    }
+}
+
+/// 比較ウインドウの中身。比較ビューを全面に広げ、下部に前後ラベルを添える。
+struct BeforeAfterPreviewWindowContent: View {
+    let beforePath: String
+    let afterPath: String
+    let beforeLabel: String
+    let afterLabel: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            BeforeAfterPreviewView(beforePath: beforePath, afterPath: afterPath)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            HStack {
+                Text(beforeLabel).appFont(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Text(afterLabel).appFont(.caption).foregroundStyle(.secondary)
             }
-            .padding()
-            .frame(minWidth: 480, minHeight: 420)
         }
+        .padding(12)
+        .frame(minWidth: 900, minHeight: 600)
+    }
+}
+
+/// 比較ウインドウの生成と保持。閉じたら参照を外して破棄できるようにする（ADR 0071）。
+/// Why not シートを使うか: 壁紙サイズ（5K等）の画像はシート内の小さい領域へ縮小され、
+/// アップスケール済みの「後」がジャギーに見える。別ウインドウで大きく表示するため。
+/// Why not @unchecked を外すか: 生成・破棄はすべてメインスレッド（SwiftUIのボタンアクションと
+/// NSWindowデリゲート）で行うため、`@MainActor` 相当の実態を保ちつつ Sendable を宣言する。
+final class ComparisonWindowController: NSObject, NSWindowDelegate, @unchecked Sendable {
+    static let shared = ComparisonWindowController()
+    private var windows: [NSWindow] = []
+
+    func open(
+        beforePath: String, afterPath: String, title: String, beforeLabel: String, afterLabel: String
+    ) {
+        let content = BeforeAfterPreviewWindowContent(
+            beforePath: beforePath, afterPath: afterPath,
+            beforeLabel: beforeLabel, afterLabel: afterLabel)
+        let hosting = NSHostingController(rootView: content)
+        let window = NSWindow(contentViewController: hosting)
+        window.title = title
+        // 画面の8割を上限に、壁紙サイズでも縮小のジャギーを抑えられる大きさで開く。
+        let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        window.setContentSize(
+            NSSize(
+                width: min(screen.width * 0.8, 1600),
+                height: min(screen.height * 0.8, 1000)))
+        window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        windows.append(window)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        windows.removeAll { $0 === window }
     }
 }
