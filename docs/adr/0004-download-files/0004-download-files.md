@@ -4,8 +4,8 @@
 
 [path_provider](https://pub.dev/packages/path_provider) で `~/Library/Application Support/tree-image-optimizer/` にダウンロードしたファイル等を格納しておきます。
 
-| OS      | 保存先                                   |
-|---------|---------------------------------------|
+| OS      | 保存先                                |
+| ------- | ------------------------------------- |
 | macOS   | ~/Library/Application Support/AppName |
 | Windows | %APPDATA%\AppName                     |
 | Linux   | ~/.local/share/AppName                |

@@ -13,7 +13,9 @@ disable = ["MD013", "MD033"]
 
 # Additional rules to enable on top of defaults (additive, does not replace)
 # Use this to activate opt-in rules like MD060, MD063, MD072, MD073, MD074
-# extend-enable = ["MD060", "MD063"]
+# MD060（表の桁揃え）は既定で無効なopt-inルールなので明示的に有効化する。
+# Why not enable か: 既定のルール群を維持したまま表の整形だけを足したいため。
+extend-enable = ["MD060"]
 
 # Additional rules to disable on top of the disable list (additive)
 # extend-disable = ["MD041"]
@@ -71,3 +73,11 @@ flavor = "gfm"
 # [MD044]
 # names = ["rumdl", "Markdown", "GitHub"]  # Proper names that should be capitalized correctly
 # code-blocks = false  # Check code blocks for proper names (default: false, skips code blocks)
+
+[MD060]
+# 表の桁を揃える。既定の "any" は既存の書式を尊重するだけで、崩れた表を整形しない。
+# Why not "compact" か: 日本語の表はセル幅が広く、空白を詰めると列の境界が読みにくいため。
+style = "aligned"
+# MD013 を無効にしているので max-width は無限（自動で compact に落ちない）。
+# 日本語の表が途中で compact になり列幅が揃わなくなるのを避ける。
+max-width = 0

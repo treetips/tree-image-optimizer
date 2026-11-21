@@ -21,12 +21,12 @@ macOS 27.2・Apple M4 Maxで実機検証した。753×594の画像を2倍にす�
 
 検証環境は次の通り。
 
-| 項目 | 内容 |
-|---|---|
-| OS | macOS 27.2（Build 26B123） |
-| CPU/GPU | Apple M4 Max |
-| 検証バイナリ | `nihui/realcugan-ncnn-vulkan` 20220728 |
-| 検証モデル | 同リリースの `models-se` / `models-pro` / `models-nose` |
+| 項目         | 内容                                                    |
+| ------------ | ------------------------------------------------------- |
+| OS           | macOS 27.2（Build 26B123）                              |
+| CPU/GPU      | Apple M4 Max                                            |
+| 検証バイナリ | `nihui/realcugan-ncnn-vulkan` 20220728                  |
+| 検証モデル   | 同リリースの `models-se` / `models-pro` / `models-nose` |
 
 ## Real-CUGANの配布形態
 
@@ -47,13 +47,13 @@ realcugan-ncnn-vulkan \
 
 `-s` は2〜4を指定する。`-m` にはモデルフォルダを渡す。`-n` の値とモデルファイルの対応は分かりにくく、次のようになっている。
 
-| `-n` | 選ばれるモデルファイル |
-|---|---|
+| `-n` | 選ばれるモデルファイル    |
+| ---- | ------------------------- |
 | `-1` | `up{scale}x-conservative` |
-| `0` | `up{scale}x-no-denoise` |
-| `1` | `up{scale}x-denoise1x` |
-| `2` | `up{scale}x-denoise2x` |
-| `3` | `up{scale}x-denoise3x` |
+| `0`  | `up{scale}x-no-denoise`   |
+| `1`  | `up{scale}x-denoise1x`    |
+| `2`  | `up{scale}x-denoise2x`    |
+| `3`  | `up{scale}x-denoise3x`    |
 
 `-1` が「ノイズ除去なし」ではなく「conservative」、`0` が「no-denoise」である点に注意する。UIでは `-n` の数値をそのまま見せず、モデルファイル名か利用者向けのラベルに変換したほうがよい。
 
@@ -63,11 +63,11 @@ realcugan-ncnn-vulkan \
 
 モデルはフォルダとファイル名の両方で意味が決まる。
 
-| フォルダ | 2x | 3x | 4x |
-|---|---|---|---|
-| `models-se` | conservative, no-denoise, denoise1x, denoise2x, denoise3x | conservative, no-denoise, denoise3x | conservative, no-denoise, denoise3x |
-| `models-pro` | conservative, no-denoise, denoise3x | conservative, no-denoise, denoise3x | なし |
-| `models-nose` | no-denoise | なし | なし |
+| フォルダ      | 2x                                                        | 3x                                  | 4x                                  |
+| ------------- | --------------------------------------------------------- | ----------------------------------- | ----------------------------------- |
+| `models-se`   | conservative, no-denoise, denoise1x, denoise2x, denoise3x | conservative, no-denoise, denoise3x | conservative, no-denoise, denoise3x |
+| `models-pro`  | conservative, no-denoise, denoise3x                       | conservative, no-denoise, denoise3x | なし                                |
+| `models-nose` | no-denoise                                                | なし                                | なし                                |
 
 `models-se` だけで11モデル、`models-pro` が6モデル、`models-nose` が1モデルの合計18モデルになる。1xモデルは含まれていない。Real-CUGANのREADMEにも、1xモデルはトレーニング中と書かれている。
 
@@ -75,18 +75,18 @@ realcugan-ncnn-vulkan \
 
 ### 実機で確認したこと
 
-| 確認項目 | 結果 |
-|---|---|
-| アーキテクチャ | x86_64 / arm64のユニバーサルバイナリ |
-| 外部dylib | なし（システムフレームワークのみ） |
-| 2倍変換（753×594 → 1506×1188） | 約0.4秒 |
-| 4倍変換（753×594 → 3012×2376） | 約0.7秒 |
-| 2倍変換（1533×755 → 3066×1510） | 約0.5秒 |
-| 7プロセス並列（2倍） | 全件成功、合計約2.1秒 |
-| 最大RSS | 1プロセスあたり約150MB |
-| 日本語・空白入りパス | 入出力とも成功 |
-| アルファ付きPNG | アルファを保持 |
-| ライセンス | MIT（nihui）、Real-CUGAN本体もMIT（bilibili） |
+| 確認項目                        | 結果                                          |
+| ------------------------------- | --------------------------------------------- |
+| アーキテクチャ                  | x86_64 / arm64のユニバーサルバイナリ          |
+| 外部dylib                       | なし（システムフレームワークのみ）            |
+| 2倍変換（753×594 → 1506×1188）  | 約0.4秒                                       |
+| 4倍変換（753×594 → 3012×2376）  | 約0.7秒                                       |
+| 2倍変換（1533×755 → 3066×1510） | 約0.5秒                                       |
+| 7プロセス並列（2倍）            | 全件成功、合計約2.1秒                         |
+| 最大RSS                         | 1プロセスあたり約150MB                        |
+| 日本語・空白入りパス            | 入出力とも成功                                |
+| アルファ付きPNG                 | アルファを保持                                |
+| ライセンス                      | MIT（nihui）、Real-CUGAN本体もMIT（bilibili） |
 
 処理時間はモデルやGPUキャッシュの状態で変わるため、目安として扱う。
 
@@ -98,12 +98,12 @@ realcugan-ncnn-vulkan \
 
 ## 実装方式の比較
 
-| 方式 | 実装コスト | 配布サイズ | 品質・速度 | 判断 |
-|---|---|---|---|---|
-| ncnnバイナリ（`realcugan-ncnn-vulkan`） | 小 | 約53MB（`models-se`のみ） | 実機で確認済み。既存の `upscayl-bin` と同じ実行方式 | 推奨 |
-| Core MLへ変換 | 大 | モデル次第で約50〜100MB | ANE/GPUを使える可能性はあるが、変換とタイル処理の検証が必要 | v1では見送り |
-| ncnnをXCFrameworkとしてリンク | 中〜大 | バイナリ相当 | CLIと同じ推論を自前で呼ぶ必要がある | 利点が少ない |
-| ONNX Runtime / MLX | 大 | 100MB超の依存になり得る | 公式のReal-CUGANモデルがない | 見送り |
+| 方式                                    | 実装コスト | 配布サイズ                | 品質・速度                                                  | 判断         |
+| --------------------------------------- | ---------- | ------------------------- | ----------------------------------------------------------- | ------------ |
+| ncnnバイナリ（`realcugan-ncnn-vulkan`） | 小         | 約53MB（`models-se`のみ） | 実機で確認済み。既存の `upscayl-bin` と同じ実行方式         | 推奨         |
+| Core MLへ変換                           | 大         | モデル次第で約50〜100MB   | ANE/GPUを使える可能性はあるが、変換とタイル処理の検証が必要 | v1では見送り |
+| ncnnをXCFrameworkとしてリンク           | 中〜大     | バイナリ相当              | CLIと同じ推論を自前で呼ぶ必要がある                         | 利点が少ない |
+| ONNX Runtime / MLX                      | 大         | 100MB超の依存になり得る   | 公式のReal-CUGANモデルがない                                | 見送り       |
 
 Core MLは「Swift SDKに近い形」ではあるが、Real-CUGANの公式Core MLモデルはない。PyTorchの重みから変換する場合、2x/3x/4xとノイズ除去レベルの組み合わせごとにモデルを作り、入力サイズの可変化かタイル分割を自前で設計することになる。変換ツール（Python、PyTorch、coremltools）をCIに持ち込む必要もあり、v1の範囲を超える。
 
@@ -201,24 +201,24 @@ Real-CUGANの実行前に対象モデルの `.param` と `.bin` が存在する�
 
 ## 変更対象ファイル
 
-| ファイル | 変更内容 |
-|---|---|
-| `Core/Models.swift` | `UpscaleEngine`、Real-CUGANモデル型を追加 |
-| `Services/UpscaleService.swift` | エンジン別の引数生成と実行分岐 |
-| `Services/ConvertOrchestrator.swift` | `ConvertConfig.engine` を `UpscaleService` へ渡す |
-| `Services/AppPaths.swift` | Real-CUGANのバイナリ・モデルパスを追加 |
-| `Services/ToolInstaller.swift` | 任意ツールとしての配置・判定・実行権限 |
-| `Services/SettingsStore.swift` | `engine` と `realCuganModel` の保存・補正 |
-| `Core/AppInfo.swift` | Real-CUGANのバージョン表示 |
-| `Features/Convert/ConvertViewModel.swift` | エンジン状態、モデル一覧の切り替え |
-| `Features/Convert/ConvertView.swift` | エンジンプルダウン、拡大率の制限 |
-| `Features/EasyConvert/EasyConvertViewModel.swift` | 同上 |
-| `Features/EasyConvert/EasyConvertView.swift` | 同上 |
-| `Resources/Localizable.xcstrings` | エンジン名・ヘルプ・エラー文言 |
-| `docs/design/feature/initial-data.md` | Real-CUGANの配置手順 |
-| `docs/design/feature/batch-convert.md` | `upscal-bin` の表記修正、Real-CUGANの制約 |
-| `docs/design/feature/easy-convert.md` | 同上 |
-| `.gitattributes` | Real-CUGANのLFS登録 |
+| ファイル                                          | 変更内容                                          |
+| ------------------------------------------------- | ------------------------------------------------- |
+| `Core/Models.swift`                               | `UpscaleEngine`、Real-CUGANモデル型を追加         |
+| `Services/UpscaleService.swift`                   | エンジン別の引数生成と実行分岐                    |
+| `Services/ConvertOrchestrator.swift`              | `ConvertConfig.engine` を `UpscaleService` へ渡す |
+| `Services/AppPaths.swift`                         | Real-CUGANのバイナリ・モデルパスを追加            |
+| `Services/ToolInstaller.swift`                    | 任意ツールとしての配置・判定・実行権限            |
+| `Services/SettingsStore.swift`                    | `engine` と `realCuganModel` の保存・補正         |
+| `Core/AppInfo.swift`                              | Real-CUGANのバージョン表示                        |
+| `Features/Convert/ConvertViewModel.swift`         | エンジン状態、モデル一覧の切り替え                |
+| `Features/Convert/ConvertView.swift`              | エンジンプルダウン、拡大率の制限                  |
+| `Features/EasyConvert/EasyConvertViewModel.swift` | 同上                                              |
+| `Features/EasyConvert/EasyConvertView.swift`      | 同上                                              |
+| `Resources/Localizable.xcstrings`                 | エンジン名・ヘルプ・エラー文言                    |
+| `docs/design/feature/initial-data.md`             | Real-CUGANの配置手順                              |
+| `docs/design/feature/batch-convert.md`            | `upscal-bin` の表記修正、Real-CUGANの制約         |
+| `docs/design/feature/easy-convert.md`             | 同上                                              |
+| `.gitattributes`                                  | Real-CUGANのLFS登録                               |
 
 ## リスクと未決事項
 

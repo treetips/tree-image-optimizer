@@ -16,12 +16,12 @@
   - Service（`Services/`）: 永続化・外部プロセス・Appleフレームワークの薄いラッパー。`Sendable` なstruct/class（状態を持たないenumを含む）で実装し、UIの判断ロジックを持ちません。
   - Core（`Core/`）: 機能横断の共有物。データ定義（`Models.swift`）、エラー型（`AppError.swift`）、テーマ・共通View、言語解決（`L10n.swift`）を置きます。
 
-| 層       | 配置                                                                                                 | 例                               |
-|:--------|:---------------------------------------------------------------------------------------------------|:--------------------------------|
-| View    | `App/RootView.swift`、`Features/Convert/ConvertView.swift`                                          | `NavigationSplitView`、各画面のレイアウト |
-| Model   | `Features/Convert/ConvertViewModel.swift`、`Features/Convert/ConvertJobStore.swift`、`Features/EasyConvert/EasyConvertJobStore.swift`、`Features/Settings/SettingsViewModel.swift` | 画面状態・検証・保存・実行指示・共有ジョブ状態        |
-| Service | `Services/ConvertOrchestrator.swift`、`Services/SettingsStore.swift`、`Services/ProcessRunner.swift` | 並列変換・設定の読み書き・プロセス実行             |
-| Core    | `Core/Models.swift`、`Core/AppError.swift`、`Core/L10n.swift`                                        | データ型・エラー・文言解決                   |
+| 層      | 配置                                                                                                                                                                               | 例                                             |
+| :------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------- |
+| View    | `App/RootView.swift`、`Features/Convert/ConvertView.swift`                                                                                                                         | `NavigationSplitView`、各画面のレイアウト      |
+| Model   | `Features/Convert/ConvertViewModel.swift`、`Features/Convert/ConvertJobStore.swift`、`Features/EasyConvert/EasyConvertJobStore.swift`、`Features/Settings/SettingsViewModel.swift` | 画面状態・検証・保存・実行指示・共有ジョブ状態 |
+| Service | `Services/ConvertOrchestrator.swift`、`Services/SettingsStore.swift`、`Services/ProcessRunner.swift`                                                                               | 並列変換・設定の読み書き・プロセス実行         |
+| Core    | `Core/Models.swift`、`Core/AppError.swift`、`Core/L10n.swift`                                                                                                                      | データ型・エラー・文言解決                     |
 
 - `UseCase` / `Repository` 層は設けません。必要なオーケストレーションは `ConvertOrchestrator` のようなServiceに集約し、層を薄く保ちます。
 

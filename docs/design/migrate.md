@@ -11,13 +11,13 @@
 
 ## 1. バージョン方針（2026/09時点）
 
-| 項目 | 採用 | 備考 |
-|---|---|---|
-| Xcode | 26.6（17F113, Stable） | 手元の実行環境と一致。Xcode 27は2026/09時点でBeta 6のため原則使わない |
-| Swift | 6.3.3（Xcode 26.6付属） | 手元 `swift --version` で確認。Xcode 27系のSwift 6.4はBeta扱いのため見送り |
-| SwiftUI / SDK | macOS Tahoe 26 SDK | `macos versions` の意味ではなく、Xcode 26.6付属の最新安定SDK |
-| 実行/検証OS | macOS Tahoe 26.6.2（25G83） | 手元の `sw_vers` で確認。後方互換の下限はフェーズ2開始前に確定する |
-| 言語モード | Swift 6言語モード | 並行処理の安全性をコンパイル時に担保する。`Sendable`/`@MainActor`を徹底する |
+| 項目          | 採用                        | 備考                                                                        |
+| ------------- | --------------------------- | --------------------------------------------------------------------------- |
+| Xcode         | 26.6（17F113, Stable）      | 手元の実行環境と一致。Xcode 27は2026/09時点でBeta 6のため原則使わない       |
+| Swift         | 6.3.3（Xcode 26.6付属）     | 手元 `swift --version` で確認。Xcode 27系のSwift 6.4はBeta扱いのため見送り  |
+| SwiftUI / SDK | macOS Tahoe 26 SDK          | `macos versions` の意味ではなく、Xcode 26.6付属の最新安定SDK                |
+| 実行/検証OS   | macOS Tahoe 26.6.2（25G83） | 手元の `sw_vers` で確認。後方互換の下限はフェーズ2開始前に確定する          |
+| 言語モード    | Swift 6言語モード           | 並行処理の安全性をコンパイル時に担保する。`Sendable`/`@MainActor`を徹底する |
 
 判断理由：
 
@@ -76,14 +76,14 @@
 `tools/` 配下のバイナリはSwiftUI移行後も `Process`（`Foundation.Process`）から呼び出す。
 Flutter資産ではなく独立したCLI群として扱う。
 
-| ツール | 用途 | 備考 |
-|---|---|---|
-| `upscal/bin/upscayl-bin` + `models/*.bin,*.param` | アップスケール | 全体で約356MBの大半を占める。Git LFS管理 |
-| `jpegoptim/bin/<os>/jpegoptim` | JPEG圧縮 | |
-| `pngoptim/bin/<os>/pngoptim` | PNG圧縮 | |
-| `libjxl/bin/<os>/cjxl` + macOS同梱dylib群 | JPEG XL圧縮 | macOSは`*.dylib`のバンドルと`@rpath`解決が必要（ADR 0017） |
-| `libavif/bin/<os>/avifenc` | AV1圧縮 | |
-| `libwebp/bin/<os>/cwebp(.exe)` | WebP圧縮 | Google Storage由来。デコーダ（`dwebp`等）は未同梱 |
+| ツール                                            | 用途           | 備考                                                       |
+| ------------------------------------------------- | -------------- | ---------------------------------------------------------- |
+| `upscal/bin/upscayl-bin` + `models/*.bin,*.param` | アップスケール | 全体で約356MBの大半を占める。Git LFS管理                   |
+| `jpegoptim/bin/<os>/jpegoptim`                    | JPEG圧縮       |                                                            |
+| `pngoptim/bin/<os>/pngoptim`                      | PNG圧縮        |                                                            |
+| `libjxl/bin/<os>/cjxl` + macOS同梱dylib群         | JPEG XL圧縮    | macOSは`*.dylib`のバンドルと`@rpath`解決が必要（ADR 0017） |
+| `libavif/bin/<os>/avifenc`                        | AV1圧縮        |                                                            |
+| `libwebp/bin/<os>/cwebp(.exe)`                    | WebP圧縮       | Google Storage由来。デコーダ（`dwebp`等）は未同梱          |
 
 現行の圧縮パラメータは `docs/design/feature/convert-flow/compression.md` と
 `compression_service.dart` が正とする。移行時に1:1で持ち込む。
@@ -136,26 +136,26 @@ Xcodeプロジェクト形式は標準の `.xcodeproj` とし、Swift Package Ma
 
 ### 3.2 アーキテクチャ対応表
 
-| Flutter現行 | SwiftUI移行後 | 備考 |
-|---|---|---|
-| `StateNotifier` + Riverpod | `@Observable` + `@Environment` | グローバル状態は`@Environment`注入、画面固有状態は`@State` |
-| ViewModel | `@Observable @MainActor`クラス | 命名は`ConvertViewModel`等を踏襲し対応関係を明確にする |
-| UseCase/Repository/Service | `Service`層に集約し、必要に応じて`UseCase`を残す | Flutterの層構造を無理に再現せず、Swiftらしい薄い層にする |
-| `Result<T>` | `Result<T, AppError>` または `throws` | エラー型を定義し、`LocalizedError`でUI表示文言を統一する |
-| `ProcessService` | `ProcessRunner`（`Foundation.Process`ラッパー） | 終了コード・stdout/stderr・作業ディレクトリ・キャンセルを扱う |
-| `PathService` | `AppPaths`（`FileManager`ラッパー） | Application Support基準、同梱リソースは`Bundle.main` |
-| `LogService` | `OSLog`/`Logger`（`os`） | ログファイル出力が必要なら`logs/`への追記を維持する |
-| `SettingsRepository` | `SettingsStore`（`Codable` + JSON） | `settings.json`のキー互換を維持する（後述） |
-| `SoundService`（just_audio） | `AVFoundation`（`AVAudioPlayer`） | 試聴・完了時再生を置換 |
-| `NotificationService` | `UserNotifications`（`UNUserNotificationCenter`） | 権限リクエストの流れを踏襲 |
-| `file_selector` | `AppKit.NSOpenPanel` | フォルダ選択に使用。SwiftUIからは`NSOpenPanel`ラッパーで呼ぶ |
-| `syncfusion`スライダー | SwiftUI `Slider`＋カスタムトラック | 色分けメモリはSwiftUIで再実装する |
-| `flutter_color_picker_plus` | SwiftUI `ColorPicker` | 標準コントロールで代替可能 |
-| `url_launcher` | `NSWorkspace.open` | GitHubリンク等に使用 |
-| `package_info_plus` | `Bundle.main`のバージョン情報 | |
-| `archive`/`crypto`/`http` | `Foundation`（`URLSession` + `CryptoKit`） | tools ZIP取得・SHA-256検証に使用 |
-| `image`（Dart） | 必要時のみ`CoreGraphics`/`ImageIO` | 壁紙表示はSwiftUI `Image`、変換の中間処理は既存方針を踏襲する |
-| `material_ui` | SwiftUI標準＋Liquid Glass | Finder風サイドバーは`NavigationSplitView`を使う |
+| Flutter現行                  | SwiftUI移行後                                     | 備考                                                          |
+| ---------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| `StateNotifier` + Riverpod   | `@Observable` + `@Environment`                    | グローバル状態は`@Environment`注入、画面固有状態は`@State`    |
+| ViewModel                    | `@Observable @MainActor`クラス                    | 命名は`ConvertViewModel`等を踏襲し対応関係を明確にする        |
+| UseCase/Repository/Service   | `Service`層に集約し、必要に応じて`UseCase`を残す  | Flutterの層構造を無理に再現せず、Swiftらしい薄い層にする      |
+| `Result<T>`                  | `Result<T, AppError>` または `throws`             | エラー型を定義し、`LocalizedError`でUI表示文言を統一する      |
+| `ProcessService`             | `ProcessRunner`（`Foundation.Process`ラッパー）   | 終了コード・stdout/stderr・作業ディレクトリ・キャンセルを扱う |
+| `PathService`                | `AppPaths`（`FileManager`ラッパー）               | Application Support基準、同梱リソースは`Bundle.main`          |
+| `LogService`                 | `OSLog`/`Logger`（`os`）                          | ログファイル出力が必要なら`logs/`への追記を維持する           |
+| `SettingsRepository`         | `SettingsStore`（`Codable` + JSON）               | `settings.json`のキー互換を維持する（後述）                   |
+| `SoundService`（just_audio） | `AVFoundation`（`AVAudioPlayer`）                 | 試聴・完了時再生を置換                                        |
+| `NotificationService`        | `UserNotifications`（`UNUserNotificationCenter`） | 権限リクエストの流れを踏襲                                    |
+| `file_selector`              | `AppKit.NSOpenPanel`                              | フォルダ選択に使用。SwiftUIからは`NSOpenPanel`ラッパーで呼ぶ  |
+| `syncfusion`スライダー       | SwiftUI `Slider`＋カスタムトラック                | 色分けメモリはSwiftUIで再実装する                             |
+| `flutter_color_picker_plus`  | SwiftUI `ColorPicker`                             | 標準コントロールで代替可能                                    |
+| `url_launcher`               | `NSWorkspace.open`                                | GitHubリンク等に使用                                          |
+| `package_info_plus`          | `Bundle.main`のバージョン情報                     |                                                               |
+| `archive`/`crypto`/`http`    | `Foundation`（`URLSession` + `CryptoKit`）        | tools ZIP取得・SHA-256検証に使用                              |
+| `image`（Dart）              | 必要時のみ`CoreGraphics`/`ImageIO`                | 壁紙表示はSwiftUI `Image`、変換の中間処理は既存方針を踏襲する |
+| `material_ui`                | SwiftUI標準＋Liquid Glass                         | Finder風サイドバーは`NavigationSplitView`を使う               |
 
 ### 3.3 UI置換方針
 
@@ -240,17 +240,17 @@ Flutterの既存テスト（9ファイル）は仕様の正本として残し、
 
 ## 5. リスクと未確定事項
 
-| # | 項目 | 内容 | 対応 |
-|---|---|---|---|
-| 1 | 対象OSの下限 | Tahoe 26専用か、Sequoia等も対象か未確定 | フェーズ2開始前に確定。Liquid Glass前提ならTahoe以降に寄せる |
-| 2 | Intel Mac対応 | TahoeはIntelも対象だが、新規はApple Silicon優先か要判断 | 配布アーカイブ（universal/arm64のみ）とCIランナーで確定する |
-| 3 | サンドボックス | 有効化すると外部ツール実行・ファイルアクセスに影響 | フェーズ2開始前に有無を確定。安易に有効化しない |
-| 4 | 署名・公証 | tools同梱dylib・バイナリの署名維持が必要 | 現行release.ymlの署名手順をSwiftUI用に移植する |
-| 5 | Git LFS（約365MB超のtools） | SwiftUI用CIでもLFS取得が必須 | ワークフローを移植し、キャッシュと取得時間を検証する |
-| 6 | `macos/`旧Runnerの扱い | Flutter版と共存させる期間 | 削除は別ADRで判断。本計画では共存を前提とする |
-| 7 | アップデート方式 | Sparkle/自前/App Storeの三択 | フェーズ3開始前に確定する |
-| 8 | `syncfusion`スライダーの再現度 | 色分けメモリ等の完全再現は工数がかかる | Apple標準に寄せて簡略化する方針をユーザーレビューで合意する |
-| 9 | 音声・壁紙のユーザー配置 | 再起動読み込み等の仕様踏襲 | `README.md`の配置仕様をSwiftUI版でも維持する |
+| #   | 項目                           | 内容                                                    | 対応                                                         |
+| --- | ------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------ |
+| 1   | 対象OSの下限                   | Tahoe 26専用か、Sequoia等も対象か未確定                 | フェーズ2開始前に確定。Liquid Glass前提ならTahoe以降に寄せる |
+| 2   | Intel Mac対応                  | TahoeはIntelも対象だが、新規はApple Silicon優先か要判断 | 配布アーカイブ（universal/arm64のみ）とCIランナーで確定する  |
+| 3   | サンドボックス                 | 有効化すると外部ツール実行・ファイルアクセスに影響      | フェーズ2開始前に有無を確定。安易に有効化しない              |
+| 4   | 署名・公証                     | tools同梱dylib・バイナリの署名維持が必要                | 現行release.ymlの署名手順をSwiftUI用に移植する               |
+| 5   | Git LFS（約365MB超のtools）    | SwiftUI用CIでもLFS取得が必須                            | ワークフローを移植し、キャッシュと取得時間を検証する         |
+| 6   | `macos/`旧Runnerの扱い         | Flutter版と共存させる期間                               | 削除は別ADRで判断。本計画では共存を前提とする                |
+| 7   | アップデート方式               | Sparkle/自前/App Storeの三択                            | フェーズ3開始前に確定する                                    |
+| 8   | `syncfusion`スライダーの再現度 | 色分けメモリ等の完全再現は工数がかかる                  | Apple標準に寄せて簡略化する方針をユーザーレビューで合意する  |
+| 9   | 音声・壁紙のユーザー配置       | 再起動読み込み等の仕様踏襲                              | `README.md`の配置仕様をSwiftUI版でも維持する                 |
 
 ## 7. フェーズ2 UIレビュー反映（第1回）
 
@@ -298,32 +298,32 @@ Flutterの既存テスト（9ファイル）は仕様の正本として残し、
 テストターゲット `TreeImageOptimizerTests`（Swift Testing）を追加し、
 アプリ本体のビルド（Debug/Release）も確認済み。
 
-| # | 項目 | 状態 | 対応 |
-|---|---|---|---|
-| 1 | `AppPaths` / `SettingsStore` | 実装＋テスト済み | `settings.json` のキー互換・補正仕様をFlutter版と一致させた |
-| 2 | `ProcessRunner` | 実装＋テスト済み | 終了コード・stdout/stderr・作業ディレクトリ・異常系 |
-| 3 | `ToolInstaller`相当 | 実装＋テスト済み | 存在チェック・ローカルコピー・権限・libwebp取得・SHA-256。単一ZIP配布基盤は未実装 |
-| 4 | 対象ファイル選定・モデル一覧 | 実装＋テスト済み | 拡張子・更新日絞り込み・ソート・`.bin`走査 |
-| 5 | アップスケール実行 | 実装（引数テスト済み） | `upscayl-bin` 呼び出し。実バイナリでのE2Eは未実施 |
-| 6 | 圧縮実行（5形式） | 実装（引数テスト済み） | `compression.md` 通りのパラメータ。中間JPEG/PNG生成はImageIOで代替 |
-| 7 | 出力・並列実行・進捗集計 | 実装（ファイル名テスト済み） | バッチ並列＋進捗コールバック。`ConvertViewModel` に配線済み |
-| 8 | 通知・サウンド・壁紙・言語・バージョン | 実装＋テスト済み | `UNUserNotificationCenter` / `AVAudioPlayer` / 壁紙解決 / ロケール適用 |
-| 9 | アップデート機構 | 確認・検証まで実装 | `check/download/verify` のみ。適用（差し替え・再起動）は配布方式未確定のため見送り |
-| 10 | CI | 追加済み | `.github/workflows/swiftui.yml`（build＋test）。Flutter用CIは残置 |
+| #   | 項目                                   | 状態                         | 対応                                                                               |
+| --- | -------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
+| 1   | `AppPaths` / `SettingsStore`           | 実装＋テスト済み             | `settings.json` のキー互換・補正仕様をFlutter版と一致させた                        |
+| 2   | `ProcessRunner`                        | 実装＋テスト済み             | 終了コード・stdout/stderr・作業ディレクトリ・異常系                                |
+| 3   | `ToolInstaller`相当                    | 実装＋テスト済み             | 存在チェック・ローカルコピー・権限・libwebp取得・SHA-256。単一ZIP配布基盤は未実装  |
+| 4   | 対象ファイル選定・モデル一覧           | 実装＋テスト済み             | 拡張子・更新日絞り込み・ソート・`.bin`走査                                         |
+| 5   | アップスケール実行                     | 実装（引数テスト済み）       | `upscayl-bin` 呼び出し。実バイナリでのE2Eは未実施                                  |
+| 6   | 圧縮実行（5形式）                      | 実装（引数テスト済み）       | `compression.md` 通りのパラメータ。中間JPEG/PNG生成はImageIOで代替                 |
+| 7   | 出力・並列実行・進捗集計               | 実装（ファイル名テスト済み） | バッチ並列＋進捗コールバック。`ConvertViewModel` に配線済み                        |
+| 8   | 通知・サウンド・壁紙・言語・バージョン | 実装＋テスト済み             | `UNUserNotificationCenter` / `AVAudioPlayer` / 壁紙解決 / ロケール適用             |
+| 9   | アップデート機構                       | 確認・検証まで実装           | `check/download/verify` のみ。適用（差し替え・再起動）は配布方式未確定のため見送り |
+| 10  | CI                                     | 追加済み                     | `.github/workflows/swiftui.yml`（build＋test）。Flutter用CIは残置                  |
 
 ## 9. SwiftUIでは実現できない／見送る項目
 
 Flutterでは実装できたがSwiftUI版で対応しない項目を記録する。
 
-| # | 項目 | 区分 | 内容 |
-|---|---|---|---|
-| 1 | Windows/Linux版の提供 | 対象外（意思決定） | 技術的不可ではなくADR 0019の目的。`_osName()` 分岐・`.exe` 対応は廃止し、macOS専用（`bin/macos` 固定）とした |
-| 2 | App Store配布と外部CLI同梱の両立 | 見送り（確定） | App Store配布の予定なし。サンドボックス制約上、署名なし外部バイナリの実行と両立困難なため、現行の自前アップデート＋公証配布を踏襲する |
-| 3 | アップデートの適用（差し替え・再起動） | 未実装 | 確認・ダウンロード・SHA-256検証・展開・`.app` 検出まで実装。ヘルパーによる置換・再起動は配布方式確定後に実装する |
-| 4 | 単一ZIP（`tools-vVERSION.zip`）配布基盤 | 未実装 | Releaseビルドは`tools/`を`.app`へ同梱する（ADR 0048）。不足時はアプリ内`tools/`のコピーとlibwebp取得で対応。GitHub Releasesからの単一ZIP取得は配布開始時に実装する |
-| 5 | Syncfusionスライダーの色分けメモリ完全再現 | 簡略化 | 標準`Slider`に置換。リスク#8の確定事項としてユーザーレビューで合意済み扱いとする |
-| 6 | material_uiのhover popover | 置換 | SwiftUIの`.help()` に置換。同等機能のため問題なし |
-| 7 | just_audioの高度な再生機能 | 不要 | ローカルファイル再生のみ必要なため`AVAudioPlayer`で充足 |
+| #   | 項目                                       | 区分               | 内容                                                                                                                                                               |
+| --- | ------------------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Windows/Linux版の提供                      | 対象外（意思決定） | 技術的不可ではなくADR 0019の目的。`_osName()` 分岐・`.exe` 対応は廃止し、macOS専用（`bin/macos` 固定）とした                                                       |
+| 2   | App Store配布と外部CLI同梱の両立           | 見送り（確定）     | App Store配布の予定なし。サンドボックス制約上、署名なし外部バイナリの実行と両立困難なため、現行の自前アップデート＋公証配布を踏襲する                              |
+| 3   | アップデートの適用（差し替え・再起動）     | 未実装             | 確認・ダウンロード・SHA-256検証・展開・`.app` 検出まで実装。ヘルパーによる置換・再起動は配布方式確定後に実装する                                                   |
+| 4   | 単一ZIP（`tools-vVERSION.zip`）配布基盤    | 未実装             | Releaseビルドは`tools/`を`.app`へ同梱する（ADR 0048）。不足時はアプリ内`tools/`のコピーとlibwebp取得で対応。GitHub Releasesからの単一ZIP取得は配布開始時に実装する |
+| 5   | Syncfusionスライダーの色分けメモリ完全再現 | 簡略化             | 標準`Slider`に置換。リスク#8の確定事項としてユーザーレビューで合意済み扱いとする                                                                                   |
+| 6   | material_uiのhover popover                 | 置換               | SwiftUIの`.help()` に置換。同等機能のため問題なし                                                                                                                  |
+| 7   | just_audioの高度な再生機能                 | 不要               | ローカルファイル再生のみ必要なため`AVAudioPlayer`で充足                                                                                                            |
 
 なお以下は代替手段で実現済みであり、不可項目ではない。
 

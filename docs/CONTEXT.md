@@ -24,13 +24,13 @@ macOS 向けデスクトップアプリ（SwiftUI）です。フォルダ内の�
 `UseCase` / `Repository` 層は設けず、オーケストレーションは Service に集約して層を薄く保ちます。
 いずれのパスも `TreeImageOptimizer/TreeImageOptimizer/` 配下です。
 
-| 層 | 責務 | 配置例 |
-| :--- | :--- | :--- |
-| App | アプリのエントリポイントと画面の骨格 | `App/TreeImageOptimizerApp.swift`、`App/RootView.swift` |
-| View | SwiftUI の宣言的UI。業務状態は持たず Model を表示・操作に結びつける | `Features/Convert/ConvertView.swift` |
-| Model | `@Observable` + `@MainActor`。画面状態と実行指示を持ち Service を呼ぶ | `Features/Convert/ConvertViewModel.swift`、`Features/Convert/ConvertJobStore.swift`、`Core/ConversionSettings.swift` |
-| Service | 永続化・外部プロセス・Apple フレームワークの薄いラッパー。`Sendable` で UI 判断ロジックを持たない | `Services/` |
-| Core | 機能横断の共有物（データ定義・エラー型・テーマ・文言解決） | `Core/Models.swift`、`Core/AppError.swift`、`Core/L10n.swift` |
+| 層      | 責務                                                                                              | 配置例                                                                                                               |
+| :------ | :------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------- |
+| App     | アプリのエントリポイントと画面の骨格                                                              | `App/TreeImageOptimizerApp.swift`、`App/RootView.swift`                                                              |
+| View    | SwiftUI の宣言的UI。業務状態は持たず Model を表示・操作に結びつける                               | `Features/Convert/ConvertView.swift`                                                                                 |
+| Model   | `@Observable` + `@MainActor`。画面状態と実行指示を持ち Service を呼ぶ                             | `Features/Convert/ConvertViewModel.swift`、`Features/Convert/ConvertJobStore.swift`、`Core/ConversionSettings.swift` |
+| Service | 永続化・外部プロセス・Apple フレームワークの薄いラッパー。`Sendable` で UI 判断ロジックを持たない | `Services/`                                                                                                          |
+| Core    | 機能横断の共有物（データ定義・エラー型・テーマ・文言解決）                                        | `Core/Models.swift`、`Core/AppError.swift`、`Core/L10n.swift`                                                        |
 
 ### 状態管理の要点
 
@@ -63,20 +63,20 @@ macOS 向けデスクトップアプリ（SwiftUI）です。フォルダ内の�
 
 ## 主要コンポーネントの対応関係
 
-| コンポーネント | 配置 | 役割 |
-| :--- | :--- | :--- |
-| `ConvertOrchestrator` | `Services/ConvertOrchestrator.swift` | 変換全体のオーケストレーション。ワーカー群・スケジューラ・キューの生成と集計。ステージ別ワーカー実体は `ConvertOrchestratorWorkers.swift` |
-| `UpscaleService` | `Services/UpscaleService.swift` | アップスケール実行。`upscayl-bin` / `realcugan-ncnn-vulkan` へ振り分け、実行前後の検証も行う |
-| `CompressionService` | `Services/CompressionService.swift` | 画像圧縮実行。フォーマット別に各エンコーダの引数を組み立てる |
-| `ConvertJobStore` | `Features/Convert/ConvertJobStore.swift` | 一括変換の実行状態（進捗・結果表）を保持する共有ジョブ層。実処理は `ConvertOrchestrator` に委譲 |
-| `EasyConvertJobStore` | `Features/EasyConvert/EasyConvertJobStore.swift` | かんたん変換の共有ジョブ層 |
-| `ConversionSettings` | `Core/ConversionSettings.swift` | 両画面で共有する変換設定。保存と `ConvertConfig` スナップショット生成を担う |
-| `TargetFiles` | `Services/TargetFiles.swift` | 対象ファイル選定（拡張子と更新日数の絞り込み） |
-| `ConversionPlanner` | `Services/ConversionPlanner.swift` | ファイルごとの倍率・縮小先・品質の計画 |
-| `AppPaths` | `Services/AppPaths.swift` | 各種パスの解決（`tools/` 配下のバイナリや設定ファイル） |
-| `SettingsStore` | `Services/SettingsStore.swift` | `settings.json` の読み書き |
-| `ToolInstaller` | `Services/ToolInstaller.swift` | 外部ツールの初回展開と修復 |
-| `AppError` | `Core/AppError.swift` | アプリ共通のエラー型 |
+| コンポーネント        | 配置                                             | 役割                                                                                                                                      |
+| :-------------------- | :----------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| `ConvertOrchestrator` | `Services/ConvertOrchestrator.swift`             | 変換全体のオーケストレーション。ワーカー群・スケジューラ・キューの生成と集計。ステージ別ワーカー実体は `ConvertOrchestratorWorkers.swift` |
+| `UpscaleService`      | `Services/UpscaleService.swift`                  | アップスケール実行。`upscayl-bin` / `realcugan-ncnn-vulkan` へ振り分け、実行前後の検証も行う                                              |
+| `CompressionService`  | `Services/CompressionService.swift`              | 画像圧縮実行。フォーマット別に各エンコーダの引数を組み立てる                                                                              |
+| `ConvertJobStore`     | `Features/Convert/ConvertJobStore.swift`         | 一括変換の実行状態（進捗・結果表）を保持する共有ジョブ層。実処理は `ConvertOrchestrator` に委譲                                           |
+| `EasyConvertJobStore` | `Features/EasyConvert/EasyConvertJobStore.swift` | かんたん変換の共有ジョブ層                                                                                                                |
+| `ConversionSettings`  | `Core/ConversionSettings.swift`                  | 両画面で共有する変換設定。保存と `ConvertConfig` スナップショット生成を担う                                                               |
+| `TargetFiles`         | `Services/TargetFiles.swift`                     | 対象ファイル選定（拡張子と更新日数の絞り込み）                                                                                            |
+| `ConversionPlanner`   | `Services/ConversionPlanner.swift`               | ファイルごとの倍率・縮小先・品質の計画                                                                                                    |
+| `AppPaths`            | `Services/AppPaths.swift`                        | 各種パスの解決（`tools/` 配下のバイナリや設定ファイル）                                                                                   |
+| `SettingsStore`       | `Services/SettingsStore.swift`                   | `settings.json` の読み書き                                                                                                                |
+| `ToolInstaller`       | `Services/ToolInstaller.swift`                   | 外部ツールの初回展開と修復                                                                                                                |
+| `AppError`            | `Core/AppError.swift`                            | アプリ共通のエラー型                                                                                                                      |
 
 `ConvertConfig` は `ConversionSettings.makeConfig()` が作る**実行用スナップショット**です。
 実行中に UI の設定が変わっても処理がぶれないようにするためです。
@@ -87,15 +87,15 @@ macOS 向けデスクトップアプリ（SwiftUI）です。フォルダ内の�
 
 同梱ツールは `tools/` 配下に配置し、実行時は `~/Library/Application Support/tree-image-optimizer/tools/` に展開されます。
 
-| 用途 | バイナリ | 配置 |
-| :--- | :--- | :--- |
-| アップスケール | `upscayl-bin` | `tools/upscal/bin/`（モデルは `tools/upscal/models/`） |
-| アップスケール（任意） | `realcugan-ncnn-vulkan` | `tools/realcugan/bin/macos/` |
-| JPEG 圧縮 | `jpegoptim` | `tools/jpegoptim/bin/macos/` |
-| PNG 圧縮 | `pngoptim` | `tools/pngoptim/bin/macos/` |
-| JPEG XL 圧縮 | `cjxl` | `tools/libjxl/bin/macos/` |
-| AV1 圧縮 | `avifenc` | `tools/libavif/bin/macos/` |
-| WebP 圧縮 | `cwebp` | `tools/libwebp/bin/macos/` |
+| 用途                   | バイナリ                | 配置                                                   |
+| :--------------------- | :---------------------- | :----------------------------------------------------- |
+| アップスケール         | `upscayl-bin`           | `tools/upscal/bin/`（モデルは `tools/upscal/models/`） |
+| アップスケール（任意） | `realcugan-ncnn-vulkan` | `tools/realcugan/bin/macos/`                           |
+| JPEG 圧縮              | `jpegoptim`             | `tools/jpegoptim/bin/macos/`                           |
+| PNG 圧縮               | `pngoptim`              | `tools/pngoptim/bin/macos/`                            |
+| JPEG XL 圧縮           | `cjxl`                  | `tools/libjxl/bin/macos/`                              |
+| AV1 圧縮               | `avifenc`               | `tools/libavif/bin/macos/`                             |
+| WebP 圧縮              | `cwebp`                 | `tools/libwebp/bin/macos/`                             |
 
 - 起動時に `ToolBootstrapModel` が `ToolInstaller.ensureInstalled(progress:)` を呼び、揃っていなければ修復します。完了まで操作はブロックされます。
 - 修復は**開発用ローカルの `tools/` コピーを優先**し、無ければネットワーク取得します。取得元があるのは `libwebp`（Google Storage）と `Real-CUGAN`（GitHub Releases）のみで、それ以外はローカルに無ければエラーです。
@@ -139,13 +139,13 @@ macOS 向けデスクトップアプリ（SwiftUI）です。フォルダ内の�
 
 `OutputFormat`（`Core/Models.swift`）の5種類です。既定は JPEG XL です。
 
-| フォーマット | 拡張子 | エンコーダ |
-| :--- | :--- | :--- |
-| JPEG | `.jpg` | ImageIO で生成後に `jpegoptim` |
-| PNG | `.png` | ImageIO で生成後に `pngoptim` |
-| JPEG XL | `.jxl` | `cjxl` |
-| AV1 | `.avif` | `avifenc` |
-| WebP | `.webp` | `cwebp` |
+| フォーマット | 拡張子  | エンコーダ                     |
+| :----------- | :------ | :----------------------------- |
+| JPEG         | `.jpg`  | ImageIO で生成後に `jpegoptim` |
+| PNG          | `.png`  | ImageIO で生成後に `pngoptim`  |
+| JPEG XL      | `.jxl`  | `cjxl`                         |
+| AV1          | `.avif` | `avifenc`                      |
+| WebP         | `.webp` | `cwebp`                        |
 
 出力ファイル名は入力名の**最初の `.`** より前をベースにし、出力フォーマットの拡張子を付けます。
 同名ファイルが既に存在する場合は置き換えます。最適化種別ごとのパラメータは
