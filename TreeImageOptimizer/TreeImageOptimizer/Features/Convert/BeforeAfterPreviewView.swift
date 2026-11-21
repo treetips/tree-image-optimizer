@@ -68,6 +68,8 @@ struct BeforeAfterPreviewView: View {
 
 /// 結果表のプレビューセル。クリックで比較ウインドウを別に開く（ADR 0071）。
 /// 出力が完了していない間は「後」が無いため無効化する。
+/// Why not 絵文字（🔍）を使うか: 絵文字は色を変えられず、クリック可能になったことが
+/// 視認しづらいため、SF Symbol にして有効時にテーマ色で強調する。
 struct ConvertPreviewCell: View {
     let beforePath: String
     let afterPath: String
@@ -76,16 +78,36 @@ struct ConvertPreviewCell: View {
     let afterLabel: String
     let isEnabled: Bool
 
+    @State private var isHovering = false
+
     var body: some View {
         Button {
             ComparisonWindowController.shared.open(
                 beforePath: beforePath, afterPath: afterPath,
                 title: title, beforeLabel: beforeLabel, afterLabel: afterLabel)
         } label: {
-            Text("🔍").appFont(.body)
+            Image(systemName: "rectangle.split.2x1")
+                .appFont(.body)
+                .foregroundStyle(iconColor)
+                .fontWeight(isEnabled ? .semibold : .regular)
+                .scaleEffect(isHovering && isEnabled ? 1.1 : 1.0)
+                .animation(.easeOut(duration: 0.12), value: isHovering)
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
+        .onHover { hovering in
+            isHovering = hovering
+        }
+        // Why not NSCursor.push/pop か: ホバーと有効/無効の切り替えが交差すると push と pop の
+        // 回数が合わずカーソルが戻らないことがあるため、宣言的な pointerStyle を使う。
+        .pointerStyle(isEnabled ? .link : .default)
+        .help(title)
+    }
+
+    /// 有効時はテーマ色、ホバー中はより濃く。無効時は控えめなグレー。
+    private var iconColor: Color {
+        guard isEnabled else { return Color.secondary.opacity(0.35) }
+        return isHovering ? Color.accentColor : Color.accentColor.opacity(0.85)
     }
 }
 
@@ -111,8 +133,16 @@ struct BeforeAfterPreviewWindowContent: View {
     }
 }
 
-/// 比較ウインドウの生成と保持。閉じたら参照を外して破棄できるようにする（ADR 0071）。
-/// Why not シートを使うか: 壁紙サイズ（5K等）の画像はシート内の小さい領域へ縮小され、
+/// 比較を表示するウインドウ。Escキーで閉じられるようにする。
+/// Why not 標準の NSWindow をそのまま使うか: 通常のウインドウは Esc でのクローズを
+/// 標準では行わないため、`cancelOperation(_:)`（Esc で応答チェーンへ送られる）を上書きする。
+final class PreviewWindow: NSWindow {
+    override func cancelOperation(_ sender: Any?) {
+        performClose(nil)
+    }
+}
+
+/// 比較ウインドウの生成と保持。閉じたら参照を外して破棄できるようにする（ADR 0071）。/// Why not シートを使うか: 壁紙サイズ（5K等）の画像はシート内の小さい領域へ縮小され、
 /// アップスケール済みの「後」がジャギーに見える。別ウインドウで大きく表示するため。
 /// Why not @unchecked を外すか: 生成・破棄はすべてメインスレッド（SwiftUIのボタンアクションと
 /// NSWindowデリゲート）で行うため、`@MainActor` 相当の実態を保ちつつ Sendable を宣言する。
@@ -133,7 +163,7 @@ final class ComparisonWindowController: NSObject, NSWindowDelegate, @unchecked S
             beforePath: beforePath, afterPath: afterPath,
             beforeLabel: beforeLabel, afterLabel: afterLabel)
         let hosting = NSHostingController(rootView: content)
-        let window = NSWindow(contentViewController: hosting)
+        let window = PreviewWindow(contentViewController: hosting)
         window.title = title
         // 画面の8割を上限に、壁紙サイズでも縮小のジャギーを抑えられる大きさで開く。
         let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
