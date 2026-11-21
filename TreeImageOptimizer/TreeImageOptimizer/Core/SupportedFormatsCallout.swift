@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// 入力として受け付けている拡張子を、GitHub Alerts 風のコールアウトとバッジで示す。
-/// 「モードの特徴」コールアウトと同じ見た目に揃え、入力エリアで対応形式を確認できるようにする。
+/// モードの説明コールアウトと同じ見た目に揃え、入力エリアで対応形式を確認できるようにする。
 /// 表示する拡張子は `TargetFiles.supportedExtensions` を正とするため、対応形式を増やすと
 /// この表示も自動で追従する。
 struct SupportedFormatsCallout: View {
@@ -21,23 +21,20 @@ struct SupportedFormatsCallout: View {
         if let expanded {
             CollapsibleCallout(
                 tint: tint, icon: symbol, title: localize("c.formats.title"),
-                isExpanded: expanded
+                isExpanded: expanded,
+                expandedStateLabel: localize("c.callout.expanded"),
+                collapsedStateLabel: localize("c.callout.collapsed")
             ) {
                 details
             }
         } else {
             CalloutContainer(tint: tint) {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: symbol)
-                        .font(.system(size: 16, weight: .semibold))
+                CalloutLayout(icon: symbol, tint: tint) {
+                    Text(localize("c.formats.title"))
+                        .appFont(.headline)
                         .foregroundStyle(tint)
-                        .frame(width: 20)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(localize("c.formats.title"))
-                            .appFont(.headline)
-                            .foregroundStyle(tint)
-                        details
-                    }
+                } content: {
+                    details
                 }
             }
         }

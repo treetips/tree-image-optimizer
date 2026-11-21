@@ -256,7 +256,9 @@ private struct ModeDescriptionCallout: View {
     var body: some View {
         CollapsibleCallout(
             tint: tint, icon: mode.symbolName, title: localize(mode.l10nKey),
-            isExpanded: $isExpanded
+            isExpanded: $isExpanded,
+            expandedStateLabel: localize("c.callout.expanded"),
+            collapsedStateLabel: localize("c.callout.collapsed")
         ) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(localize(mode.summaryL10nKey))

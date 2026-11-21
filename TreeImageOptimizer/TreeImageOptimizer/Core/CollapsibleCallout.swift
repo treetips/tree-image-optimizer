@@ -10,6 +10,9 @@ struct CollapsibleCallout<Content: View>: View {
     let icon: String
     let title: String
     @Binding var isExpanded: Bool
+    /// VoiceOver が開閉状態を読み上げるための文言。
+    let expandedStateLabel: String
+    let collapsedStateLabel: String
     @ViewBuilder var content: () -> Content
 
     @State private var isHovering = false
@@ -21,17 +24,12 @@ struct CollapsibleCallout<Content: View>: View {
             }
         } label: {
             CalloutContainer(tint: tint) {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(tint)
-                        .frame(width: 20)
-                    VStack(alignment: .leading, spacing: 8) {
-                        header
-                        if isExpanded {
-                            content()
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
+                CalloutLayout(icon: icon, tint: tint) {
+                    header
+                } content: {
+                    if isExpanded {
+                        content()
+                            .transition(.opacity)
                     }
                 }
             }
@@ -44,9 +42,12 @@ struct CollapsibleCallout<Content: View>: View {
         .animation(.easeOut(duration: 0.12), value: isHovering)
         .overlay {
             // ガラスの上でもクリックできると分かるよう、ホバー中だけ枠を強める。
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            // Why not ヒットテストを有効にするか: 枠がパネル端のクリックを奪うため。
+            RoundedRectangle(cornerRadius: CalloutStyle.cornerRadius, style: .continuous)
                 .stroke(tint.opacity(isHovering ? 0.55 : 0), lineWidth: 1.5)
+                .allowsHitTesting(false)
         }
+        .accessibilityValue(Text(isExpanded ? expandedStateLabel : collapsedStateLabel))
     }
 
     /// モード名やタイトルの右に、開閉状態を示すシェブロンを並べる。
