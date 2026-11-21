@@ -236,6 +236,9 @@ struct ConvertView: View {
                             icon: "xmark.circle", iconColor: .red,
                             text: "\(t("c.footer.failure")): \(jobStore.failureCount)")
                         FooterStat(icon: "clock", text: String(format: t("c.elapsed"), jobStore.elapsedMinutes))
+                        if jobStore.isRunning, let eta = jobStore.estimatedRemainingMinutes {
+                            FooterStat(icon: "hourglass", text: String(format: t("c.remaining"), eta))
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 6)
