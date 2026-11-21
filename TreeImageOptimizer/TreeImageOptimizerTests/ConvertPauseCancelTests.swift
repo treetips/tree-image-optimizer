@@ -27,7 +27,8 @@ struct ConvertPauseCancelTests {
             upscaled: URL(fileURLWithPath: "/tmp/\(index)/upscaled.png"),
             tempDirectory: URL(fileURLWithPath: "/tmp/\(index)", isDirectory: true),
             outputName: "\(index).webp",
-            quality: 80)
+            quality: 80,
+            source: URL(fileURLWithPath: "/tmp/\(index)/source.png"))
     }
 
     @Test("一時停止中はバッチを配らず、再開すると配る")

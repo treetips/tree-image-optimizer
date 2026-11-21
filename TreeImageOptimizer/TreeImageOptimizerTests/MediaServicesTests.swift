@@ -1,5 +1,8 @@
+import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
+import UniformTypeIdentifiers
 
 @testable import TreeImageOptimizer
 
@@ -182,5 +185,46 @@ struct MediaServicesTests {
         #expect(UpdateCheckController.resolveManualCard(for: .latest) == .noUpdate)
         // 確認失敗時はnilを返し、カードは変更しない。
         #expect(UpdateCheckController.resolveManualCard(for: .failed("offline")) == nil)
+    }
+}
+
+/// EXIF 保持のメタデータ引き継ぎ経路を確認する（ADR 0070）。
+@Suite("CompressionService メタデータ")
+struct CompressionServiceMetadataTests {
+    private func makePNG(at url: URL, width: Int, height: Int) throws {
+        guard
+            let context = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+            let image = context.makeImage(),
+            let destination = CGImageDestinationCreateWithURL(
+                url as CFURL, UTType.png.identifier as CFString, 1, nil)
+        else {
+            throw NSError(domain: "CompressionServiceMetadataTests", code: 1)
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw NSError(domain: "CompressionServiceMetadataTests", code: 2)
+        }
+    }
+
+    @Test("元画像あり・なしどちらでもJPEG/PNG変換が壊れない")
+    func convertKeepsOutputReadable() throws {
+        let fileManager = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: base) }
+        let source = base.appendingPathComponent("src.png")
+        try makePNG(at: source, width: 16, height: 16)
+
+        let png = base.appendingPathComponent("out.png")
+        try CompressionService.convertToPNG(input: source, output: png, source: source)
+        #expect(fileManager.fileExists(atPath: png.path), "元画像ありでもPNGが出力されること")
+
+        let jpg = base.appendingPathComponent("out.jpg")
+        try CompressionService.convertToJPEG(input: source, output: jpg, quality: 0.9, source: source)
+        #expect(fileManager.fileExists(atPath: jpg.path), "元画像ありでもJPEGが出力されること")
     }
 }
