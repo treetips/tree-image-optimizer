@@ -251,41 +251,28 @@ private struct ModeDescriptionCallout: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: mode.symbolName)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 20)
-            VStack(alignment: .leading, spacing: 6) {
-                Text(localize(mode.l10nKey))
-                    .appFont(.headline)
+        CalloutContainer(tint: tint) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: mode.symbolName)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(tint)
-                Text(localize(mode.summaryL10nKey))
-                    .appFont(.callout)
-                    .foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-                detailRow(
-                    icon: "checkmark.circle.fill", color: .green,
-                    text: "\(localize("c.mode.good")): \(localize(mode.strengthL10nKey))")
-                detailRow(
-                    icon: "exclamationmark.triangle.fill", color: .orange,
-                    text: "\(localize("c.mode.bad")): \(localize(mode.weaknessL10nKey))")
+                    .frame(width: 20)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(localize(mode.l10nKey))
+                        .appFont(.headline)
+                        .foregroundStyle(tint)
+                    Text(localize(mode.summaryL10nKey))
+                        .appFont(.callout)
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    detailRow(
+                        icon: "checkmark.circle.fill", color: .green,
+                        text: "\(localize("c.mode.good")): \(localize(mode.strengthL10nKey))")
+                    detailRow(
+                        icon: "exclamationmark.triangle.fill", color: .orange,
+                        text: "\(localize("c.mode.bad")): \(localize(mode.weaknessL10nKey))")
+                }
             }
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(tint.opacity(0.28), lineWidth: 1)
-        }
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(tint)
-                .frame(width: 3)
-                .padding(.vertical, 10)
-                .padding(.leading, 3)
         }
     }
 

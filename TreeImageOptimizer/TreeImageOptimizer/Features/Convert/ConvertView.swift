@@ -42,42 +42,46 @@ struct ConvertView: View {
                         .id("convertTop")
                     GlassCard {
 
-                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                            GridRow {
-                                Text(t("c.label.targetFolder")).appFont(.headline)
-                                HStack {
-                                    Button {
-                                        selectFolder(isInput: true)
-                                    } label: {
-                                        Text(t("c.folderButton")).appFont(.body)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                                GridRow {
+                                    Text(t("c.label.targetFolder")).appFont(.headline)
+                                    HStack {
+                                        Button {
+                                            selectFolder(isInput: true)
+                                        } label: {
+                                            Text(t("c.folderButton")).appFont(.body)
+                                        }
+                                        TextField(t("c.label.targetFolder"), text: $viewModel.inputFolderPath)
+                                            .appFont(.body)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(
+                                                        viewModel.inputFolderHasError ? Color.red : Color.clear,
+                                                        lineWidth: 2
+                                                    )
+                                            )
+                                        HelpPopover(text: t("c.help.targetFolder"))
                                     }
-                                    TextField(t("c.label.targetFolder"), text: $viewModel.inputFolderPath)
-                                        .appFont(.body)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .stroke(
-                                                    viewModel.inputFolderHasError ? Color.red : Color.clear,
-                                                    lineWidth: 2
-                                                )
-                                        )
-                                    HelpPopover(text: t("c.help.targetFolder"))
+                                }
+                                GridRow {
+                                    Text(t("c.label.targetFiles")).appFont(.headline)
+                                    HStack {
+                                        Picker(t("c.label.targetFiles"), selection: $viewModel.targetFilter) {
+                                            Text(t("c.filter.oneDay")).appFont(.body).tag(TargetFilter.oneDay)
+                                            Text(t("c.filter.threeDays")).appFont(.body).tag(TargetFilter.threeDays)
+                                            Text(t("c.filter.sevenDays")).appFont(.body).tag(TargetFilter.sevenDays)
+                                            Text(t("c.filter.thirtyDays")).appFont(.body).tag(TargetFilter.thirtyDays)
+                                            Text(t("c.filter.all")).appFont(.body).tag(TargetFilter.all)
+                                        }
+                                        .labelsHidden()
+                                        Spacer()
+                                        HelpPopover(text: t("c.help.targetFiles"))
+                                    }
                                 }
                             }
-                            GridRow {
-                                Text(t("c.label.targetFiles")).appFont(.headline)
-                                HStack {
-                                    Picker(t("c.label.targetFiles"), selection: $viewModel.targetFilter) {
-                                        Text(t("c.filter.oneDay")).appFont(.body).tag(TargetFilter.oneDay)
-                                        Text(t("c.filter.threeDays")).appFont(.body).tag(TargetFilter.threeDays)
-                                        Text(t("c.filter.sevenDays")).appFont(.body).tag(TargetFilter.sevenDays)
-                                        Text(t("c.filter.thirtyDays")).appFont(.body).tag(TargetFilter.thirtyDays)
-                                        Text(t("c.filter.all")).appFont(.body).tag(TargetFilter.all)
-                                    }
-                                    .labelsHidden()
-                                    Spacer()
-                                    HelpPopover(text: t("c.help.targetFiles"))
-                                }
-                            }
+                            // 対応している入力形式を、対象ファイルの絞り込み直下で示す。
+                            SupportedFormatsCallout(localize: t, extensions: TargetFiles.supportedExtensions)
                         }
                         .padding(.vertical, 4)
                     } label: {
@@ -229,6 +233,13 @@ struct ConvertView: View {
                             icon: "xmark.circle", iconColor: .red,
                             text: "\(t("c.footer.failure")): \(jobStore.failureCount)")
                         FooterStat(icon: "clock", text: String(format: t("c.elapsed"), jobStore.elapsedMinutes))
+                        // キャンセル待ちは完了件数が増えないため、残り時間を出さない。
+                        let eta =
+                            jobStore.isRunning && !jobStore.isCancelling
+                            ? jobStore.estimatedRemainingMinutes : nil
+                        if let eta {
+                            FooterStat(icon: "hourglass", text: String(format: t("c.remaining"), eta))
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 6)

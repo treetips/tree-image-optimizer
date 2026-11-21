@@ -775,6 +775,40 @@
         }
       }
     },
+    "c.formats.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The following image types can be converted."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以下の拡張子の画像を変換できます。"
+          }
+        }
+      }
+    },
+    "c.formats.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supported formats"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応フォーマット"
+          }
+        }
+      }
+    },
     "c.filter.all" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1515,6 +1549,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Real-CUGANのツールが配置されていないため、使用できません。"
+          }
+        }
+      }
+    },
+    "c.remaining" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remaining: %.1f min"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "残り: %.1f分"
           }
         }
       }

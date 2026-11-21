@@ -1,5 +1,8 @@
+import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
+import UniformTypeIdentifiers
 
 @testable import TreeImageOptimizer
 
@@ -182,5 +185,127 @@ struct MediaServicesTests {
         #expect(UpdateCheckController.resolveManualCard(for: .latest) == .noUpdate)
         // 確認失敗時はnilを返し、カードは変更しない。
         #expect(UpdateCheckController.resolveManualCard(for: .failed("offline")) == nil)
+    }
+}
+
+/// EXIF 保持のメタデータ引き継ぎ経路を確認する（ADR 0070）。
+@Suite("CompressionService メタデータ")
+struct CompressionServiceMetadataTests {
+    private func makePNG(at url: URL, width: Int, height: Int) throws {
+        guard
+            let context = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+            let image = context.makeImage(),
+            let destination = CGImageDestinationCreateWithURL(
+                url as CFURL, UTType.png.identifier as CFString, 1, nil)
+        else {
+            throw NSError(domain: "CompressionServiceMetadataTests", code: 1)
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw NSError(domain: "CompressionServiceMetadataTests", code: 2)
+        }
+    }
+
+    /// EXIF を付与したPNGを作る。
+    private func makePNGWithExif(at url: URL) throws {
+        guard
+            let context = CGContext(
+                data: nil, width: 16, height: 16, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+            let image = context.makeImage()
+        else {
+            throw NSError(domain: "CompressionServiceMetadataTests", code: 3)
+        }
+        // CGImageMetadataCreateMutable は失敗しない（非Optional）ため、生成はここで行う。
+        let metadata = CGImageMetadataCreateMutable()
+        CGImageMetadataSetValueMatchingImageProperty(
+            metadata, kCGImagePropertyExifDictionary, kCGImagePropertyExifUserComment,
+            "tree-image-optimizer" as CFString)
+        guard
+            let destination = CGImageDestinationCreateWithURL(
+                url as CFURL, UTType.png.identifier as CFString, 1, nil)
+        else {
+            throw NSError(domain: "CompressionServiceMetadataTests", code: 4)
+        }
+        CGImageDestinationAddImageAndMetadata(destination, image, metadata, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw NSError(domain: "CompressionServiceMetadataTests", code: 5)
+        }
+    }
+
+    /// 画像のメタデータに EXIF のタグが含まれるか。
+    private func hasExifTag(at url: URL) -> Bool {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+            let metadata = CGImageSourceCopyMetadataAtIndex(source, 0, nil)
+        else { return false }
+        var found = false
+        CGImageMetadataEnumerateTagsUsingBlock(metadata, nil, nil) { path, _ in
+            if (path as String).hasPrefix("exif:") { found = true }
+            return !found
+        }
+        return found
+    }
+
+    @Test("変換後もEXIFが保持される")
+    func keepsExif() throws {
+        let fileManager = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: base) }
+        let source = base.appendingPathComponent("src.png")
+        try makePNGWithExif(at: source)
+        #expect(hasExifTag(at: source), "前提として入力にEXIFが入っていること")
+
+        let png = base.appendingPathComponent("out.png")
+        try CompressionService.convertToPNG(input: source, output: png, source: source)
+        #expect(hasExifTag(at: png), "PNG変換後もEXIFが残ること")
+
+        let jpg = base.appendingPathComponent("out.jpg")
+        try CompressionService.convertToJPEG(input: source, output: jpg, quality: 0.9, source: source)
+        #expect(hasExifTag(at: jpg), "JPEG変換後もEXIFが残ること")
+    }
+
+    @Test("元画像あり・なしどちらでもJPEG/PNG変換が壊れない")
+    func convertKeepsOutputReadable() throws {
+        let fileManager = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: base) }
+        let source = base.appendingPathComponent("src.png")
+        try makePNG(at: source, width: 16, height: 16)
+
+        let png = base.appendingPathComponent("out.png")
+        try CompressionService.convertToPNG(input: source, output: png, source: source)
+        #expect(fileManager.fileExists(atPath: png.path), "元画像ありでもPNGが出力されること")
+
+        let jpg = base.appendingPathComponent("out.jpg")
+        try CompressionService.convertToJPEG(input: source, output: jpg, quality: 0.9, source: source)
+        #expect(fileManager.fileExists(atPath: jpg.path), "元画像ありでもJPEGが出力されること")
+    }
+}
+
+/// HEIF/AVIF 入力の判定と対応拡張子を確認する（ADR 0069）。
+@Suite("TargetFiles 入力拡張子")
+struct TargetFilesInputTests {
+    @Test("HEIF/AVIF はPNGデコードが必要と判定される")
+    func needsDecodeToPNG() {
+        #expect(TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.heic")))
+        #expect(TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.heif")))
+        #expect(TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.avif")))
+        #expect(!TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.png")))
+        #expect(!TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.jpg")))
+    }
+
+    @Test("HEIF/AVIF が入力拡張子に含まれる")
+    func supportedExtensionsIncludeHeifAvif() {
+        for ext in ["heic", "heif", "avif"] {
+            #expect(TargetFiles.supportedExtensions.contains(ext))
+        }
     }
 }
