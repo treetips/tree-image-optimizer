@@ -19,6 +19,19 @@ final class ConvertJobStore {
     var rows: [FileRow] = []
     var resultMessage: String = ""
 
+    /// 残り時間の概算（分）。完了件数と経過時間から1件あたりの所要時間を出して残件数を掛ける。
+    /// 完了がまだ無い、または全件終わっている場合は nil（ADR 0067）。
+    var estimatedRemainingMinutes: Double? {
+        Self.estimatedRemainingMinutes(
+            elapsed: elapsedMinutes, completed: completedCount, total: rows.count)
+    }
+
+    /// 残り時間の概算を返す純粋関数。単体テスト可能にするため型メソッドへ切り出す。
+    static func estimatedRemainingMinutes(elapsed: Double, completed: Int, total: Int) -> Double? {
+        guard completed > 0, completed < total else { return nil }
+        return elapsed / Double(completed) * Double(total - completed)
+    }
+
     private var completedCount: Int = 0
     private var runTask: Task<Void, Never>?
     /// 実行中の停止・再開・キャンセルをワーカーへ伝える共有状態。
