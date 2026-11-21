@@ -149,14 +149,7 @@ struct ConvertView: View {
                         ConvertRunControlsView(jobStore: jobStore, lang: lang)
                     }
 
-                    // 実行が終わると操作ボタンごと消えるため、結果（成功・混在・キャンセル）は
-                    // この位置に残す。Why not 通知だけに任せるか: 通知を切っている設定でも
-                    // キャンセル後に何が起きたか分からなくなるため。
-                    if !jobStore.isRunning, !jobStore.resultMessage.isEmpty {
-                        Text(jobStore.resultMessage)
-                            .appFont(.body)
-                            .foregroundStyle(.secondary)
-                    }
+                    ConvertResultSummary(jobStore: jobStore, lang: lang)
 
                     GlassCard {
 
@@ -318,6 +311,34 @@ private struct ConvertRunControlsView: View {
             Button(t("a.cancel"), role: .cancel) {}
         } message: {
             Text(t("c.cancel.confirmMessage"))
+        }
+    }
+}
+
+/// 実行結果メッセージと、失敗のみ再実行のボタン（ADR 0066）。
+/// `ConvertView` 本体の行数制限（type_body_length）を守るため分離する。
+private struct ConvertResultSummary: View {
+    var jobStore: ConvertJobStore
+    var lang: String
+
+    private func t(_ key: String) -> String { L10n.string(key, language: lang) }
+
+    var body: some View {
+        // 実行が終わると操作ボタンごと消えるため、結果（成功・混在・キャンセル）は
+        // この位置に残す。Why not 通知だけに任せるか: 通知を切っている設定でも
+        // キャンセル後に何が起きたか分からなくなるため。
+        if !jobStore.isRunning, !jobStore.resultMessage.isEmpty {
+            Text(jobStore.resultMessage)
+                .appFont(.body)
+                .foregroundStyle(.secondary)
+        }
+        // 実行中でなく失敗行があるときのみ表示する（ADR 0066）。
+        if jobStore.canRetryFailed {
+            GlassCTAButton(
+                title: t("c.retryFailed"), disabled: false, systemImage: "arrow.clockwise"
+            ) {
+                jobStore.retryFailed()
+            }
         }
     }
 }

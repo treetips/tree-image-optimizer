@@ -20,6 +20,12 @@ final class ConvertJobStore {
     var resultMessage: String = ""
 
     private var completedCount: Int = 0
+    /// 実行中・再実行で、ファイルindex→行indexを対応付ける写像（ADR 0066）。
+    private var indexMap: [Int] = []
+    /// 直近の実行で使った設定。失敗のみ再実行で再利用する（ADR 0066）。
+    private var lastConfig: ConvertConfig?
+    /// 直近の実行で使った出力先。失敗のみ再実行で再利用する（ADR 0066）。
+    private var lastOutputDirectory: URL?
     private var runTask: Task<Void, Never>?
     /// 実行中の停止・再開・キャンセルをワーカーへ伝える共有状態。
     private var control: RunControl?
@@ -74,11 +80,20 @@ final class ConvertJobStore {
         guard !isRunning else { return }
         guard !files.isEmpty else { return }
         runTask?.cancel()
+        lastConfig = config
+        lastOutputDirectory = outputDirectory
         let control = RunControl()
         self.control = control
         runTask = Task {
-            await execute(
-                files: files, config: config, outputDirectory: outputDirectory, control: control)
+            // 新規実行: 進捗・件数・結果表を初期化してから実行する。
+            progressPercent = 0
+            successCount = 0
+            failureCount = 0
+            completedCount = 0
+            rows = Self.makeRows(files: files, format: config.format, outputDirectory: outputDirectory)
+            await run(
+                files: files, config: config, outputDirectory: outputDirectory,
+                rowIndices: Array(files.indices), control: control)
         }
     }
 
@@ -119,21 +134,20 @@ final class ConvertJobStore {
         }
     }
 
-    private func execute(
-        files: [URL], config: ConvertConfig, outputDirectory: URL, control: RunControl
+    /// オーケストレータを起動して完了まで駆動する。新規実行と失敗のみ再実行の両方から呼ぶ。
+    /// `rowIndices` はオーケストレータのファイルindexを行indexへ写像する（ADR 0066）。
+    private func run(
+        files: [URL], config: ConvertConfig, outputDirectory: URL,
+        rowIndices: [Int], control: RunControl
     ) async {
         isRunning = true
         isPaused = false
         isCancelling = false
-        progressPercent = 0
-        successCount = 0
-        failureCount = 0
         elapsedMinutes = 0
-        rows = []
-        completedCount = 0
         resultMessage = ""
         pausedTotal = 0
         pausedStartedAt = nil
+        indexMap = rowIndices
         let started = Date()
         // 実行時間をリアルタイム表示するための更新ループ。
         // 一時停止中は表示を止め、停止していた時間は実行時間に含めない。
@@ -153,8 +167,7 @@ final class ConvertJobStore {
             isCancelling = false
             elapsedMinutes = activeElapsed(since: started) / 60.0
         }
-        rows = Self.makeRows(files: files, format: config.format, outputDirectory: outputDirectory)
-        let (success, failure) = await orchestrator.run(
+        _ = await orchestrator.run(
             files: files, config: config, outputDirectory: outputDirectory, paths: paths,
             control: control
         ) { [weak self] outcome in
@@ -163,11 +176,13 @@ final class ConvertJobStore {
                 self.apply(outcome)
             }
         }
-        await finish(success: success, failure: failure, control: control)
+        await finish(control: control)
     }
 
     /// 結果を集計して表示用のメッセージを作る。キャンセル時は完了通知もサウンドも出さない。
-    private func finish(success: Int, failure: Int, control: RunControl) async {
+    /// 件数は行の状態から再集計する。再実行は表の一部だけを更新するため、
+    /// オーケストレータの戻り値（再実行した件数）をそのまま全体件数に当てない（ADR 0066）。
+    private func finish(control: RunControl) async {
         let language = (try? store.load(maxParallel: maxParallel).settings.language) ?? ""
         if await control.isCancelled {
             // 途中経過だけを「キャンセル」として残す。
@@ -178,17 +193,87 @@ final class ConvertJobStore {
                 cancelledCount)
             return
         }
-        successCount = success
-        failureCount = failure
-        progressPercent = 100
-        let allSuccess = failure == 0 && success > 0
+        recount()
+        let allSuccess = failureCount == 0 && successCount > 0
         if allSuccess {
-            resultMessage = String(format: L10n.string("c.done.success", language: language), success)
+            resultMessage = String(format: L10n.string("c.done.success", language: language), successCount)
         } else {
-            resultMessage = String(format: L10n.string("c.done.mixed", language: language), success, failure)
+            resultMessage = String(
+                format: L10n.string("c.done.mixed", language: language), successCount, failureCount)
         }
         await completionService.complete(
             allSuccess: allSuccess, language: language, notify: true)
+    }
+
+    private func apply(_ outcome: FileOutcome) {
+        guard let rowIndex = rowIndex(for: outcome.index) else { return }
+        if outcome.started {
+            switch outcome.stage {
+            case .upscale:
+                rows[rowIndex].upscale = .running
+            case .compress:
+                rows[rowIndex].compress = .running
+            case .output:
+                rows[rowIndex].output = .running
+            }
+            return
+        }
+        switch outcome.stage {
+        case .upscale:
+            rows[rowIndex].upscale = outcome.succeeded ? .success : .failure
+        case .compress:
+            rows[rowIndex].compress = outcome.succeeded ? .success : .failure
+        case .output:
+            rows[rowIndex].output = outcome.succeeded ? .success : .failure
+        }
+        // 件数は完了都度リアルタイムに集計する。
+        if outcome.fileDone {
+            completedCount += 1
+            if outcome.succeeded {
+                successCount += 1
+            } else {
+                failureCount += 1
+            }
+        }
+        if !rows.isEmpty {
+            progressPercent = Double(completedCount) / Double(rows.count) * 100
+        }
+    }
+}
+
+/// 結果表の状態分類・集計と、失敗のみ再実行（ADR 0054 / ADR 0066）。
+/// クラス本体の行数制限（type_body_length）を守るためextensionに分離する。
+extension ConvertJobStore {
+    /// 失敗のみ再実行が可能か。実行中でなく、失敗行が1件以上あること（ADR 0066）。
+    var canRetryFailed: Bool {
+        !isRunning && rows.contains { Self.isFailure($0) }
+    }
+
+    /// 失敗したファイルだけを同じ設定・出力先で再実行する（ADR 0066）。
+    /// 成功済みの行は残し、失敗行だけを待機中へ戻して処理する。
+    func retryFailed() {
+        guard canRetryFailed else { return }
+        let failedIndices = rows.indices.filter { Self.isFailure(rows[$0]) }
+        guard !failedIndices.isEmpty else { return }
+        guard let config = lastConfig, let outputDirectory = lastOutputDirectory else { return }
+        let files = failedIndices.map { URL(fileURLWithPath: rows[$0].sourcePath) }
+        runTask?.cancel()
+        let control = RunControl()
+        self.control = control
+        runTask = Task {
+            // 失敗行だけを待機中へ戻し、出力サイズも未確定に戻す。
+            for index in failedIndices {
+                rows[index].upscale = .waiting
+                rows[index].compress = .waiting
+                rows[index].output = .waiting
+            }
+            // 失敗行ぶんを実行中から除いた状態へ件数・進捗を再集計する。
+            recount()
+            completedCount = rows.filter { Self.isFinished($0) }.count
+            await run(
+                files: files, config: config, outputDirectory: outputDirectory,
+                rowIndices: failedIndices, control: control)
+        }
     }
 
     /// キャンセル時に、完了していない段階だけを「キャンセル」に切り替える。
@@ -206,8 +291,6 @@ final class ConvertJobStore {
     }
 
     /// キャンセルで未完了になった行の数。途中で失敗した行は失敗として数えるため除く。
-    /// Why not 単純に .cancelled を持つ行を数えるか: 失敗した行も後段が .cancelled に
-    /// 変わるため、失敗件数と二重に計上され、結果メッセージとフッターが食い違う。
     private var cancelledCount: Int {
         rows.filter { row in
             !Self.isFailure(row) && [row.upscale, row.compress, row.output].contains(.cancelled)
@@ -251,38 +334,12 @@ final class ConvertJobStore {
             || row.upscale == .failure || row.compress == .failure
     }
 
-    private func apply(_ outcome: FileOutcome) {
-        guard rows.indices.contains(outcome.index) else { return }
-        if outcome.started {
-            switch outcome.stage {
-            case .upscale:
-                rows[outcome.index].upscale = .running
-            case .compress:
-                rows[outcome.index].compress = .running
-            case .output:
-                rows[outcome.index].output = .running
-            }
-            return
+    /// オーケストレータのファイルindexを、現在の結果表の行indexへ写像する（ADR 0066）。
+    /// 範囲外なら nil。通常の新規実行では indexMap が恒等写像になるため同じ値が返る。
+    private func rowIndex(for fileIndex: Int) -> Int? {
+        guard indexMap.indices.contains(fileIndex), rows.indices.contains(indexMap[fileIndex]) else {
+            return nil
         }
-        switch outcome.stage {
-        case .upscale:
-            rows[outcome.index].upscale = outcome.succeeded ? .success : .failure
-        case .compress:
-            rows[outcome.index].compress = outcome.succeeded ? .success : .failure
-        case .output:
-            rows[outcome.index].output = outcome.succeeded ? .success : .failure
-        }
-        // 件数は完了都度リアルタイムに集計する。
-        if outcome.fileDone {
-            completedCount += 1
-            if outcome.succeeded {
-                successCount += 1
-            } else {
-                failureCount += 1
-            }
-        }
-        if !rows.isEmpty {
-            progressPercent = Double(completedCount) / Double(rows.count) * 100
-        }
+        return indexMap[fileIndex]
     }
 }
