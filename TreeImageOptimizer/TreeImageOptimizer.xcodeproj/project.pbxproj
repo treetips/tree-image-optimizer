@@ -43,6 +43,8 @@
 		E3000000000000000000002B /* ConversionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002B /* ConversionSettings.swift */; };
 		E3000000000000000000002C /* ConversionCompletionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002C /* ConversionCompletionService.swift */; };
 		E10000000000000000000016 /* ConvertSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* ConvertSettingsView.swift */; };
+		E10000000000000000000017 /* BeforeAfterPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000017 /* BeforeAfterPreviewView.swift */; };
+		E10000000000000000000018 /* ConvertRowCells.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000018 /* ConvertRowCells.swift */; };
 		E40000000000000000000018 /* ConversionPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000018 /* ConversionPlannerTests.swift */; };
 		E40000000000000000000007 /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000007 /* L10nTests.swift */; };
 		E40000000000000000000009 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000009 /* AppThemeTests.swift */; };
@@ -107,6 +109,8 @@
 		F10000000000000000000007 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		F10000000000000000000008 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		F10000000000000000000016 /* ConvertSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertSettingsView.swift; sourceTree = "<group>"; };
+		F10000000000000000000017 /* BeforeAfterPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeforeAfterPreviewView.swift; sourceTree = "<group>"; };
+		F10000000000000000000018 /* ConvertRowCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertRowCells.swift; sourceTree = "<group>"; };
 		F10000000000000000000009 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F50000000000000000000002 /* TreeImageOptimizer.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = TreeImageOptimizer.icns; sourceTree = "<group>"; };
 		F50000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -324,6 +328,8 @@
 				F10000000000000000000016 /* ConvertSettingsView.swift */,
 				F10000000000000000000005 /* ConvertViewModel.swift */,
 				F10000000000000000000014 /* ConvertJobStore.swift */,
+				F10000000000000000000017 /* BeforeAfterPreviewView.swift */,
+				F10000000000000000000018 /* ConvertRowCells.swift */,
 			);
 			path = Convert;
 			sourceTree = "<group>";
@@ -497,6 +503,8 @@
 				E10000000000000000000004 /* ConvertView.swift in Sources */,
 				E10000000000000000000016 /* ConvertSettingsView.swift in Sources */,
 				E10000000000000000000005 /* ConvertViewModel.swift in Sources */,
+				E10000000000000000000017 /* BeforeAfterPreviewView.swift in Sources */,
+				E10000000000000000000018 /* ConvertRowCells.swift in Sources */,
 				E10000000000000000000014 /* ConvertJobStore.swift in Sources */,
 				E10000000000000000000006 /* SettingsView.swift in Sources */,
 				E10000000000000000000007 /* SettingsViewModel.swift in Sources */,

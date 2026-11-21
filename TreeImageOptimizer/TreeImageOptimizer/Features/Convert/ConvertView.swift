@@ -37,9 +37,7 @@ struct ConvertView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Color.clear
-                        .frame(height: 1)
-                        .id("convertTop")
+                    Color.clear.frame(height: 1).id("convertTop")
                     GlassCard {
 
                         VStack(alignment: .leading, spacing: 12) {
@@ -121,12 +119,9 @@ struct ConvertView: View {
                             TextField(t("c.label.outputFolder"), text: $viewModel.outputFolderPath)
                                 .appFont(.body)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(
-                                            viewModel.outputFolderHasError ? Color.red : Color.clear,
-                                            lineWidth: 2
-                                        )
-                                )
+                                    RoundedRectangle(cornerRadius: 6).stroke(
+                                        viewModel.outputFolderHasError ? Color.red : Color.clear,
+                                        lineWidth: 2))
                             HelpPopover(text: t("c.help.outputFolder"))
                         }
                         .padding(.vertical, 4)
@@ -206,6 +201,14 @@ struct ConvertView: View {
                                     FileLinkCell(path: row.outputPath, missingMessage: t("c.missingFile"))
                                 }
                                 .width(min: 30, ideal: 40, max: 50)
+                                TableColumn(t("c.col.preview")) { row in
+                                    ConvertPreviewCell(
+                                        beforePath: row.sourcePath, afterPath: row.outputPath,
+                                        title: t("c.preview.title"), beforeLabel: t("c.col.before"),
+                                        afterLabel: t("c.col.after"), missingMessage: t("c.missingFile"),
+                                        isEnabled: row.output == .success)
+                                }
+                                .width(min: 30, ideal: 40, max: 50)
                             }
                             .frame(minHeight: 360)
                         }
@@ -213,9 +216,7 @@ struct ConvertView: View {
                     } label: {
                         Text(t("c.group.result")).appFont(.headline)
                     }
-                    Color.clear
-                        .frame(height: 1)
-                        .id("convertBottom")
+                    Color.clear.frame(height: 1).id("convertBottom")
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 0)
@@ -351,52 +352,5 @@ private struct ConvertResultSummary: View {
                 jobStore.retryFailed()
             }
         }
-    }
-}
-
-/// 変換前後の画像をFinderで表示するリンクセル。
-/// ファイルが存在しない場合はポップオーバーで通知する（Why not: 選択するとFinderが空振りするため）。
-private struct FileLinkCell: View {
-    var path: String
-    var missingMessage: String
-
-    @State private var showsMissing = false
-
-    var body: some View {
-        Button {
-            let url = URL(fileURLWithPath: path)
-            if FileManager.default.fileExists(atPath: url.path) {
-                NSWorkspace.shared.activateFileViewerSelecting([url])
-            } else {
-                showsMissing = true
-            }
-        } label: {
-            Text("🔗").appFont(.body)
-        }
-        .buttonStyle(.plain)
-        .popover(isPresented: $showsMissing) {
-            Text(missingMessage)
-                .appFont(.body)
-                .padding()
-        }
-    }
-}
-
-/// フッターの統計1項目。Apple Musicのダイナミックタブバーのように
-/// アイコンの下にテキストを配置する。
-private struct FooterStat: View {
-    var icon: String
-    var iconColor: Color?
-    var text: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Image(systemName: icon)
-                .appFont(.headline)
-                .foregroundStyle(iconColor ?? .primary)
-            Text(text)
-                .appFont(.caption)
-        }
-        .frame(maxWidth: .infinity)
     }
 }
