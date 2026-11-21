@@ -35,4 +35,16 @@ struct ConvertJobStoreTests {
             ])
         #expect(rows.allSatisfy { $0.upscale == .waiting && $0.compress == .waiting && $0.output == .waiting })
     }
+
+    @Test("残り時間の概算計算")
+    func estimatedRemainingMinutes() {
+        #expect(
+            ConvertJobStore.estimatedRemainingMinutes(elapsed: 10, completed: 0, total: 100) == nil,
+            "完了0件では見積もり不能であること")
+        #expect(
+            ConvertJobStore.estimatedRemainingMinutes(elapsed: 10, completed: 100, total: 100) == nil,
+            "全件完了後は残り0なので表示しないこと")
+        let eta = ConvertJobStore.estimatedRemainingMinutes(elapsed: 10, completed: 50, total: 100)
+        #expect(eta == 10.0, "完了50件で10分なら残り50件で10分と見積もること")
+    }
 }

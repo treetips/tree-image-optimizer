@@ -240,6 +240,13 @@ struct ConvertView: View {
                             icon: "xmark.circle", iconColor: .red,
                             text: "\(t("c.footer.failure")): \(jobStore.failureCount)")
                         FooterStat(icon: "clock", text: String(format: t("c.elapsed"), jobStore.elapsedMinutes))
+                        // キャンセル待ちは完了件数が増えないため、残り時間を出さない。
+                        let eta =
+                            jobStore.isRunning && !jobStore.isCancelling
+                            ? jobStore.estimatedRemainingMinutes : nil
+                        if let eta {
+                            FooterStat(icon: "hourglass", text: String(format: t("c.remaining"), eta))
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 6)

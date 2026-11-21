@@ -1553,6 +1553,23 @@
         }
       }
     },
+    "c.remaining" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remaining: %.1f min"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "残り: %.1f分"
+          }
+        }
+      }
+    },
     "c.resume" : {
       "extractionState" : "manual",
       "localizations" : {
