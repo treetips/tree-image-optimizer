@@ -361,12 +361,19 @@ extension ConvertOrchestrator {
 
     /// アップスケールのステージング。HEIF/AVIF は外部ツールが読めないため、
     /// 先頭フレームをPNGへデコードしてから持ち込む（ADR 0069）。
+    /// Why not デコードだけして通すか: デコードは先頭フレームしか取り出さないため、
+    /// アニメーション（イメージシーケンス）を黙って1枚に潰して成功扱いにしてしまう。
+    /// 超解像をかけない経路では `postVerify` のフレーム数検査も通らないので、ここで落とす。
     private static func stageFile(_ source: URL, to destination: URL) throws {
-        if TargetFiles.needsDecodeToPNG(source) {
-            try CompressionService.convertToPNG(input: source, output: destination)
-        } else {
+        guard TargetFiles.needsDecodeToPNG(source) else {
             try linkOrCopy(source, to: destination)
+            return
         }
+        guard let frames = UpscaleService.imageFrameCount(of: source), frames == 1 else {
+            throw AppError.verificationFailed(
+                "input is multi-frame, still images only: \(source.path)")
+        }
+        try CompressionService.convertToPNG(input: source, output: destination)
     }
 }
 
