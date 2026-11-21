@@ -18,16 +18,16 @@ v0.3.8 では全PRが「🔧 その他 (Other Changes)」に分類された。
   タイトルのConventional Commits接頭辞からラベルを自動付与する。
 - 対応表:
 
-| 接頭辞 | ラベル | リリースノートのカテゴリ |
-|--------|--------|--------------------------|
-| `feat` | `feature` | ✨ 新機能 (Features) |
-| `fix` | `fix` | 🐛 バグ修正 (Bug Fixes) |
-| `perf` | `performance` | ⚡ パフォーマンス・改善 (Improvements) |
-| `refactor` | `improvement` | ⚡ パフォーマンス・改善 (Improvements) |
-| `docs` | `documentation` | 📝 ドキュメント (Documentation) |
-| `build`/`chore`(scope: deps) | `dependencies` | 📦 依存パッケージ更新 (Dependencies) |
-| Dependabot形式 (`Bump ...`) | `dependencies` | 📦 依存パッケージ更新 (Dependencies) |
-| その他・接頭辞なし | 付与しない | 🔧 その他 (Other Changes) |
+| 接頭辞                       | ラベル          | リリースノートのカテゴリ               |
+| ---------------------------- | --------------- | -------------------------------------- |
+| `feat`                       | `feature`       | ✨ 新機能 (Features)                   |
+| `fix`                        | `fix`           | 🐛 バグ修正 (Bug Fixes)                |
+| `perf`                       | `performance`   | ⚡ パフォーマンス・改善 (Improvements) |
+| `refactor`                   | `improvement`   | ⚡ パフォーマンス・改善 (Improvements) |
+| `docs`                       | `documentation` | 📝 ドキュメント (Documentation)        |
+| `build`/`chore`(scope: deps) | `dependencies`  | 📦 依存パッケージ更新 (Dependencies)   |
+| Dependabot形式 (`Bump ...`)  | `dependencies`  | 📦 依存パッケージ更新 (Dependencies)   |
+| その他・接頭辞なし           | 付与しない      | 🔧 その他 (Other Changes)              |
 
 - 自動付与対象のラベルはタイトル変更 (`edited`) 時に一度外して付け直す。
 - 分類ロジックはConventional Commitsのtype/scopeパースを含むため、

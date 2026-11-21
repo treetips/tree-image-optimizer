@@ -81,6 +81,7 @@
 #### モデルプルダウン
 
 - アップスケールのモデルによって、得意な画像の種類が異なります。
+
 - 選択肢は [upscale models](./initial-data.md) を表示します。
 
   ```text
@@ -96,6 +97,7 @@
   - 4x_NMKD-Siax_200k
   - 4x_NMKD-Superscale-SP_178000_G
   - 4xHFA2k
+
 - 初期値はアニメに強い `realesr-animevideov3-x4` です。
 
 #### ℹ️

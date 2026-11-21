@@ -14,29 +14,29 @@ whenToUse: アップスケーラーや圧縮ライブラリを最新版にした
 
 同じバージョンが複数箇所に書かれている。更新時はこの表の「アプリ側」と「ツール側」を必ず両方そろえる。
 
-| ツール | 分類 | 本体の場所 | アプリ側の定義 | ツール側 | 上流 |
-|---|---|---|---|---|---|
-| upscayl-bin | アップスケーラー | `tools/upscal/bin/upscayl-bin`（モデルは `tools/upscal/models/`） | `Core/AppInfo.swift` の `upscalBinVersion` | `tools/upscal/.version` | `upscayl/upscayl-ncnn` |
-| Real-CUGAN | アップスケーラー | `tools/realcugan/bin/macos/realcugan-ncnn-vulkan` | `AppInfo.realcuganVersion`、`ToolInstaller.realcuganVersion`、`ToolInstaller.realcuganFullVersion` | `tools/realcugan/.version` | `nihui/realcugan-ncnn-vulkan` |
-| jpegoptim | 圧縮（JPEG） | `tools/jpegoptim/bin/macos/jpegoptim` | `AppInfo.jpegVersion` | なし | `tjko/jpegoptim` |
-| pngoptim | 圧縮（PNG） | `tools/pngoptim/bin/macos/pngoptim` | `AppInfo.pngVersion` | なし | `okooo5km/pngoptim` |
-| libjxl（cjxl） | 圧縮（JPEG XL） | `tools/libjxl/bin/macos/cjxl` と同ディレクトリの dylib | `AppInfo.jpegXlVersion` | `tools/libjxl/.version` | `libjxl/libjxl` |
-| libavif（avifenc） | 圧縮（AV1） | `tools/libavif/bin/macos/avifenc` | `AppInfo.av1Version` | `tools/libavif/.version` | `AOMediaCodec/libavif` |
-| libwebp（cwebp） | 圧縮（WebP） | `tools/libwebp/bin/macos/cwebp` | `AppInfo.webpVersion` と `ToolInstaller.webpVersion` | なし（`.version` を作らない） | `webmproject/libwebp` |
+| ツール             | 分類             | 本体の場所                                                        | アプリ側の定義                                                                                     | ツール側                      | 上流                          |
+| ------------------ | ---------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------- |
+| upscayl-bin        | アップスケーラー | `tools/upscal/bin/upscayl-bin`（モデルは `tools/upscal/models/`） | `Core/AppInfo.swift` の `upscalBinVersion`                                                         | `tools/upscal/.version`       | `upscayl/upscayl-ncnn`        |
+| Real-CUGAN         | アップスケーラー | `tools/realcugan/bin/macos/realcugan-ncnn-vulkan`                 | `AppInfo.realcuganVersion`、`ToolInstaller.realcuganVersion`、`ToolInstaller.realcuganFullVersion` | `tools/realcugan/.version`    | `nihui/realcugan-ncnn-vulkan` |
+| jpegoptim          | 圧縮（JPEG）     | `tools/jpegoptim/bin/macos/jpegoptim`                             | `AppInfo.jpegVersion`                                                                              | なし                          | `tjko/jpegoptim`              |
+| pngoptim           | 圧縮（PNG）      | `tools/pngoptim/bin/macos/pngoptim`                               | `AppInfo.pngVersion`                                                                               | なし                          | `okooo5km/pngoptim`           |
+| libjxl（cjxl）     | 圧縮（JPEG XL）  | `tools/libjxl/bin/macos/cjxl` と同ディレクトリの dylib            | `AppInfo.jpegXlVersion`                                                                            | `tools/libjxl/.version`       | `libjxl/libjxl`               |
+| libavif（avifenc） | 圧縮（AV1）      | `tools/libavif/bin/macos/avifenc`                                 | `AppInfo.av1Version`                                                                               | `tools/libavif/.version`      | `AOMediaCodec/libavif`        |
+| libwebp（cwebp）   | 圧縮（WebP）     | `tools/libwebp/bin/macos/cwebp`                                   | `AppInfo.webpVersion` と `ToolInstaller.webpVersion`                                               | なし（`.version` を作らない） | `webmproject/libwebp`         |
 
 `ToolInstaller` の定数はアプリ内ダウンロードのURLを組み立てる。片方だけ直すと取得先が壊れるので、`webpVersion` は2箇所、Real-CUGAN は3箇所を同時に更新する。
 
 2026-11-19 に更新を適用した時点の現行版と最新版は次のとおり。実行時は必ず再確認し、この表は目安として扱う。
 
-| ツール | 現行版 | 最新版 | 更新 |
-|---|---|---|---|
-| upscayl-bin | `upscayl-bin-20251207-174704` | 同じ | なし |
-| Real-CUGAN | `realcugan-ncnn-vulkan-20220728` | 同じ | なし |
-| jpegoptim | `v1.5.6` | `v1.5.6` | なし |
-| pngoptim | `v0.6.3` | `v0.6.3` | なし |
-| libjxl | `v0.13.0` | `v0.13.0` | なし（macOSアセット無し） |
-| libavif | `v1.4.2` | `v1.4.2` | なし |
-| libwebp | `1.6.0` | `1.6.0` | なし |
+| ツール      | 現行版                           | 最新版    | 更新                      |
+| ----------- | -------------------------------- | --------- | ------------------------- |
+| upscayl-bin | `upscayl-bin-20251207-174704`    | 同じ      | なし                      |
+| Real-CUGAN  | `realcugan-ncnn-vulkan-20220728` | 同じ      | なし                      |
+| jpegoptim   | `v1.5.6`                         | `v1.5.6`  | なし                      |
+| pngoptim    | `v0.6.3`                         | `v0.6.3`  | なし                      |
+| libjxl      | `v0.13.0`                        | `v0.13.0` | なし（macOSアセット無し） |
+| libavif     | `v1.4.2`                         | `v1.4.2`  | なし                      |
+| libwebp     | `1.6.0`                          | `1.6.0`   | なし                      |
 
 ## 1. 現行版を集める
 
@@ -101,29 +101,29 @@ cp -a tools/<tool> "$backup/"
 
 ### アセットと配置
 
-| ツール | macOS用アセット | 取り出すもの | 置き場所 |
-|---|---|---|---|
-| upscayl-bin | `upscayl-bin-<tag>-macos.zip`（ZIP内は `upscayl-bin-<tag>-macos/`） | `upscayl-bin`、`LICENSE`、`README.md` | バイナリは `tools/upscal/bin/`、文書は `tools/upscal/` |
-| Real-CUGAN | `realcugan-ncnn-vulkan-<tag>-macos.zip`（ZIP内は `realcugan-ncnn-vulkan-<tag>-macos/`） | バイナリ、`models-se` / `models-pro` / `models-nose`、`LICENSE` | バイナリは `tools/realcugan/bin/macos/`、モデルと `LICENSE` は `tools/realcugan/` 直下 |
-| jpegoptim | `jpegoptim-<ver>-x64-osx.zip`（ZIP直下に `jpegoptim`、`LICENSE`、`COPYRIGHT`、`README`） | `jpegoptim` | `tools/jpegoptim/bin/macos/` |
-| pngoptim | `pngoptim_<ver>_darwin_universal.tar.gz`（`.sha256` を併用、tar直下は `pngoptim` のみ） | `pngoptim` | `tools/pngoptim/bin/macos/` |
-| libwebp | `libwebp-<ver>-mac-arm64.tar.gz`（Google Storage） | `bin/cwebp` のみ | `tools/libwebp/bin/macos/` |
-| libjxl | macOS用アセットが無い | — | 5章のビルド手順 |
-| libavif | `macOS-artifacts.zip` は SVT-AV1 非同梱で使えない | — | 5章のビルド手順 |
+| ツール      | macOS用アセット                                                                          | 取り出すもの                                                    | 置き場所                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| upscayl-bin | `upscayl-bin-<tag>-macos.zip`（ZIP内は `upscayl-bin-<tag>-macos/`）                      | `upscayl-bin`、`LICENSE`、`README.md`                           | バイナリは `tools/upscal/bin/`、文書は `tools/upscal/`                                 |
+| Real-CUGAN  | `realcugan-ncnn-vulkan-<tag>-macos.zip`（ZIP内は `realcugan-ncnn-vulkan-<tag>-macos/`）  | バイナリ、`models-se` / `models-pro` / `models-nose`、`LICENSE` | バイナリは `tools/realcugan/bin/macos/`、モデルと `LICENSE` は `tools/realcugan/` 直下 |
+| jpegoptim   | `jpegoptim-<ver>-x64-osx.zip`（ZIP直下に `jpegoptim`、`LICENSE`、`COPYRIGHT`、`README`） | `jpegoptim`                                                     | `tools/jpegoptim/bin/macos/`                                                           |
+| pngoptim    | `pngoptim_<ver>_darwin_universal.tar.gz`（`.sha256` を併用、tar直下は `pngoptim` のみ）  | `pngoptim`                                                      | `tools/pngoptim/bin/macos/`                                                            |
+| libwebp     | `libwebp-<ver>-mac-arm64.tar.gz`（Google Storage）                                       | `bin/cwebp` のみ                                                | `tools/libwebp/bin/macos/`                                                             |
+| libjxl      | macOS用アセットが無い                                                                    | —                                                               | 5章のビルド手順                                                                        |
+| libavif     | `macOS-artifacts.zip` は SVT-AV1 非同梱で使えない                                        | —                                                               | 5章のビルド手順                                                                        |
 
 `LICENSE` を同梱しているツール（upscal / realcugan / libjxl / libavif）は、バイナリと一緒に差し替える。同梱していないツール（jpegoptim / pngoptim / libwebp）は、アーカイブに `LICENSE` が入っていても勝手に増やさず、追加するかをユーザーに確認する。
 
 配置先の階層はツールで違う。upscal だけ `bin/` 直下、ほかは `bin/macos/` の下に置く。
 
-| ツール | 配置先ディレクトリ |
-|---|---|
-| upscayl-bin | `tools/upscal/bin` |
-| Real-CUGAN | `tools/realcugan/bin/macos`（モデルは `tools/realcugan/` 直下） |
-| jpegoptim | `tools/jpegoptim/bin/macos` |
-| pngoptim | `tools/pngoptim/bin/macos` |
-| libwebp | `tools/libwebp/bin/macos` |
-| libjxl | `tools/libjxl/bin/macos` |
-| libavif | `tools/libavif/bin/macos` |
+| ツール      | 配置先ディレクトリ                                              |
+| ----------- | --------------------------------------------------------------- |
+| upscayl-bin | `tools/upscal/bin`                                              |
+| Real-CUGAN  | `tools/realcugan/bin/macos`（モデルは `tools/realcugan/` 直下） |
+| jpegoptim   | `tools/jpegoptim/bin/macos`                                     |
+| pngoptim    | `tools/pngoptim/bin/macos`                                      |
+| libwebp     | `tools/libwebp/bin/macos`                                       |
+| libjxl      | `tools/libjxl/bin/macos`                                        |
+| libavif     | `tools/libavif/bin/macos`                                       |
 
 `<tag>` は `20251207-174704` のような日付形式、`<ver>` は `v` を除いた数字。`upscayl-bin` のモデル（`tools/upscal/models/`）は別リポジトリ `upscayl/custom-models` 由来なので、バイナリ更新では触らない。モデルを更新したいと言われたときは、`upscayl/custom-models` の zip と現在のファイル一覧を突き合わせ、差分（追加・削除された `.bin` / `.param`）を示してから承認を取る。
 

@@ -16,7 +16,9 @@
 ## upscale models
 
 - [Gitプロジェクトのzipファイル](https://github.com/upscayl/custom-models/archive/refs/heads/main.zip) からダウンロードし、解凍したものを配置します。
+
 - `~/Library/Application Support/tree-image-optimizer/tools/upscal/models` 配下にバイナリを配置してください。（例）`~/Library/Application Support/tree-image-optimizer/tools/upscal/models/realesr-animevideov3-x4.bin`
+
 - `models` は、例えば以下のようなファイルが含まれます。
 
   ```text
@@ -53,6 +55,7 @@
   ```
 
 - ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/upscal` フォルダに同梱してください。
+
 - モデルファイルは全ファイル同梱してください。
 
 ## Real-CUGAN
