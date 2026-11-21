@@ -520,6 +520,40 @@
         }
       }
     },
+    "c.callout.collapsed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapsed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縮小中"
+          }
+        }
+      }
+    },
+    "c.callout.expanded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expanded"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "展開中"
+          }
+        }
+      }
+    },
     "c.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3258,23 +3292,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不得意"
-          }
-        }
-      }
-    },
-    "c.mode.features" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mode features"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モードの特徴"
           }
         }
       }

@@ -35,6 +35,8 @@ struct BatchSettings: Codable, Equatable {
     var showCancelled: Bool = true
     /// モードの特徴コールアウトの展開状態。固定・自動で共用する。
     var modeNoteExpanded: Bool = true
+    /// 対応フォーマットコールアウトの展開状態。次回起動時に復元する。
+    var formatsExpanded: Bool = true
 
     static func defaults(maxParallel: Int) -> BatchSettings {
         BatchSettings(
@@ -58,7 +60,8 @@ struct BatchSettings: Codable, Equatable {
             showSuccess: true,
             showFailure: true,
             showCancelled: true,
-            modeNoteExpanded: true
+            modeNoteExpanded: true,
+            formatsExpanded: true
         )
     }
 }

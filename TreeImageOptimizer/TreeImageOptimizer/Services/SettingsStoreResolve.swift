@@ -118,7 +118,9 @@ extension SettingsStore {
             showCancelled: boolValue(
                 json["showCancelled"], fallback: defaults.showCancelled, mark: mark),
             modeNoteExpanded: boolValue(
-                json["modeNoteExpanded"], fallback: defaults.modeNoteExpanded, mark: mark)
+                json["modeNoteExpanded"], fallback: defaults.modeNoteExpanded, mark: mark),
+            formatsExpanded: boolValue(
+                json["formatsExpanded"], fallback: defaults.formatsExpanded, mark: mark)
         )
     }
 

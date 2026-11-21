@@ -45,6 +45,10 @@ final class ConvertViewModel {
     var modeNoteExpanded: Bool = true {
         didSet { saveBatchFields() }
     }
+    /// 対応フォーマットコールアウトの展開状態。次回起動時に復元する。
+    var formatsExpanded: Bool = true {
+        didSet { saveBatchFields() }
+    }
 
     /// 変換設定。かんたん変換画面と共通の型を使う。
     let settings: ConversionSettings
@@ -176,6 +180,7 @@ final class ConvertViewModel {
         showFailure = batch.showFailure
         showCancelled = batch.showCancelled
         modeNoteExpanded = batch.modeNoteExpanded
+        formatsExpanded = batch.formatsExpanded
         validateFolders()
     }
 
@@ -194,6 +199,7 @@ final class ConvertViewModel {
             batch.showFailure = showFailure
             batch.showCancelled = showCancelled
             batch.modeNoteExpanded = modeNoteExpanded
+            batch.formatsExpanded = formatsExpanded
         }
     }
 

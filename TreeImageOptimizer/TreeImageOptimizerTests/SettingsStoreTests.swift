@@ -297,3 +297,21 @@ struct SettingsStoreTests {
     }
 
 }
+
+@Suite("SettingsStore (フォーマット表示)")
+struct FormatsExpandedSettingsTests {
+    @Test("対応フォーマットの展開状態を保存して復元する")
+    func roundTripsFormatsExpanded() throws {
+        let (store, file) = try makeStore()
+        var saved = try store.load(maxParallel: 8)
+        #expect(saved.batch.formatsExpanded)
+        saved.batch.formatsExpanded = false
+        try store.save(saved)
+        #expect(try store.load(maxParallel: 8).batch.formatsExpanded == false)
+
+        // 不正値は既定値（展開）へ補正し、ファイルを書き換える。
+        try #"{"batchConvert":{"formatsExpanded":"yes"}}"#
+            .write(to: file, atomically: true, encoding: .utf8)
+        #expect(try store.load(maxParallel: 8).batch.formatsExpanded == true)
+    }
+}

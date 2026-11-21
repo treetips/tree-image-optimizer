@@ -38,52 +38,8 @@ struct ConvertView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Color.clear.frame(height: 1).id("convertTop")
-                    GlassCard {
-
-                        VStack(alignment: .leading, spacing: 12) {
-                            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                                GridRow {
-                                    Text(t("c.label.targetFolder")).appFont(.headline)
-                                    HStack {
-                                        Button {
-                                            selectFolder(isInput: true)
-                                        } label: {
-                                            Text(t("c.folderButton")).appFont(.body)
-                                        }
-                                        TextField(t("c.label.targetFolder"), text: $viewModel.inputFolderPath)
-                                            .appFont(.body)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .stroke(
-                                                        viewModel.inputFolderHasError ? Color.red : Color.clear,
-                                                        lineWidth: 2
-                                                    )
-                                            )
-                                        HelpPopover(text: t("c.help.targetFolder"))
-                                    }
-                                }
-                                GridRow {
-                                    Text(t("c.label.targetFiles")).appFont(.headline)
-                                    HStack {
-                                        Picker(t("c.label.targetFiles"), selection: $viewModel.targetFilter) {
-                                            Text(t("c.filter.oneDay")).appFont(.body).tag(TargetFilter.oneDay)
-                                            Text(t("c.filter.threeDays")).appFont(.body).tag(TargetFilter.threeDays)
-                                            Text(t("c.filter.sevenDays")).appFont(.body).tag(TargetFilter.sevenDays)
-                                            Text(t("c.filter.thirtyDays")).appFont(.body).tag(TargetFilter.thirtyDays)
-                                            Text(t("c.filter.all")).appFont(.body).tag(TargetFilter.all)
-                                        }
-                                        .labelsHidden()
-                                        Spacer()
-                                        HelpPopover(text: t("c.help.targetFiles"))
-                                    }
-                                }
-                            }
-                            // 対応している入力形式を、対象ファイルの絞り込み直下で示す。
-                            SupportedFormatsCallout(localize: t, extensions: TargetFiles.supportedExtensions)
-                        }
-                        .padding(.vertical, 4)
-                    } label: {
-                        Text(t("c.group.input")).appFont(.headline)
+                    ConvertInputCard(viewModel: viewModel, localize: t) {
+                        selectFolder(isInput: true)
                     }
 
                     ConvertSettingsView(viewModel: viewModel)
@@ -351,6 +307,68 @@ private struct ConvertResultSummary: View {
             ) {
                 jobStore.retryFailed()
             }
+        }
+    }
+}
+
+/// 入力カード（対象フォルダ・対象ファイル・対応フォーマット）。
+/// `ConvertView` 本体の行数制限（type_body_length）を守るため分離する。
+private struct ConvertInputCard: View {
+    @Bindable var viewModel: ConvertViewModel
+    let localize: (String) -> String
+    let selectInputFolder: () -> Void
+
+    private func t(_ key: String) -> String { localize(key) }
+
+    var body: some View {
+        GlassCard {
+
+            VStack(alignment: .leading, spacing: 12) {
+                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                    GridRow {
+                        Text(t("c.label.targetFolder")).appFont(.headline)
+                        HStack {
+                            Button {
+                                selectInputFolder()
+                            } label: {
+                                Text(t("c.folderButton")).appFont(.body)
+                            }
+                            TextField(t("c.label.targetFolder"), text: $viewModel.inputFolderPath)
+                                .appFont(.body)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(
+                                            viewModel.inputFolderHasError ? Color.red : Color.clear,
+                                            lineWidth: 2
+                                        )
+                                )
+                            HelpPopover(text: t("c.help.targetFolder"))
+                        }
+                    }
+                    GridRow {
+                        Text(t("c.label.targetFiles")).appFont(.headline)
+                        HStack {
+                            Picker(t("c.label.targetFiles"), selection: $viewModel.targetFilter) {
+                                Text(t("c.filter.oneDay")).appFont(.body).tag(TargetFilter.oneDay)
+                                Text(t("c.filter.threeDays")).appFont(.body).tag(TargetFilter.threeDays)
+                                Text(t("c.filter.sevenDays")).appFont(.body).tag(TargetFilter.sevenDays)
+                                Text(t("c.filter.thirtyDays")).appFont(.body).tag(TargetFilter.thirtyDays)
+                                Text(t("c.filter.all")).appFont(.body).tag(TargetFilter.all)
+                            }
+                            .labelsHidden()
+                            Spacer()
+                            HelpPopover(text: t("c.help.targetFiles"))
+                        }
+                    }
+                }
+                // 対応している入力形式を、対象ファイルの絞り込み直下で示す。
+                SupportedFormatsCallout(
+                    localize: localize, extensions: TargetFiles.supportedExtensions,
+                    expanded: $viewModel.formatsExpanded)
+            }
+            .padding(.vertical, 4)
+        } label: {
+            Text(t("c.group.input")).appFont(.headline)
         }
     }
 }
