@@ -153,7 +153,8 @@ extension ConvertOrchestrator {
                         index: index, upscaled: upscaled, tempDirectory: tempDirectory,
                         outputName: Self.outputFileName(
                             for: file.lastPathComponent, format: context.config.format),
-                        quality: context.plans[index].quality))
+                        quality: context.plans[index].quality,
+                        source: file))
             } catch {
                 AppLogger.shared.error(
                     "upscale skip: failed for \(file.path): \(error.localizedDescription)")
@@ -250,7 +251,8 @@ extension ConvertOrchestrator {
                         index: item.index, upscaled: upscaled, tempDirectory: directory,
                         outputName: Self.outputFileName(
                             for: item.file.lastPathComponent, format: context.config.format),
-                        quality: context.plans[item.index].quality))
+                        quality: context.plans[item.index].quality,
+                        source: item.file))
             } catch {
                 if let tempDirectory { try? fileManager.removeItem(at: tempDirectory) }
                 AppLogger.shared.error(
@@ -279,7 +281,8 @@ extension ConvertOrchestrator {
                     format: context.config.format,
                     profile: Self.compressionProfile(
                         config: context.config, quality: item.quality),
-                    threads: context.encoderThreads, paths: context.paths)
+                    threads: context.encoderThreads, paths: context.paths,
+                    source: item.source)
                 await context.onOutcome(
                     FileOutcome(index: item.index, stage: .compress, succeeded: true, fileDone: false))
                 stage = .output
