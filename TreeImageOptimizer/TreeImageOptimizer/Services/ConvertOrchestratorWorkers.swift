@@ -144,7 +144,7 @@ extension ConvertOrchestrator {
                 if let longEdge = batch.resizeLongEdge {
                     try ImageResizer.resize(input: file, output: upscaled, longEdge: longEdge)
                 } else {
-                    try Self.linkOrCopy(file, to: upscaled)
+                    try Self.stageFile(file, to: upscaled)
                 }
                 await context.onOutcome(
                     FileOutcome(index: index, stage: .upscale, succeeded: true, fileDone: false))
@@ -179,7 +179,7 @@ extension ConvertOrchestrator {
             let name = String(format: "%04d.png", index)
             let input = inputDirectory.appendingPathComponent(name, isDirectory: false)
             do {
-                try Self.linkOrCopy(file, to: input)
+                try Self.stageFile(file, to: input)
             } catch {
                 AppLogger.shared.error(
                     "upscale batch: failed to stage \(file.path) -> \(input.path): \(error.localizedDescription)")
@@ -356,6 +356,16 @@ extension ConvertOrchestrator {
             try FileManager.default.linkItem(at: source, to: destination)
         } catch {
             try FileManager.default.copyItem(at: source, to: destination)
+        }
+    }
+
+    /// アップスケールのステージング。HEIF/AVIF は外部ツールが読めないため、
+    /// 先頭フレームをPNGへデコードしてから持ち込む（ADR 0069）。
+    private static func stageFile(_ source: URL, to destination: URL) throws {
+        if TargetFiles.needsDecodeToPNG(source) {
+            try CompressionService.convertToPNG(input: source, output: destination)
+        } else {
+            try linkOrCopy(source, to: destination)
         }
     }
 }
