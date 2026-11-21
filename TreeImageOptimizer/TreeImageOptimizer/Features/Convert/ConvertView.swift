@@ -209,6 +209,13 @@ struct ConvertView: View {
                                     FileLinkCell(path: row.outputPath, missingMessage: t("c.missingFile"))
                                 }
                                 .width(min: 30, ideal: 40, max: 50)
+                                TableColumn(t("c.col.preview")) { row in
+                                    ConvertPreviewCell(
+                                        beforePath: row.sourcePath, afterPath: row.outputPath,
+                                        title: t("c.preview.title"), beforeLabel: t("c.col.before"),
+                                        afterLabel: t("c.col.after"))
+                                }
+                                .width(min: 30, ideal: 40, max: 50)
                             }
                             .frame(minHeight: 360)
                         }
