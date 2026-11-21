@@ -65,6 +65,7 @@
 		E30000000000000000000012 /* WallpaperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000012 /* WallpaperService.swift */; };
 		E30000000000000000000013 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000013 /* NotificationService.swift */; };
 		E30000000000000000000014 /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000014 /* UpdateService.swift */; };
+		E30000000000000000000032 /* SupportedFormatsCallout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000032 /* SupportedFormatsCallout.swift */; };
 		E40000000000000000000001 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000001 /* AppPathsTests.swift */; };
 		E40000000000000000000002 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000002 /* SettingsStoreTests.swift */; };
 		E40000000000000000000003 /* ProcessRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000003 /* ProcessRunnerTests.swift */; };
@@ -148,6 +149,7 @@
 		F30000000000000000000012 /* WallpaperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperService.swift; sourceTree = "<group>"; };
 		F30000000000000000000013 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		F30000000000000000000014 /* UpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateService.swift; sourceTree = "<group>"; };
+		F30000000000000000000032 /* SupportedFormatsCallout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportedFormatsCallout.swift; sourceTree = "<group>"; };
 		F40000000000000000000001 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000002 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000003 /* ProcessRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunnerTests.swift; sourceTree = "<group>"; };
@@ -293,6 +295,7 @@
 				F3000000000000000000002B /* ConversionSettings.swift */,
 				F3000000000000000000002D /* ToolsInfo.swift */,
 				F3000000000000000000002F /* ToolsUpdateController.swift */,
+				F30000000000000000000032 /* SupportedFormatsCallout.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -515,6 +518,7 @@
 				E30000000000000000000012 /* WallpaperService.swift in Sources */,
 				E30000000000000000000013 /* NotificationService.swift in Sources */,
 				E30000000000000000000014 /* UpdateService.swift in Sources */,
+				E30000000000000000000032 /* SupportedFormatsCallout.swift in Sources */,
 				E30000000000000000000015 /* GlassCTAButton.swift in Sources */,
 				E30000000000000000000016 /* UpdateCheckController.swift in Sources */,
 				E30000000000000000000017 /* L10n.swift in Sources */,
