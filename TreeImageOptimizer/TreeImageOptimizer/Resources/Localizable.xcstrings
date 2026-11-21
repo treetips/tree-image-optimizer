@@ -1587,6 +1587,23 @@
         }
       }
     },
+    "c.retryFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry failed files"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失敗したファイルを再実行"
+          }
+        }
+      }
+    },
     "c.run" : {
       "extractionState" : "manual",
       "localizations" : {
