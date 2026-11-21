@@ -209,6 +209,8 @@ struct UpscaledItem: Sendable {
     var outputName: String
     /// ファイルごとの圧縮品質。自動モードでは入力BPPで補正されている。
     var quality: Int
+    /// 元画像のパス。EXIF・ICC の保持に使う（ADR 0070）。
+    var source: URL
 }
 
 /// 倍率・縮小先のグループをまたがないようにバッチを配る。

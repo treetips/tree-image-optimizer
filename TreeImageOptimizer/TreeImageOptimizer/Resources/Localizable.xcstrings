@@ -775,6 +775,40 @@
         }
       }
     },
+    "c.formats.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The following image types can be converted."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以下の拡張子の画像を変換できます。"
+          }
+        }
+      }
+    },
+    "c.formats.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supported formats"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応フォーマット"
+          }
+        }
+      }
+    },
     "c.filter.all" : {
       "extractionState" : "manual",
       "localizations" : {

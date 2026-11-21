@@ -198,57 +198,62 @@ struct EasyConvertView: View {
                 }
 
                 GlassCard {
-                    FileDropView(
-                        isEnabled: inputEnabled,
-                        onDropURLs: { viewModel.acceptFileURLs($0) },
-                        onHighlightChanged: { isDropTargeted = $0 }
-                    ) {
-                        VStack(spacing: 8) {
-                            if jobStore.isRunning {
-                                ProgressView(value: jobStore.progressPercent, total: 100)
-                                Text("\(Int(jobStore.progressPercent))%")
-                                    .appFont(.headline)
-                            } else {
-                                Text(t("e.dropHint"))
-                                    .appFont(.body)
-                                    .multilineTextAlignment(.center)
-                                    .foregroundStyle(.secondary)
-                                if !viewModel.canRun {
-                                    Text(t("e.needOutputFolder"))
-                                        .appFont(.body)
-                                        .multilineTextAlignment(.center)
-                                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 12) {
+                        FileDropView(
+                            isEnabled: inputEnabled,
+                            onDropURLs: { viewModel.acceptFileURLs($0) },
+                            onHighlightChanged: { isDropTargeted = $0 },
+                            content: {
+                                VStack(spacing: 8) {
+                                    if jobStore.isRunning {
+                                        ProgressView(value: jobStore.progressPercent, total: 100)
+                                        Text("\(Int(jobStore.progressPercent))%")
+                                            .appFont(.headline)
+                                    } else {
+                                        Text(t("e.dropHint"))
+                                            .appFont(.body)
+                                            .multilineTextAlignment(.center)
+                                            .foregroundStyle(.secondary)
+                                        if !viewModel.canRun {
+                                            Text(t("e.needOutputFolder"))
+                                                .appFont(.body)
+                                                .multilineTextAlignment(.center)
+                                                .foregroundStyle(.orange)
+                                        }
+                                    }
+                                    if !jobStore.resultMessage.isEmpty {
+                                        Text(jobStore.resultMessage)
+                                            .appFont(.body)
+                                    }
                                 }
+                                .frame(maxWidth: .infinity, minHeight: 120)
+                                .padding(.vertical, 4)
                             }
-                            if !jobStore.resultMessage.isEmpty {
-                                Text(jobStore.resultMessage)
-                                    .appFont(.body)
+                        )
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(
+                                    dropBorderColor,
+                                    lineWidth: isDropTargeted || jobStore.lastRunSucceeded != nil ? 2 : 1
+                                )
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if inputEnabled {
+                                pickFiles()
                             }
                         }
-                        .frame(maxWidth: .infinity, minHeight: 120)
-                        .padding(.vertical, 4)
-                    }
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(
-                                dropBorderColor,
-                                lineWidth: isDropTargeted || jobStore.lastRunSucceeded != nil ? 2 : 1
-                            )
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if inputEnabled {
-                            pickFiles()
+                        .onHover { hovering in
+                            if hovering {
+                                NSCursor.pointingHand.push()
+                            } else {
+                                NSCursor.pop()
+                            }
                         }
+                        .disabled(!inputEnabled)
+                        // 対応している入力形式を、ドロップエリアの直下で示す。
+                        SupportedFormatsCallout(localize: t, extensions: TargetFiles.supportedExtensions)
                     }
-                    .onHover { hovering in
-                        if hovering {
-                            NSCursor.pointingHand.push()
-                        } else {
-                            NSCursor.pop()
-                        }
-                    }
-                    .disabled(!inputEnabled)
                 } label: {
                     Text(t("c.group.input")).appFont(.headline)
                 }
