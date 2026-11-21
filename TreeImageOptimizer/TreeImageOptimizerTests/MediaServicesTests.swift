@@ -289,3 +289,23 @@ struct CompressionServiceMetadataTests {
         #expect(fileManager.fileExists(atPath: jpg.path), "元画像ありでもJPEGが出力されること")
     }
 }
+
+/// HEIF/AVIF 入力の判定と対応拡張子を確認する（ADR 0069）。
+@Suite("TargetFiles 入力拡張子")
+struct TargetFilesInputTests {
+    @Test("HEIF/AVIF はPNGデコードが必要と判定される")
+    func needsDecodeToPNG() {
+        #expect(TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.heic")))
+        #expect(TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.heif")))
+        #expect(TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.avif")))
+        #expect(!TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.png")))
+        #expect(!TargetFiles.needsDecodeToPNG(URL(fileURLWithPath: "a.jpg")))
+    }
+
+    @Test("HEIF/AVIF が入力拡張子に含まれる")
+    func supportedExtensionsIncludeHeifAvif() {
+        for ext in ["heic", "heif", "avif"] {
+            #expect(TargetFiles.supportedExtensions.contains(ext))
+        }
+    }
+}

@@ -144,7 +144,7 @@ extension ConvertOrchestrator {
                 if let longEdge = batch.resizeLongEdge {
                     try ImageResizer.resize(input: file, output: upscaled, longEdge: longEdge)
                 } else {
-                    try Self.linkOrCopy(file, to: upscaled)
+                    try Self.stageFile(file, to: upscaled)
                 }
                 await context.onOutcome(
                     FileOutcome(index: index, stage: .upscale, succeeded: true, fileDone: false))
@@ -180,7 +180,7 @@ extension ConvertOrchestrator {
             let name = String(format: "%04d.png", index)
             let input = inputDirectory.appendingPathComponent(name, isDirectory: false)
             do {
-                try Self.linkOrCopy(file, to: input)
+                try Self.stageFile(file, to: input)
             } catch {
                 AppLogger.shared.error(
                     "upscale batch: failed to stage \(file.path) -> \(input.path): \(error.localizedDescription)")
@@ -360,6 +360,23 @@ extension ConvertOrchestrator {
         } catch {
             try FileManager.default.copyItem(at: source, to: destination)
         }
+    }
+
+    /// アップスケールのステージング。HEIF/AVIF は外部ツールが読めないため、
+    /// 先頭フレームをPNGへデコードしてから持ち込む（ADR 0069）。
+    /// Why not デコードだけして通すか: デコードは先頭フレームしか取り出さないため、
+    /// アニメーション（イメージシーケンス）を黙って1枚に潰して成功扱いにしてしまう。
+    /// 超解像をかけない経路では `postVerify` のフレーム数検査も通らないので、ここで落とす。
+    private static func stageFile(_ source: URL, to destination: URL) throws {
+        guard TargetFiles.needsDecodeToPNG(source) else {
+            try linkOrCopy(source, to: destination)
+            return
+        }
+        guard let frames = UpscaleService.imageFrameCount(of: source), frames == 1 else {
+            throw AppError.verificationFailed(
+                "input is multi-frame, still images only: \(source.path)")
+        }
+        try CompressionService.convertToPNG(input: source, output: destination)
     }
 }
 
