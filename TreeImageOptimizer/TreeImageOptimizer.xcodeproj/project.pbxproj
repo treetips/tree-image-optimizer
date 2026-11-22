@@ -78,6 +78,7 @@
 		E40000000000000000000005 /* ConvertPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000005 /* ConvertPipelineTests.swift */; };
 		E40000000000000000000019 /* ConvertPauseCancelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000019 /* ConvertPauseCancelTests.swift */; };
 		E40000000000000000000016 /* ConvertWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000016 /* ConvertWindowTests.swift */; };
+		E4000000000000000000001B /* ComparisonWindowControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4000000000000000000001B /* ComparisonWindowControllerTests.swift */; };
 		E40000000000000000000017 /* AppLoggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000017 /* AppLoggerTests.swift */; };
 		E40000000000000000000006 /* MediaServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000006 /* MediaServicesTests.swift */; };
 		E50000000000000000000001 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000001 /* assets */; };
@@ -168,6 +169,7 @@
 		F40000000000000000000005 /* ConvertPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPipelineTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000019 /* ConvertPauseCancelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPauseCancelTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000016 /* ConvertWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertWindowTests.swift; sourceTree = "<group>"; };
+		F4000000000000000000001B /* ComparisonWindowControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComparisonWindowControllerTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000006 /* MediaServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServicesTests.swift; sourceTree = "<group>"; };
 		F50000000000000000000001 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -242,6 +244,7 @@
 				F40000000000000000000014 /* SettingsViewModelTests.swift */,
 				F40000000000000000000015 /* ConvertViewModelTests.swift */,
 				F40000000000000000000016 /* ConvertWindowTests.swift */,
+				F4000000000000000000001B /* ComparisonWindowControllerTests.swift */,
 				F40000000000000000000018 /* ConversionPlannerTests.swift */,
 				F4000000000000000000001A /* ToolsInfoTests.swift */,
 			);
@@ -486,6 +489,7 @@
 				E40000000000000000000014 /* SettingsViewModelTests.swift in Sources */,
 				E40000000000000000000015 /* ConvertViewModelTests.swift in Sources */,
 				E40000000000000000000016 /* ConvertWindowTests.swift in Sources */,
+				E4000000000000000000001B /* ComparisonWindowControllerTests.swift in Sources */,
 				E40000000000000000000018 /* ConversionPlannerTests.swift in Sources */,
 				E4000000000000000000001A /* ToolsInfoTests.swift in Sources */,
 			);

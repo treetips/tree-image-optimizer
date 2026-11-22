@@ -166,7 +166,11 @@ struct ConvertView: View {
                                 }
                                 .width(min: 30, ideal: 40, max: 50)
                             }
-                            .frame(minHeight: 360)
+                            // Why not minHeight か: 行高の更新に合わせて Table の高さが
+                            // 変わると、外側の ScrollView と制約の再計算が連鎖して
+                            // 「Update Constraints in Window」のループで落ちるため、
+                            // 結果表の高さを固定する（ADR 0075）。
+                            .frame(height: 360)
                         }
                         .padding(.vertical, 4)
                     } label: {
