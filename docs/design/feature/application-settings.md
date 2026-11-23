@@ -6,7 +6,7 @@
 
 ## 設定ファイル構造
 
-`settings` `batchConvert` `easyConvert` 等、トップレベルには `画面` セクションを作成します。
+`settings` `batchConvert` `easyConvert` の3セクションを持ちます。
 一括変換と、かんたん変換の設定は独立して保存します。
 
 ```json
@@ -16,7 +16,16 @@
     "playSound": false,
     "successSound": "assets/sounds/success/decision49.mp3",
     "errorSound": "assets/sounds/error/beep1.mp3",
-    "language": ""
+    "successSoundRandom": false,
+    "errorSoundRandom": false,
+    "language": "",
+    "appearance": "auto",
+    "fontSize": "standard",
+    "wallpaper": "背景無し",
+    "wallpaperOpacity": 1.0,
+    "wallpaperBackgroundColor": "#1E1E1E",
+    "wallpaperRandom": false,
+    "wallpaperShuffleInterval": 1
   },
   "batchConvert": {
     "targetFilter": "sevenDays",
@@ -25,18 +34,28 @@
     "showSuccess": true,
     "showFailure": true,
     "showCancelled": true,
+    "mode": "fixed",
+    "contentType": "anime",
+    "targetSize": "k5",
+    "qualityPreset": "high",
     "scale": 2,
     "model": "realesr-animevideov3-x4",
+    "engine": "upscayl",
+    "realCuganModel": "models-se/up2x-conservative",
     "format": "jpegXl",
     "optimizeType": "anime",
     "quality": 80,
     "parallelCount": 7,
     "inputFolderPath": null,
-    "outputFolderPath": null
+    "outputFolderPath": null,
+    "modeNoteExpanded": true,
+    "formatsExpanded": true
   },
   "easyConvert": {
-    "scale": 2,
+    "engine": "upscayl",
     "model": "realesr-animevideov3-x4",
+    "realCuganModel": "models-se/up2x-conservative",
+    "scale": 2,
     "format": "jpegXl",
     "optimizeType": "anime",
     "quality": 80,
@@ -45,6 +64,14 @@
   }
 }
 ```
+
+- `parallelCount` の初期値はPコア数の半分（端数切り捨て、最低1）です。
+  上の例はPコア数14の環境を想定しています。
+- `settings.language` が空文字の場合はOSの言語設定に従います。
+- 壁紙のランダム表示は `wallpaperRandom`、切り替え間隔（分）は
+  `wallpaperShuffleInterval` です。旧名のキーは互換のため読み書きされます。
+- `mode` は `fixed` / `auto`。`auto` のときは `contentType` `targetSize`
+  `qualityPreset` を使い、`scale` `optimizeType` `quality` は使いません。
 
 ## 旧形式からの移行
 

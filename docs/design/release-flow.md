@@ -32,8 +32,9 @@ GitHub上で管理するソースコードから、検証済みのmacOSアプリ
    ├─ Xcodeプロジェクトからバージョン（例: 0.1.0）とビルド番号（例: 1）を自動取得
    ├─ タグの二重作成チェック
    ├─ xcodebuild build & xcodebuild test
-   ├─ macOS Releaseビルド
+   ├─ macOS Releaseビルド（アプリ本体のみ。tools は同梱しない）
    ├─ .app を .zip へアーカイブ & SHA-256 チェックサム生成 & update-info.json 生成
+   ├─ tools のツール単位 ZIP と tools-info.json を生成
    ├─ main 上に Git タグ（v0.1.0）を自動作成・push
    └─ GitHub Release を自動作成（成果物添付・リリースノート自動生成）
 ```
@@ -69,7 +70,7 @@ GitHub上で管理するソースコードから、検証済みのmacOSアプリ
 - `CFBundleVersion`（例: `1`）: macOS Bundleのビルド番号。
 - `project.pbxproj` の `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`（および `INFOPLIST_KEY_*`）は `GENERATE_INFOPLIST_FILE=NO` のためビルド結果に反映されない。整合のため同じ値を保つこと。
 
-About画面のバージョン表示は `Bundle.main` から取得する（`AppInfo.bundleVersion`、`UpdateCheckController.currentVersion()`）。ソースコード内にアプリバージョンを重複定義しない。
+About画面のバージョン表示はアプリのバンドル情報から取得する。ソースコード内にアプリバージョンを重複定義しない。
 
 ### バージョンの決め方（セマンティックバージョニング）
 
@@ -88,7 +89,7 @@ Stable版（正式版）になるまでは `0.x.y` を使用する。
 
 > **重要: ビルド番号（`CFBundleVersion`）はリリースごとに必ずインクリメントする。**
 >
-> 自前アップデート（`UpdateService.isNewerThan`）はセマンティックバージョンを先に比較し、同点の場合にビルド番号を比較する。
+> 自前アップデートのバージョン比較はセマンティックバージョンを先に比較し、同点の場合にビルド番号を比較する。
 > そのため、セマンティックバージョンを上げてもビルド番号が同じだと、同バージョン内での更新が検出されない。
 >
 > 例:
@@ -128,6 +129,7 @@ Bundle build:               1
    - 既存タグとの重複を検証
    - ビルド・テストを実行
    - 配布用 `.zip` と SHA-256 チェックサム、`update-info.json`（`version` / `build` / `url` / `sha256`）を生成
+   - ツール単位の ZIP（`tools-<name>-<version>.zip`）と `tools-info.json` を生成
    - `v0.1.1` タグを自動作成してpush
    - GitHub Releases を作成し、成果物を添付・リリースノートを自動生成
 
@@ -152,12 +154,14 @@ Bundle build:               1
   - `.xcode-version` 指定のXcodeを選択
   - Git LFS オブジェクトの取得（`tools/` 実体）
   - ビルドとテストの実行（`xcodebuild test`）
-  - macOS Releaseビルド（`tools/` を `.app/Contents/Resources/tools` へ同梱。ADR 0048）
+  - macOS Releaseビルド（アプリ本体のみ。`tools/` は同梱しない。ADR 0064）
   - アドホック再署名と検証（`codesign`）
   - 手動インストール用 `.app` の `.zip` アーカイブ化および SHA-256 チェックサム生成
   - 自前アップデート用の `update-info.json`（`version` / `build` / `url` / `sha256`）を生成
+  - ツール単位の ZIP（`tools-<name>-<version>.zip`）と `tools-info.json` を生成
   - Gitタグ（`vX.Y.Z`）の自動作成とリモートへのpush
-  - `gh release create` による GitHub Release 作成（`.zip`・`SHA256SUMS.txt`・`update-info.json` を添付・リリースノート自動生成）
+  - `gh release create` による GitHub Release 作成（アプリZIP・`SHA256SUMS.txt`・
+    `update-info.json`・`tools-info.json`・ツールZIPを添付・リリースノート自動生成）
 
 ### 3. リリースノート設定 (`.github/release.yml`)
 
@@ -178,14 +182,19 @@ Releaseには以下が自動的に含まれる:
 
 - タグ: `v0.1.1`
 - タイトル: `Tree Image Optimizer v0.1.1`
-- 配布用アーカイブ: `Tree-Image-Optimizer-v0.1.1-macos.zip`
+- 配布用アーカイブ: `Tree-Image-Optimizer-v0.1.1-macos.zip`（アプリ本体のみ）
 - チェックサムファイル: `SHA256SUMS.txt`
 - アップデート情報: `update-info.json`（`version` / `build` / `url` / `sha256`）
+- ツール情報: `tools-info.json`（各ツールのバージョン・URL・SHA-256）
+- ツール配布物: `tools-<name>-<version>.zip`（`upscal` / `realcugan` / `jpegoptim` /
+  `pngoptim` / `libjxl` / `libavif` / `libwebp`）
 - リリースノート（PR履歴から自動分類・生成）
 
-アプリは `https://github.com/treetips/tree-image-optimizer/releases/latest/download/update-info.json` から `update-info.json` を取得し、`UpdateService` でバージョン比較・ダウンロード・SHA-256検証を行う。
-
-> 現状の `UpdateService` は確認・ダウンロード・検証までの実装であり、適用（差し替え・再起動）は配布方式確定後に行う（`docs/design/migrate.md` §9参照）。
+アプリは `https://github.com/treetips/tree-image-optimizer/releases/latest/download/update-info.json`
+から `update-info.json` を取得し、アプリ内の更新処理でバージョン比較・ダウンロード・
+SHA-256検証・展開・`/Applications` への適用・再起動を行う。ツールは
+`https://github.com/treetips/tree-image-optimizer/releases/latest/download/tools-info.json`
+を基準に、差分のあるツールだけをツール更新処理が更新する。
 
 ---
 
@@ -211,6 +220,6 @@ Releaseには以下が自動的に含まれる:
 
 - **Gatekeeper 警告**: ユーザーが初回起動時に「開く」ボタンをクリックする必要がある
 - **手動インストール**: ユーザーは `右クリック > 開く` でアプリを起動する必要がある
-- **macOS専用**: SwiftUI移行後はmacOSのみを配布対象とする（Windows/Linuxバイナリは提供しない）
+- **macOS専用**: 配布対象はmacOSのみ（Windows/Linuxバイナリは提供しない）
 
 将来的に Apple Developer Program（年額 $99）に加入し、Developer ID Application 証明書で署名・notarize することで、これらの制限を解消できます。

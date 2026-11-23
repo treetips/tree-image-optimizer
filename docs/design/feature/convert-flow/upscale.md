@@ -54,7 +54,7 @@ realcugan-ncnn-vulkan \
 ```
 
 - `${SCALE}` は `2` 〜 `4` を指定します。1xモデルが存在しないため `1` は使えません。
-- `${NOISE_LEVEL}` は選択したモデルから導出します。`conservative` = `-1`、`no-denoise` = `0`、`denoise1x`/`denoise2x`/`denoise3x` = `1`/`2`/`3` です。`-n` の数値とモデル名は直感と異なる対応のため、UIではモデル名を直接扱いSwift側で導出します。
+- `${NOISE_LEVEL}` は選択したモデルから導出します。`conservative` = `-1`、`no-denoise` = `0`、`denoise1x`/`denoise2x`/`denoise3x` = `1`/`2`/`3` です。`-n` の数値とモデル名は直感と異なる対応のため、UIではモデル名を直接扱わず、アプリ側で導出します。
 - `${MODELS_DIR}` は `tools/realcugan/models-se` など上流配布物のフォルダ名をそのまま渡します。フォルダ名を変えるとバイナリの前処理量判定が `(unknown model dir type)` で失敗します。
 - 実行前にモデルの `.param` と `.bin` が揃っていることを確認します。欠けていると終了コード0で黒画像を生成するためです。
 - 実行後に出力ファイルの寸法が入力の `${SCALE}` 倍であることを検証します。
