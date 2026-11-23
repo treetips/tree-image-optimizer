@@ -1,100 +1,109 @@
 # 初期データ
 
-画面の操作ではなく、プロジェクトを作成する際に最初からプロジェクト内にで配置しておくデータです。
+画面の操作ではなく、リポジトリへ最初から配置しておく外部ツールのデータです。
+`tools/` 配下が開発時の正本で、実行時に
+`~/Library/Application Support/tree-image-optimizer/tools/` へ展開されます。
+アプリ本体の配布ZIPには同梱せず、Releaseではツール単位のZIPとして配布します
+（[ADR 0064](../../adr/0064-separate-tools-distribution/0064-separate-tools-distribution.md)）。
 
-## upscale-bin
+## 共通ルール
 
-- [GitHub Releasesのlatestタグ](https://github.com/upscayl/upscayl-ncnn/releases/latest) からダウンロードし、解凍したものを配置します。
-- `~/Library/Application Support/tree-image-optimizer/tools/upscal/bin` 配下にバイナリを配置してください。（例）`~/Library/Application Support/tree-image-optimizer/tools/upscal/bin/upscayl-bin`
-- ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/upscal` フォルダに同梱してください。
-- バイナリは以下だけを抽出してプロジェクトに同梱してください。
-  - upscayl-bin
-- `~/Library/Application Support/tree-image-optimizer/tools/upscal/.version` を作成し、現在のバージョンを書き込んでください。（例）upscayl-bin-20251207-174704
-  - 現在のバージョンから更新されていた場合のみ、 `.version` を更新してください。
-- アップデートする際は、元のファイルを全削除してから更新してください。
+- macOS専用のため、バイナリは `bin/macos/` に置きます（Windows/Linux版は持たない）。
+- ライセンスファイルがある場合は、ツールのルートフォルダに配置します。
+- バージョンは各ツールの `.version` に1行で書きます。`.version` を持たないツールは
+  アプリ内のバージョン定数を正本にします。
+- アップデートする際は元のファイルを全削除してから置き換えます。
+
+## upscayl-bin
+
+- [GitHub Releasesのlatestタグ](https://github.com/upscayl/upscayl-ncnn/releases/latest)
+  からダウンロードし、解凍したものを配置します。
+- `tools/upscal/bin/upscayl-bin` を配置します。
+- `tools/upscal/.version` にバージョン（例: `upscayl-bin-20251207-174704`）を書きます。
+- 現在のバージョンから更新されていた場合のみ、`.version` を更新します。
 
 ## upscale models
 
-- [Gitプロジェクトのzipファイル](https://github.com/upscayl/custom-models/archive/refs/heads/main.zip) からダウンロードし、解凍したものを配置します。
+- [Gitプロジェクトのzipファイル](https://github.com/upscayl/custom-models/archive/refs/heads/main.zip)
+  からダウンロードし、解凍したものを配置します。
 
-- `~/Library/Application Support/tree-image-optimizer/tools/upscal/models` 配下にバイナリを配置してください。（例）`~/Library/Application Support/tree-image-optimizer/tools/upscal/models/realesr-animevideov3-x4.bin`
+- `tools/upscal/models/` 配下に `.bin` と `.param` のペアを配置します。
 
-- `models` は、例えば以下のようなファイルが含まれます。
+- モデルは全ファイルを配置します。
 
   ```text
-  ❯ ll
-  Permissions Size User   Date Modified Git Name
-  .rw-r--r--@  67M tester  2 Aug 01:03   --  4x_NMKD-Siax_200k.bin
-  .rw-r--r--@ 108k tester  2 Aug 01:03   --  4x_NMKD-Siax_200k.param
-  .rw-r--r--@  67M tester  2 Aug 01:03   --  4x_NMKD-Superscale-SP_178000_G.bin
-  .rw-r--r--@ 108k tester  2 Aug 01:03   --  4x_NMKD-Superscale-SP_178000_G.param
-  .rw-r--r--@  33M tester  2 Aug 01:03   --  4xHFA2k.bin
-  .rw-r--r--@ 108k tester  2 Aug 01:03   --  4xHFA2k.param
-  .rw-r--r--@  33M tester  2 Aug 01:03   --  4xLSDIR.bin
-  .rw-r--r--@ 108k tester  2 Aug 01:03   --  4xLSDIR.param
-  .rw-r--r--@ 1.2M tester  2 Aug 01:03   --  4xLSDIRCompactC3.bin
-  .rw-r--r--@ 2.8k tester  2 Aug 01:03   --  4xLSDIRCompactC3.param
-  .rw-r--r--@  33M tester  2 Aug 01:03   --  4xLSDIRplusC.bin
-  .rw-r--r--@ 108k tester  2 Aug 01:03   --  4xLSDIRplusC.param
-  .rw-r--r--@  33M tester  2 Aug 01:03   --  4xNomos8kSC.bin
-  .rw-r--r--@ 108k tester  2 Aug 01:03   --  4xNomos8kSC.param
-  .rw-r--r--@ 1.2M tester  2 Aug 01:03   --  realesr-animevideov3-x2.bin
-  .rw-r--r--@ 3.2k tester  2 Aug 01:03   --  realesr-animevideov3-x2.param
-  .rw-r--r--@ 1.2M tester  2 Aug 01:03   --  realesr-animevideov3-x3.bin
-  .rw-r--r--@ 3.2k tester  2 Aug 01:03   --  realesr-animevideov3-x3.param
-  .rw-r--r--@ 1.2M tester  2 Aug 01:03   --  realesr-animevideov3-x4.bin
-  .rw-r--r--@ 3.1k tester  2 Aug 01:03   --  realesr-animevideov3-x4.param
-  .rw-r--r--@ 2.4M tester  2 Aug 01:03   --  RealESRGAN_General_WDN_x4_v3.bin
-  .rw-r--r--@ 5.0k tester  2 Aug 01:03   --  RealESRGAN_General_WDN_x4_v3.param
-  .rw-r--r--@ 2.4M tester  2 Aug 01:03   --  RealESRGAN_General_x4_v3.bin
-  .rw-r--r--@ 5.0k tester  2 Aug 01:03   --  RealESRGAN_General_x4_v3.param
-  .rw-r--r--@  33M tester  2 Aug 01:03   --  uniscale_restore.bin
-  .rw-r--r--@ 108k tester  2 Aug 01:03   --  uniscale_restore.param
-  .rw-r--r--@  33M tester  2 Aug 01:03   --  unknown-2.0.1.bin
-  .rw-r--r--@ 140k tester  2 Aug 01:03   --  unknown-2.0.1.param
+  4xHFA2k.bin
+  4xHFA2k.param
+  4xLSDIR.bin
+  4xLSDIR.param
+  realesr-animevideov3-x2.bin
+  realesr-animevideov3-x2.param
+  realesr-animevideov3-x4.bin
+  realesr-animevideov3-x4.param
+  ...
   ```
 
-- ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/upscal` フォルダに同梱してください。
-
-- モデルファイルは全ファイル同梱してください。
+- アプリは `.bin` を走査してプルダウンの選択肢を作ります。
 
 ## Real-CUGAN
 
-- 起動時に未配置なら、[GitHub Releasesの20220728タグ](https://github.com/nihui/realcugan-ncnn-vulkan/releases/tag/20220728) から `realcugan-ncnn-vulkan-20220728-macos.zip` をダウンロードし、`tools/realcugan` へ自動展開します。ユーザーによる手動配置は不要です。
-- 開発環境ではリポジトリ同梱の `tools/realcugan`（初回起動より先に存在する場合）がそのまま使われます。
-- ZIPに含まれる `models-se` / `models-pro` / `models-nose` はすべて配置します。フォルダ名はバイナリが前処理のパディング量の判定に使うため、`models-se` 等のまま変更しないでください。
-- ライセンスファイル（`LICENSE`、nihuiのMIT）はZIPから `tools/realcugan` へ配置します。
-- `tools/realcugan/.version` にバージョン（例）`realcugan-ncnn-vulkan-20220728` を書き込みます。
-- アップデートする際は、元のファイルを全削除してから更新してください。
+- [GitHub Releasesの20220728タグ](https://github.com/nihui/realcugan-ncnn-vulkan/releases/tag/20220728)
+  の `realcugan-ncnn-vulkan-20220728-macos.zip` を使用します。
 
-## JPEG XL
+- `tools/realcugan/` に次の構成で配置します。
 
-- [GitHub Releasesのlatestタグ](https://github.com/libjxl/libjxl/releases/latest) からダウンロードします。
-- 注意点として、GitHub Releasesには `macOS版が無い` です。
-- `linux-artifacts.zip` `macOS-artifacts.zip` `windows-artifacts.zip` 等と3つのOSそれぞれのアーティファクトが有るので、それぞれダウンロードし、解凍したものを配置します。
-- `~/Library/Application Support/tree-image-optimizer/tools/libjxl/bin` 配下にバイナリを配置してください。
-  - （例）`~/Library/Application Support/tree-image-optimizer/tools/libjxl/bin/macos/cjxl`
-  - （例）`~/Library/Application Support/tree-image-optimizer/tools/libjxl/bin/linux/cjxl`
-  - （例）`~/Library/Application Support/tree-image-optimizer/tools/libjxl/bin/windows/cjxl.exe`
-- ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/libjxl` フォルダに同梱してください。
-- バイナリは以下だけを抽出してプロジェクトに同梱してください。
-  - cjxl （エンコード用）
-- `~/Library/Application Support/tree-image-optimizer/tools/libjxl/.version` を作成し、現在のバージョンを書き込んでください。（例）v0.13.0
-  - 現在のバージョンから更新されていた場合のみ、 `.version` を更新してください。
-- アップデートする際は、元のファイルを全削除してから更新してください。
+  ```text
+  tools/realcugan/
+  ├── bin/macos/realcugan-ncnn-vulkan
+  ├── models-se/
+  ├── LICENSE
+  └── .version
+  ```
 
-## AV1
+- ZIPに含まれる `models-se` をそのまま配置します。フォルダ名はバイナリが前処理の
+  パディング量の判定に使うため、変更しないでください。
 
-- [GitHub Releasesのlatestタグ](https://github.com/AOMediaCodec/libavif/releases/latest) からソースを取得し、SVT-AV1を含めて自前でビルドします。
+- ライセンスファイル（`LICENSE`、nihuiのMIT）も配置します。
+
+- `.version` にバージョン（例: `realcugan-ncnn-vulkan-20220728`）を書きます。
+
+- 起動時に未配置なら、[GitHub Releases](https://github.com/nihui/realcugan-ncnn-vulkan/releases)
+  から自動ダウンロードします。ユーザーによる手動配置は不要です。
+
+## JPEG（jpegoptim）
+
+- `tools/jpegoptim/bin/macos/jpegoptim` を配置します。
+- バージョンはアプリ内のJPEGツールのバージョン定数（例: `v1.5.6`）で管理します。
+
+## PNG（pngoptim）
+
+- `tools/pngoptim/bin/macos/pngoptim` を配置します。
+- バージョンはアプリ内のPNGツールのバージョン定数（例: `v0.6.3`）で管理します。
+
+## JPEG XL（libjxl）
+
+- v0.13.0 はソースからビルドし、`CJXL_ENABLE_SHARED=ON` 相当で生成した
+  `cjxl` と依存 dylib をまとめて配置します（[ADR 0056](../../adr/0056-libjxl-source-build.md)）。
+- `tools/libjxl/bin/macos/` に `cjxl` と `*.dylib` を配置します。
+  dylib は `@loader_path` で解決するため、`cjxl` と同じ階層に置きます
+  （[ADR 0017](../../adr/0017-bundle-libjxl-dylibs/0017-bundle-libjxl-dylibs.md)）。
+- `tools/libjxl/.version` にバージョン（例: `v0.13.0`）を書きます。
+
+## AV1（libavif）
+
+- [GitHub Releasesのlatestタグ](https://github.com/AOMediaCodec/libavif/releases/latest)
+  からソースを取得し、SVT-AV1を含めて自前でビルドします。
   - 公開アーティファクトには SVT-AV1 が含まれていないため、そのままでは使えない。
   - ビルド手順は [ADR 0037](../../adr/0037-hybrid-av1-encoder.md) を参照してください。
-- `~/Library/Application Support/tree-image-optimizer/tools/libavif/bin` 配下にバイナリを配置してください。
-  - （例）`~/Library/Application Support/tree-image-optimizer/tools/libavif/bin/macos/avifenc`
-  - （例）`~/Library/Application Support/tree-image-optimizer/tools/libavif/bin/linux/avifenc`
-  - （例）`~/Library/Application Support/tree-image-optimizer/tools/libavif/bin/windows/avifenc.exe`
-- ライセンスファイルが有る場合、 `~/Library/Application Support/tree-image-optimizer/tools/libavif` フォルダに同梱してください。
-- バイナリは以下だけを抽出してプロジェクトに同梱してください。
-  - avifenc （エンコード用。libaom と SVT-AV1 の両方を静的リンクしたもの）
-- `~/Library/Application Support/tree-image-optimizer/tools/libavif/.version` を作成し、現在のバージョンを書き込んでください。（例）v1.4.2
-  - 現在のバージョンから更新されていた場合のみ、 `.version` を更新してください。
-- アップデートする際は、元のファイルを全削除してから更新してください。
+- `tools/libavif/bin/macos/avifenc` を配置します。
+  libaom と SVT-AV1 の両方を静的リンクしたものを置きます。
+- `tools/libavif/.version` にバージョン（例: `v1.4.2`）を書きます。
+
+## WebP（libwebp）
+
+- Google Storage の
+  `https://storage.googleapis.com/downloads.webmproject.org/releases/webp/` から
+  macOS用アーカイブを取得します。
+- `tools/libwebp/bin/macos/cwebp` を配置します。
+- バージョンはアプリ内のWebPツールのバージョン定数（例: `1.6.0`）で管理します。
+- デコーダ（`dwebp` 等）は同梱しません。

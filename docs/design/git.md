@@ -37,10 +37,10 @@ Git の操作に関するルールをまとめる。GitHub 上の PR・ラベル
 ```text
 feat: 変換結果のサマリーを画面下部に固定表示
 fix: 配布版でツール実行に失敗する問題を修正
-refactor: PathServiceのOS別パス解決をpath_providerへ統一
+refactor: パス解決をOS標準APIへ統一
 docs: リリースフローにConventional Commitsの規約を追記
-ci: ReleaseワークフローにAppcast生成ステップを追加
-chore(deps): syncfusion_flutter_slidersを更新
+ci: Releaseワークフローにupdate-info.json生成ステップを追加
+chore(deps): 同梱ツールをlibjxl v0.13.0に更新
 ```
 
 ### 規約
