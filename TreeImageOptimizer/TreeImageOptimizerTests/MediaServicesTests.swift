@@ -138,6 +138,42 @@ struct MediaServicesTests {
             UpdateService.installDestination(for: prepared).path == "/Applications/TreeImageOptimizer.app")
     }
 
+    @Test("再起動用アプリはApplicationsへ配置せずステージングする")
+    func stageUpdateForRestart() throws {
+        let fileManager = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? fileManager.removeItem(at: base) }
+        let prepared = base.appendingPathComponent("TreeImageOptimizer.app", isDirectory: false)
+        try fileManager.createDirectory(
+            at: prepared.appendingPathComponent("Contents", isDirectory: true), withIntermediateDirectories: true)
+        touch(prepared.appendingPathComponent("Contents/Info.plist"))
+
+        let paths = AppPaths(baseURL: base)
+        let staged = try UpdateService().stageForRestart(preparedApp: prepared, paths: paths)
+        let expected = paths.updatesDirectoryURL.appendingPathComponent(
+            "TreeImageOptimizer.app", isDirectory: false)
+        #expect(staged == expected)
+        #expect(fileManager.fileExists(atPath: staged.appendingPathComponent("Contents/Info.plist").path))
+        #expect(!fileManager.fileExists(atPath: prepared.path))
+    }
+
+    @Test("起動時にステージング済みアプリを掃除する")
+    func cleanupStagedUpdate() throws {
+        let fileManager = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? fileManager.removeItem(at: base) }
+        let prepared = base.appendingPathComponent("TreeImageOptimizer.app", isDirectory: false)
+        try fileManager.createDirectory(at: prepared, withIntermediateDirectories: true)
+        let paths = AppPaths(baseURL: base)
+        let service = UpdateService()
+        _ = try service.stageForRestart(preparedApp: prepared, paths: paths)
+
+        service.cleanupStagedUpdate(paths: paths)
+        #expect(!fileManager.fileExists(atPath: paths.updatesDirectoryURL.path))
+    }
+
     @Test("適用は展開済みアプリを複写する")
     func applyUpdateCopies() throws {
         let fm = FileManager.default
@@ -167,6 +203,32 @@ struct MediaServicesTests {
         }
     }
 
+    @Test("配置失敗時は部分コピーを削除し旧アプリを復元する")
+    func applyUpdateRestoresPreviousAppOnCopyFailure() throws {
+        let fileManager = FileManager.default
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let prepared = base.appendingPathComponent("Prepared.app", isDirectory: false)
+        let destination = base.appendingPathComponent("Installed.app", isDirectory: false)
+        defer {
+            try? fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: prepared.path)
+            try? fileManager.removeItem(at: base)
+        }
+        try fileManager.createDirectory(
+            at: prepared.appendingPathComponent("Contents", isDirectory: true), withIntermediateDirectories: true)
+        touch(prepared.appendingPathComponent("Contents/New"))
+        try fileManager.setAttributes([.posixPermissions: 0], ofItemAtPath: prepared.path)
+        try fileManager.createDirectory(
+            at: destination.appendingPathComponent("Contents", isDirectory: true), withIntermediateDirectories: true)
+        touch(destination.appendingPathComponent("Contents/Old"))
+
+        #expect(throws: (any Error).self) {
+            try UpdateService().applyUpdate(preparedApp: prepared, destination: destination)
+        }
+        #expect(fileManager.fileExists(atPath: destination.appendingPathComponent("Contents/Old").path))
+        #expect(!fileManager.fileExists(atPath: destination.appendingPathComponent("Contents/New").path))
+    }
+
     @Test("更新確認結果はサイドナビの更新カード状態に解決する")
     @MainActor
     func resolveCard() {
@@ -175,6 +237,33 @@ struct MediaServicesTests {
         // 更新なし・確認失敗どちらも「更新なし」カードを表示する。
         #expect(UpdateCheckController.resolveCard(for: .latest) == .noUpdate)
         #expect(UpdateCheckController.resolveCard(for: .failed("offline")) == .noUpdate)
+    }
+
+    @Test("再起動待ちは更新確認を上書きしない")
+    @MainActor
+    func restartReadyBlocksUpdateCheck() {
+        let controller = UpdateCheckController()
+        let destination = URL(fileURLWithPath: "/Applications/TreeImageOptimizer.app")
+        let info = UpdateInfo(version: "0.1.0", build: 2, url: "https://example.com/a.zip", sha256: "x")
+        controller.card = .readyToRestart(destination, info)
+        controller.checkForUpdate(language: "ja")
+        #expect(controller.isReadyToRestart)
+        #expect(!controller.isChecking)
+        #expect(controller.card == .readyToRestart(destination, info))
+    }
+
+    @Test("ステージング掃除中は更新確認とダウンロードを開始しない")
+    @MainActor
+    func stagedUpdateCleanupBlocksUpdateOperations() {
+        let controller = UpdateCheckController()
+        let info = UpdateInfo(version: "0.1.0", build: 2, url: "https://example.com/a.zip", sha256: "x")
+        controller.isCleaningStagedUpdate = true
+        controller.checkForUpdate(language: "ja")
+        controller.startDownload(info, language: "ja")
+        #expect(!controller.canCheckForUpdates)
+        #expect(!controller.isChecking)
+        #expect(!controller.isInstalling)
+        #expect(controller.card == nil)
     }
 
     @Test("手動確認結果は確認失敗時を除きサイドナビの更新カード状態に解決する")

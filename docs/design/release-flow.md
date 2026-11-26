@@ -192,7 +192,7 @@ Releaseには以下が自動的に含まれる:
 
 アプリは `https://github.com/treetips/tree-image-optimizer/releases/latest/download/update-info.json`
 から `update-info.json` を取得し、アプリ内の更新処理でバージョン比較・ダウンロード・
-SHA-256検証・展開・`/Applications` への適用・再起動を行う。ツールは
+SHA-256検証・展開・再起動用のステージングを行い、緑色の完了カードから `/Applications` への配置と再起動をする。ツールは
 `https://github.com/treetips/tree-image-optimizer/releases/latest/download/tools-info.json`
 を基準に、差分のあるツールだけをツール更新処理が更新する。
 

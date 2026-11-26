@@ -150,6 +150,39 @@ struct UpdateService: Sendable {
         return results.sorted { $0.path < $1.path }.first
     }
 
+    /// 再起動用のステージング先。実行中の `/Applications` のバンドルを先に置換しない。
+    static func stagingDestination(for preparedApp: URL, paths: AppPaths = AppPaths()) -> URL {
+        paths.updatesDirectoryURL.appendingPathComponent(preparedApp.lastPathComponent, isDirectory: false)
+    }
+
+    /// 展開済みアプリをユーザーの Application Support へ退避し、再起動まで保持する。
+    /// 実行中のバンドルは `restart` で置換するため、待機中も Bundle.main の資源を読める。
+    @discardableResult
+    func stageForRestart(preparedApp: URL, paths: AppPaths = AppPaths()) throws -> URL {
+        let destination = Self.stagingDestination(for: preparedApp, paths: paths)
+        let fm = FileManager.default
+        try fm.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if fm.fileExists(atPath: destination.path) {
+            try fm.removeItem(at: destination)
+        }
+        try fm.moveItem(at: preparedApp, to: destination)
+        return destination
+    }
+
+    /// 前回の再起動で不要になったステージングアプリを起動時に掃除する。
+    /// 再起動直後ではなく次回起動時とし、起動処理を優先して不要なコピーの削除を後回しにする。
+    func cleanupStagedUpdate(paths: AppPaths = AppPaths()) {
+        let directory = paths.updatesDirectoryURL
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: directory.path) else { return }
+        do {
+            try fm.removeItem(at: directory)
+        } catch {
+            AppLogger.shared.error(
+                "failed to clean staged update: \(error.localizedDescription) (\(directory.path))")
+        }
+    }
+
     /// インストール先。`/Applications/<展開名.app>` に固定する。
     static func installDestination(for preparedApp: URL) -> URL {
         URL(fileURLWithPath: "/Applications", isDirectory: true)
@@ -165,13 +198,38 @@ struct UpdateService: Sendable {
         guard fm.fileExists(atPath: preparedApp.path) else {
             throw AppError.fileNotFound(preparedApp.path)
         }
+        var trashedAppURL: NSURL?
         if fm.fileExists(atPath: destination.path) {
-            try fm.trashItem(at: destination, resultingItemURL: nil)
+            try fm.trashItem(at: destination, resultingItemURL: &trashedAppURL)
         } else {
             try fm.createDirectory(
                 at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
         }
-        try fm.copyItem(at: preparedApp, to: destination)
+        do {
+            try fm.copyItem(at: preparedApp, to: destination)
+        } catch {
+            // コピー失敗で実行中アプリの居場所を失わないよう、部分コピーを消してから戻す。
+            if fm.fileExists(atPath: destination.path) {
+                do {
+                    try fm.removeItem(at: destination)
+                } catch {
+                    AppLogger.shared.error(
+                        "failed to remove partial app: \(error.localizedDescription) (\(destination.path))")
+                }
+            }
+            if let trashedAppURL {
+                let trashedURL = trashedAppURL as URL
+                if fm.fileExists(atPath: trashedURL.path) {
+                    do {
+                        try fm.moveItem(at: trashedURL, to: destination)
+                    } catch {
+                        AppLogger.shared.error(
+                            "failed to restore previous app: \(error.localizedDescription) (\(destination.path))")
+                    }
+                }
+            }
+            throw error
+        }
         return destination
     }
 

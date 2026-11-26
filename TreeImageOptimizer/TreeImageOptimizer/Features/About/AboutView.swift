@@ -15,6 +15,8 @@ struct AboutView: View {
 
     /// 確認中・インストール中の状態に応じたボタン文言。
     private var installButtonTitle: String {
+        if controller.isRestarting { return t("a.restarting") }
+        if controller.isReadyToRestart { return t("nav.updateReady") }
         if controller.isInstalling { return t("a.installing") }
         if controller.isChecking { return t("a.checking") }
         return t("a.check")
@@ -70,7 +72,7 @@ struct AboutView: View {
                         .padding(.vertical, 4)
                         GlassCTAButton(
                             title: installButtonTitle,
-                            disabled: controller.isChecking || controller.isInstalling
+                            disabled: !controller.canCheckForUpdates
                         ) {
                             controller.checkForUpdate(language: lang)
                         }
