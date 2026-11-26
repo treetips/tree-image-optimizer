@@ -10,13 +10,12 @@ enum GlassStyle {
     static let footerCornerRadius: CGFloat = 22
     static let ctaTintOpacity: Double = 0.5
     static let ctaCornerRadius: CGFloat = 14
-    /// サイドナビ更新カードの濃さ。更新ありは青、再起動待ちは緑で目立たせ、
+    /// ヘッダー更新カードの濃さ。更新ありは青、再起動待ちは緑で目立たせ、
     /// 更新なしは透明に近い目立たない色にする。仕様は docs/design/feature/update-application.md。
     static let updateCardTintOpacity: Double = 0.5
     static let updateCardBlueTintOpacity: Double = 0.8
     static let updateCardGreenTintOpacity: Double = 0.65
     static let updateCardNoneTintOpacity: Double = 0.05
-    static let updateCardCornerRadius: CGFloat = 14
 }
 
 /// 全画面共通のLiquid Glassカード。`GroupBox` の置き換え用。

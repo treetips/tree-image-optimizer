@@ -7,7 +7,7 @@ import Foundation
 enum ToolsUpdateCard: Equatable {
     /// ツール更新あり。クリックで確認ダイアログを開く。
     case available(ToolsInfo)
-    /// 更新中。確認ダイアログを閉じた後の進捗をサイドナビに表示する。
+    /// 更新中。確認ダイアログを閉じた後の進捗をヘッダーに表示する。
     case installing(ToolsUpdateProgress)
     /// 更新失敗。背景を赤くし、カード内の `再実行` から最初からやり直せる。
     case installFailed(ToolsInfo)
@@ -34,7 +34,7 @@ struct ToolsUpdateProgress: Sendable, Equatable {
 @Observable
 @MainActor
 final class ToolsUpdateController {
-    /// サイドナビ下部のツール更新カード。差分が無ければ nil（カード非表示）。
+    /// ヘッダーの更新カード。差分が無ければ nil（カード非表示）。
     var card: ToolsUpdateCard?
     /// 確認ダイアログで表示・使用する更新対象のメタデータ。
     var availableInfo: ToolsInfo?
@@ -96,7 +96,7 @@ final class ToolsUpdateController {
     func install(_ info: ToolsInfo) {
         guard !isInstalling else { return }
         isInstalling = true
-        // 確認ダイアログを閉じ、以降の進捗はサイドナビのカードだけで示す。
+        // 確認ダイアログを閉じ、以降の進捗はヘッダーのカードだけで示す。
         availableInfo = nil
         // Why not 不確定（fraction=nil）から始めるか: applyProgress の
         // ガードは「不確定へ進んだ後の確定値への後退」を無視するため、

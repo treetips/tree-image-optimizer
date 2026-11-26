@@ -119,7 +119,7 @@ UseCase / Repository 層は設けず、オーケストレーションは Service
 - 修復は**開発用ローカルの `tools/` コピーを優先**し、無ければネットワーク取得します。
   取得元があるのは `libwebp`（Google Storage）と `Real-CUGAN`（GitHub Releases）のみです。
 - 起動時に `tools-info.json` を取得し、`tools/.installed.json` とバージョンが異なるツールだけを
-  サイドナビの `ツール更新が有ります` カードで通知します。更新処理はダウンロード・
+  ヘッダー右端の `ツール更新が有ります` カードで通知します。更新処理はダウンロード・
   SHA-256検証・展開・配置まで行います。
 - libjxl は依存 dylib ごと `@loader_path` で解決する形で同梱します（ADR 0017、ADR 0056）。
 - Real-CUGAN は必須ツールです。実行前に `.param` と `.bin` のペアを確認するのは、
@@ -152,7 +152,7 @@ UseCase / Repository 層は設けず、オーケストレーションは Service
   `/Applications` への配置と再起動を行います（ADR 0076）。
 - **ツール**は `tools-info.json` と `tools/.installed.json` の差分だけをツール単位ZIPで
   更新します。アプリ本体の更新とは独立し、本体ZIPに tools を帯同しません（ADR 0064）。
-- どちらもサイドナビ下部の更新カードで通知し、失敗時は赤いカードから再実行できます
+- どちらもヘッダー右端の更新カードで通知し、失敗時は赤いカードから再実行できます
   （ADR 0050、ADR 0051）。
 
 ## 対応フォーマット
