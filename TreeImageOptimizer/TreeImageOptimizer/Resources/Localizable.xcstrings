@@ -364,6 +364,57 @@
         }
       }
     },
+    "a.restartFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to restart the app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリの再起動に失敗しました"
+          }
+        }
+      }
+    },
+    "a.restartReadyMsg" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The update will be applied when you restart the app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再起動するとアップデートが反映されます。"
+          }
+        }
+      }
+    },
+    "a.restarting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restarting..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再起動中..."
+          }
+        }
+      }
+    },
     "a.version" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1858,19 +1909,36 @@
         }
       }
     },
-    "nav.copying" : {
+    "nav.preparingUpdate" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copying app"
+            "value" : "Preparing update"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アプリを配置中"
+            "value" : "アップデートを準備中"
+          }
+        }
+      }
+    },
+    "nav.download" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード"
           }
         }
       }
@@ -1881,13 +1949,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Downloading"
+            "value" : "Downloading..."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ダウンロード中"
+            "value" : "ダウンロード中..."
           }
         }
       }
@@ -1898,13 +1966,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Downloading %lld%%"
+            "value" : "Downloading... %lld%%"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ダウンロード %lld%%"
+            "value" : "ダウンロード中... %lld%%"
           }
         }
       }
@@ -1977,6 +2045,23 @@
         }
       }
     },
+    "nav.restart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリ再起動する"
+          }
+        }
+      }
+    },
     "nav.retry" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2040,7 +2125,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アップデートが有ります"
+            "value" : "アップデートがあります"
           }
         }
       }
@@ -2058,6 +2143,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "アップデートは有りません"
+          }
+        }
+      }
+    },
+    "nav.updateReady" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update ready"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデート完了"
           }
         }
       }

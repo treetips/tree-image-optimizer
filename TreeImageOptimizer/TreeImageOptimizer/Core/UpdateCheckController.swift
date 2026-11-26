@@ -7,10 +7,12 @@ import Foundation
 /// サイドナビ下部の更新カードの状態。ネットワーク確認の有無をUIと切り離すため独立させる。
 @MainActor
 enum UpdateCard: Equatable {
-    /// 更新あり。クリックでインストールダイアログを開く。
+    /// 更新あり。カード内の Download ボタンからインストールを始める。
     case available(UpdateInfo)
-    /// インストール中。ダイアログを閉じた後の進捗をサイドナビに表示する。
+    /// インストール中。カード内に進捗を表示する。
     case installing(UpdateInstallProgress)
+    /// 再起動用の準備が完了。緑色のカードから配置と新しいアプリの起動を行う。
+    case readyToRestart(URL, UpdateInfo)
     /// インストール失敗。背景を赤くし、カード内の `再実行` から最初からやり直せる。
     case installFailed(UpdateInfo)
     /// 更新なし。クリックでカードを非表示化する。
@@ -25,12 +27,25 @@ final class UpdateCheckController {
 
     var isChecking = false
     var isInstalling = false
+    var isRestarting = false
+    var isCleaningStagedUpdate = false
     var message = ""
     var latestDialog = false
-    var availableInfo: UpdateInfo?
     var errorDialog: String?
+    var restartErrorDialog: String?
     /// サイドナビ下部の更新カード。起動時のサイレント確認と手動確認の結果を反映する。
     var card: UpdateCard?
+
+    /// 再起動待ちの間は、更新確認で緑色の完了カードを上書きしない。
+    var isReadyToRestart: Bool {
+        if case .readyToRestart = card { return true }
+        return false
+    }
+
+    /// メニュー・About画面の更新確認ボタンで共通する実行可否。
+    var canCheckForUpdates: Bool {
+        !isChecking && !isInstalling && !isRestarting && !isCleaningStagedUpdate && !isReadyToRestart
+    }
 
     private var hideCardTask: Task<Void, Never>?
     private let updateService = UpdateService()
@@ -50,13 +65,26 @@ final class UpdateCheckController {
 
     /// 起動時などにダイアログなしで有無だけ確認し、サイドナビの更新カードに反映する。
     func refreshAvailability() {
+        // カードが残っている間に掃除すると、Download と削除が競合し得るため初期状態だけを対象にする。
+        guard canCheckForUpdates, card == nil else { return }
+        isCleaningStagedUpdate = true
         Task {
+            // 数百MBの削除で起動直後のUIを止めないよう、確認開始前に別タスクで掃除する。
+            // 先行タスクを待つことで、掃除が新しいステージングを消す競合も防ぐ。
+            let service = updateService
+            await Task.detached(priority: .utility) {
+                service.cleanupStagedUpdate()
+            }.value
+            isCleaningStagedUpdate = false
+            guard canCheckForUpdates else { return }
             let current = currentVersion()
-            let result = await updateService.checkForUpdate(
+            let result = await service.checkForUpdate(
                 url: AppInfo.updateInfoURL,
                 currentVersion: current.version,
                 currentBuild: current.build
             )
+            // 確認中にインストールが始まった場合は、古い確認結果で進捗・完了カードを上書きしない。
+            guard !isInstalling, !isRestarting, !isReadyToRestart else { return }
             setCard(Self.resolveCard(for: result))
         }
     }
@@ -97,10 +125,9 @@ final class UpdateCheckController {
         }
     }
 
-    /// 更新ありカードのクリック。サイレント確認結果を元にインストール確認ダイアログを出す。
-    func showInstallDialog() {
-        guard case .available(let info) = card else { return }
-        availableInfo = info
+    /// 更新ありカードの Download ボタン。確認ダイアログを挟まず、そのままダウンロードを始める。
+    func startDownload(_ info: UpdateInfo, language: String? = nil) {
+        install(info, language: language)
     }
 
     /// 更新なしカードのクリック。自動非表示のタイマーも止める。
@@ -111,9 +138,9 @@ final class UpdateCheckController {
     }
 
     /// About画面のボタンとメニューバーの手動確認。
-    /// 結果はメッセージ・ダイアログとサイドナビ下部の更新カードの双方に反映する。
+    /// 更新なし・失敗時はダイアログとメッセージに出し、更新ありはサイドナビのカードで知らせる。
     func checkForUpdate(language: String? = nil) {
-        guard !isChecking, !isInstalling else { return }
+        guard canCheckForUpdates else { return }
         isChecking = true
         message = ""
         Task {
@@ -125,13 +152,17 @@ final class UpdateCheckController {
             let result = await updateService.checkForUpdate(
                 url: AppInfo.updateInfoURL, currentVersion: version, currentBuild: build
             )
+            // 確認中にインストールへ進んだ場合は、古い結果でダイアログや進捗・完了カードを上書きしない。
+            guard !isInstalling, !isRestarting, !isReadyToRestart else {
+                isChecking = false
+                return
+            }
             switch result {
             case .latest:
                 message = L10n.string("a.latest", language: lang)
                 latestDialog = true
             case .available(let info):
                 message = String(format: L10n.string("a.availableMsg", language: lang), info.version)
-                availableInfo = info
             case .failed(let reason):
                 message = "\(L10n.string("a.checkFailed", language: lang)): \(reason)"
                 errorDialog = reason
@@ -145,44 +176,34 @@ final class UpdateCheckController {
         }
     }
 
-    /// ダウンロード・検証・展開のうえ、`/Applications` に反映する。
-    /// 実行中のアプリ自身の更新なら新バージョンを開いて終了する。
-    /// それ以外（開発ビルド等）はFinderで開いて終わる。
+    /// ダウンロード・検証・展開を行い、再起動用にアプリをステージングする。
+    /// `/Applications` の置換は再起動ボタン押下時まで遅らせる。
     func install(_ info: UpdateInfo, language: String? = nil) {
-        guard !isInstalling else { return }
+        guard !isInstalling, !isRestarting, !isCleaningStagedUpdate, !isReadyToRestart else { return }
         isInstalling = true
-        // 確認ダイアログを閉じ、以降の進捗はサイドナビのカードだけで示す。
-        availableInfo = nil
         hideCardTask?.cancel()
         hideCardTask = nil
         card = .installing(.indeterminate(.downloading))
         // 呼び出し元が保持済みの言語を渡す。nil時のみ設定ファイルを読み直す。
         let lang = language ?? self.language()
         Task {
-            let onProgress: @Sendable (UpdateInstallProgress) -> Void = { [weak self] progress in
-                Task { @MainActor [weak self] in
-                    self?.applyProgress(progress)
+            let onProgress: @Sendable (UpdateInstallProgress) -> Void = { progress in
+                Task { @MainActor in
+                    self.applyProgress(progress)
                 }
             }
             do {
                 let prepared = try await updateService.downloadAndPrepare(info: info, onProgress: onProgress)
-                let destination = UpdateService.installDestination(for: prepared)
                 card = .installing(.indeterminate(.installing))
-                // 数百MBのコピーでメインスレッドを止めないよう、別タスクで実行する。
-                // 止まるとプログレスバーの更新もアニメーションも途切れるため。
-                try await Task.detached(priority: .userInitiated) {
-                    try UpdateService().applyUpdate(preparedApp: prepared, destination: destination)
+                // 数百MBの移動でメインスレッドを止めないよう、別タスクで実行する。
+                // 実行中の /Applications のバンドルは、再起動まで先に置換しない。
+                let staged = try await Task.detached(priority: .userInitiated) {
+                    try UpdateService().stageForRestart(preparedApp: prepared)
                 }.value
-                // 実行中のアプリ自身なら新バージョンを開いて終了する。
-                // 起動要求に失敗したらFinderで開いて終わる。
-                if isRunningFrom(destination), relaunch(appURL: destination) {
-                    // 終了するまでの間も「インストール中」を出したままにする。
-                    return
-                }
-                card = nil
-                message = String(
-                    format: L10n.string("a.downloadDoneMsg", language: lang), destination.path)
-                revealInFinder(destination)
+                // 自動再起動すると完了状態を確認できないため、ここで一旦停止する。
+                // 以後はカードの「アプリ再起動する」から配置と起動を切り替える。
+                card = .readyToRestart(staged, info)
+                message = L10n.string("a.restartReadyMsg", language: lang)
             } catch {
                 // 失敗時は赤いカードに切り替え、カード内の `再実行` で最初からやり直せるようにする。
                 card = .installFailed(info)
@@ -190,6 +211,47 @@ final class UpdateCheckController {
                 errorDialog = error.localizedDescription
             }
             isInstalling = false
+        }
+    }
+
+    /// 緑色の完了カードの「アプリ再起動する」。ステージングしたアプリを配置して起動し、旧プロセスを終了する。
+    func restart(language: String? = nil) {
+        guard !isRestarting, case .readyToRestart(let stagedAppURL, let info) = card else { return }
+        isRestarting = true
+        let lang = language ?? self.language()
+        Task {
+            var installedAppURL: URL?
+            do {
+                let destination = UpdateService.installDestination(for: stagedAppURL)
+                // 起動だけ失敗して再試行する場合は、配置済みアプリを再度 Trash しない。
+                if stagedAppURL.standardizedFileURL.path != destination.standardizedFileURL.path {
+                    // 実行中のバンドルを置換するのは、ユーザーが再起動を選んだ後だけに限定する。
+                    _ = try await Task.detached(priority: .userInitiated) {
+                        try UpdateService().applyUpdate(preparedApp: stagedAppURL, destination: destination)
+                    }.value
+                }
+                installedAppURL = destination
+                // フェイルセーフで再試行された場合に配置を繰り返さないよう、カードも配置先へ更新する。
+                card = .readyToRestart(destination, info)
+                try await relaunch(appURL: destination)
+            } catch {
+                AppLogger.shared.error(
+                    "restart failed: \(error.localizedDescription) (\(stagedAppURL.path))")
+                isRestarting = false
+                if let installedAppURL {
+                    // 配置は済んでいるため、再ダウンロードさせず起動だけを再試行できる。
+                    card = .readyToRestart(installedAppURL, info)
+                } else {
+                    card = .installFailed(info)
+                }
+                let title = L10n.string("a.restartFailed", language: lang)
+                message = "\(title): \(error.localizedDescription)"
+                restartErrorDialog = error.localizedDescription
+                return
+            }
+            // 終了が実行されなかった場合に、再起動中のまま操作を固めないためのフェイルセーフ。
+            try? await Task.sleep(for: .seconds(10))
+            isRestarting = false
         }
     }
 
@@ -206,30 +268,16 @@ final class UpdateCheckController {
         card = .installing(progress)
     }
 
-    /// 実行中のバンドルがインストール先と同一か。
-    private func isRunningFrom(_ destination: URL) -> Bool {
-        Bundle.main.bundleURL.standardizedFileURL.path == destination.standardizedFileURL.path
-    }
-
     /// 新バージョンを別プロセスで開いて旧プロセスを終了する。
     /// 同一bundle IDのため新インスタンス生成を明示しないと、実行中の旧プロセスが
     /// 前面化されて終了時に「すでに閉じられています」ダイアログが出る。
-    /// - Returns: 起動要求に成功したらtrue。
-    @discardableResult
-    private func relaunch(appURL: URL) -> Bool {
+    private func relaunch(appURL: URL) async throws {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.createsNewApplicationInstance = true
-        guard NSWorkspace.shared.openApplication(at: appURL, configuration: configuration) != nil else {
-            return false
-        }
+        try await NSWorkspace.shared.openApplication(at: appURL, configuration: configuration)
         // 新インスタンスの起動を待ってから終了する。
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             NSApplication.shared.terminate(nil)
         }
-        return true
-    }
-
-    private func revealInFinder(_ url: URL) {
-        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 }
