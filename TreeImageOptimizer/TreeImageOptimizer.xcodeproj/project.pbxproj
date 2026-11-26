@@ -90,6 +90,7 @@
 		E3000000000000000000002D /* ToolsInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002D /* ToolsInfo.swift */; };
 		E3000000000000000000002E /* ToolsUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002E /* ToolsUpdateService.swift */; };
 		E3000000000000000000002F /* ToolsUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002F /* ToolsUpdateController.swift */; };
+		E60000000000000000000001 /* UpdateCardsToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000001 /* UpdateCardsToolbar.swift */; };
 		E4000000000000000000001A /* ToolsInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4000000000000000000001A /* ToolsInfoTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -97,6 +98,7 @@
 		D10000000000000000000001 /* TreeImageOptimizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TreeImageOptimizer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F10000000000000000000001 /* TreeImageOptimizerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeImageOptimizerApp.swift; sourceTree = "<group>"; };
 		F10000000000000000000002 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		F60000000000000000000001 /* UpdateCardsToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCardsToolbar.swift; sourceTree = "<group>"; };
 		F10000000000000000000010 /* ToolBootstrapModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolBootstrapModel.swift; sourceTree = "<group>"; };
 		F10000000000000000000011 /* SidebarNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarNavigation.swift; sourceTree = "<group>"; };
 		F10000000000000000000012 /* EasyConvertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertView.swift; sourceTree = "<group>"; };
@@ -323,6 +325,7 @@
 				A1000000000000000000000C /* EasyConvert */,
 				A10000000000000000000009 /* Settings */,
 				A1000000000000000000000A /* About */,
+				A1000000000000000000000D /* Updates */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -365,6 +368,14 @@
 				F10000000000000000000008 /* AboutView.swift */,
 			);
 			path = About;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000D /* Updates */ = {
+			isa = PBXGroup;
+			children = (
+				F60000000000000000000001 /* UpdateCardsToolbar.swift */,
+			);
+			path = Updates;
 			sourceTree = "<group>";
 		};
 		A1000000000000000000000B /* Resources */ = {
@@ -501,6 +512,7 @@
 			files = (
 				E10000000000000000000001 /* TreeImageOptimizerApp.swift in Sources */,
 				E10000000000000000000002 /* RootView.swift in Sources */,
+				E60000000000000000000001 /* UpdateCardsToolbar.swift in Sources */,
 				E10000000000000000000010 /* ToolBootstrapModel.swift in Sources */,
 				E10000000000000000000011 /* SidebarNavigation.swift in Sources */,
 				E10000000000000000000012 /* EasyConvertView.swift in Sources */,

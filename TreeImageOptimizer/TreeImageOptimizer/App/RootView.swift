@@ -88,82 +88,6 @@ struct RootView: View {
                         }
                     }
                     .navigationSplitViewColumnWidth(min: 150, ideal: 180)
-                    // 更新カード。更新ありは青、進捗中は青、完了時は緑で表示する。
-                    // 更新なしは透明（10秒後の自動非表示はUpdateCheckController側）。
-                    if let card = updateCheck.card {
-                        Divider()
-                        switch card {
-                        case .available(let info):
-                            availableUpdateCard(info: info)
-                        case .installing(let progress):
-                            installingCard(progress: progress)
-                        case .readyToRestart:
-                            restartReadyCard()
-                        case .installFailed:
-                            installFailedCard()
-                        case .noUpdate:
-                            Button {
-                                updateCheck.dismissCard()
-                            } label: {
-                                updateCardLabel(
-                                    text: L10n.string("nav.updateNone", language: settings.language),
-                                    icon: "checkmark.circle",
-                                    fontScale: fontScale
-                                )
-                                // 更新なしはLiquid Glassで透明に近い目立たない色にする。
-                                .glassEffect(
-                                    .regular
-                                        .tint(Color.accentColor.opacity(GlassStyle.updateCardNoneTintOpacity))
-                                        .interactive(),
-                                    in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
-                                )
-                                // サイドナビのメニュー項目と同じテキスト色（標準のprimary）。
-                                .foregroundStyle(.primary)
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                        }
-                    }
-                    // ツール更新カード。アプリ本体更新とは独立した「ツール更新」の状態を示す。
-                    // 差分がある場合のみ表示し、クリックで確認ダイアログを出す。
-                    if let card = toolsUpdate.card {
-                        Divider()
-                        switch card {
-                        case .available:
-                            Button {
-                                toolsUpdate.showInstallDialog()
-                            } label: {
-                                updateCardLabel(
-                                    text: L10n.string("nav.toolsUpdateAvailable", language: settings.language),
-                                    icon: "shippingbox.and.arrow.backward.fill",
-                                    fontScale: fontScale
-                                )
-                                .glassEffect(
-                                    .regular
-                                        .tint(Color.accentColor.opacity(GlassStyle.updateCardTintOpacity))
-                                        .interactive(),
-                                    in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
-                                )
-                                .bold()
-                                .foregroundStyle(availableTextColor)
-                                .onHover { hovering in
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                        case .installing(let progress):
-                            toolsInstallingCard(progress: progress)
-                        case .installFailed:
-                            toolsInstallFailedCard()
-                        }
-                    }
                 }
             } detail: {
                 ZStack {
@@ -186,6 +110,17 @@ struct RootView: View {
                         AboutView(controller: updateCheck)
                     }
                 }
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        UpdateCardsToolbar(
+                            updateCheck: updateCheck,
+                            toolsUpdate: toolsUpdate,
+                            language: settings.language,
+                            fontScale: fontScale,
+                            colorScheme: appearanceScheme
+                        )
+                    }
+                }
             }
             .environment(\.locale, settings.effectiveLocale)
             .preferredColorScheme(appearanceScheme)
@@ -193,9 +128,9 @@ struct RootView: View {
             .environment(\.appFontScale, AppTheme.fontScale(for: settings.fontSize))
             .onAppear {
                 logAppearance(context: "appear")
-                // 起動時にサイレント確認し、サイドナビ通知に反映する。
+                // 起動時にサイレント確認し、ヘッダーの更新カードに反映する。
                 updateCheck.refreshAvailability()
-                // ツール更新も起動時に差分を確認し、サイドナビ通知に反映する。
+                // ツール更新も起動時に差分を確認し、ヘッダー通知に反映する。
                 toolsUpdate.refreshAvailability()
                 // 初回はtools展開が必要なため、揃うまで操作をブロックする。
                 bootstrap.start()
@@ -391,294 +326,9 @@ struct RootView: View {
         AppTheme.fontScale(for: settings.fontSize)
     }
 
-    /// ツール更新カードとアプリ更新の失敗カードで使うテキスト色。半透明アクセントtintの上で
-    /// ライト・ダークどちらのモードでも強調して見える色にする。
-    /// 自動モードは `appearanceScheme` で実効スキームに解決済み。
-    private var availableTextColor: Color {
-        appearanceScheme == .dark ? .white : Color(nsColor: .textColor)
-    }
-
     /// サイドナビの一括変換メニュー右端に表示する進捗%。
     private var convertProgressLabel: String {
         "\(Int(convertJobStore.progressPercent))%"
-    }
-
-    /// 更新カード共通のラベル。文言とアイコンだけを受け取り、両カードで見た目の共通部分を纏める。
-    private func updateCardLabel(text: String, icon: String, fontScale: CGFloat) -> some View {
-        Label {
-            Text(text)
-                .font(AppTheme.font(.body, scale: fontScale))
-        } icon: {
-            Image(systemName: icon)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-    }
-
-    /// 更新ありカード。Rex の更新フローに合わせ、確認ダイアログではなく
-    /// カード内の Download ボタンからそのままダウンロードを始める。
-    private func availableUpdateCard(info: UpdateInfo) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label {
-                Text(L10n.string("nav.updateAvailable", language: settings.language))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            } icon: {
-                Image(systemName: "arrow.down.circle.fill")
-            }
-            .bold()
-            updateCardAction(
-                title: L10n.string("nav.download", language: settings.language),
-                tint: statusCardTextColor,
-                resetCursorOnClick: true
-            ) {
-                updateCheck.startDownload(info, language: settings.language)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 6)
-        .glassEffect(
-            .regular.tint(Color.blue.opacity(GlassStyle.updateCardBlueTintOpacity)),
-            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
-        )
-        .foregroundStyle(statusCardTextColor)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .contain)
-    }
-
-    /// インストール中の更新カード。Download ボタン押下後の進捗をここへ集約する。
-    /// ダウンロード中は受信バイト数の確定バー、検証・展開・コピー中は不確定バーを出す。
-    private func installingCard(progress: UpdateInstallProgress) -> some View {
-        VStack(spacing: 8) {
-            Label {
-                Text(installingDetail(for: progress))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            } icon: {
-                Image(systemName: "arrow.down.circle")
-            }
-            .bold()
-            if let fraction = progress.fraction {
-                DeterminateLinearBar(progress: fraction * 100, tint: statusCardTextColor)
-            } else {
-                IndeterminateLinearBar(tint: statusCardTextColor)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        // 更新ありと同じ青。クリックできないため `.interactive()` は付けない。
-        .glassEffect(
-            .regular.tint(Color.blue.opacity(GlassStyle.updateCardBlueTintOpacity)),
-            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
-        )
-        .foregroundStyle(statusCardTextColor)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .combine)
-    }
-
-    /// 再起動準備完了カード。自動再起動せず、緑色のカードから明示的に再起動する。
-    private func restartReadyCard() -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label {
-                Text(L10n.string("nav.updateReady", language: settings.language))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            } icon: {
-                Image(systemName: "checkmark.circle.fill")
-            }
-            .bold()
-            updateCardAction(
-                title: updateCheck.isRestarting
-                    ? L10n.string("a.restarting", language: settings.language)
-                    : L10n.string("nav.restart", language: settings.language),
-                tint: statusCardTextColor,
-                enabled: !updateCheck.isRestarting
-            ) {
-                updateCheck.restart(language: settings.language)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 6)
-        .glassEffect(
-            .regular.tint(Color.green.opacity(GlassStyle.updateCardGreenTintOpacity)),
-            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
-        )
-        .foregroundStyle(statusCardTextColor)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .contain)
-    }
-
-    /// 更新カード内のアクションボタン。背景色に埋もれないよう、前景色を薄く重ねる。
-    private func updateCardAction(
-        title: String, tint: Color, enabled: Bool = true, resetCursorOnClick: Bool = false,
-        action: @escaping () -> Void
-    ) -> some View {
-        UpdateCardActionButton(
-            title: title,
-            tint: tint,
-            enabled: enabled,
-            fontScale: fontScale,
-            resetCursorOnClick: resetCursorOnClick,
-            action: action
-        )
-    }
-
-    private var statusCardTextColor: Color {
-        // 半透明の青・緑ではライトモードの白文字が読めないため、実効スキームで切り替える。
-        appearanceScheme == .dark ? .white : Color.black.opacity(0.8)
-    }
-
-    /// インストール中の補足文言。進捗率はダウンロード段階だけ表示する。
-    private func installingDetail(for progress: UpdateInstallProgress) -> String {
-        let lang = settings.language
-        switch progress.phase {
-        case .downloading:
-            guard let fraction = progress.fraction else {
-                return L10n.string("nav.downloading", language: lang)
-            }
-            return String(
-                format: L10n.string("nav.downloadingPercent", language: lang),
-                Int((fraction * 100).rounded(.down))
-            )
-        case .verifying:
-            return L10n.string("nav.verifying", language: lang)
-        case .extracting:
-            return L10n.string("nav.extracting", language: lang)
-        case .installing:
-            return L10n.string("nav.preparingUpdate", language: lang)
-        }
-    }
-
-    /// インストール失敗カード。赤背景で失敗を示し、カード内の `再実行` から
-    /// ダウンロードからやり直せる。失敗の詳細理由はエラーダイアログとAbout画面に出す。
-    private func installFailedCard() -> some View {
-        VStack(spacing: 6) {
-            Label {
-                Text(L10n.string("nav.installFailed", language: settings.language))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            } icon: {
-                Image(systemName: "exclamationmark.triangle.fill")
-            }
-            .bold()
-            Button {
-                updateCheck.retryInstall(language: settings.language)
-            } label: {
-                Text(L10n.string("nav.retry", language: settings.language))
-                    .font(AppTheme.font(.caption, scale: fontScale))
-                    .bold()
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(availableTextColor.opacity(0.18), in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .onHover { hovering in
-                if hovering {
-                    NSCursor.pointingHand.push()
-                } else {
-                    NSCursor.pop()
-                }
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        // 失敗は赤。濃さは更新ありカードと揃え、不透明な塗りでグラスを飽和させない。
-        .glassEffect(
-            .regular.tint(Color.red.opacity(GlassStyle.updateCardTintOpacity)),
-            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
-        )
-        .foregroundStyle(availableTextColor)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        // 再実行ボタンを読み上げ対象に残すため、進捗カードの combine は使わない。
-        .accessibilityElement(children: .contain)
-    }
-
-    /// ツール更新のインストール中カード。確認ダイアログを閉じた後の進捗をここへ集約する。
-    /// ダウンロード中は受信バイト数の確定バー、検証・展開中は不確定バーを出す。
-    private func toolsInstallingCard(progress: ToolsUpdateProgress) -> some View {
-        VStack(spacing: 6) {
-            Label {
-                Text(L10n.string("nav.installing", language: settings.language))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            } icon: {
-                Image(systemName: "shippingbox.and.arrow.backward")
-            }
-            .bold()
-            Text(toolsInstallingDetail(for: progress))
-                .font(AppTheme.font(.caption, scale: fontScale))
-                .opacity(0.8)
-            if let fraction = progress.fraction {
-                DeterminateLinearBar(progress: fraction * 100, tint: availableTextColor)
-            } else {
-                IndeterminateLinearBar(tint: availableTextColor)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .glassEffect(
-            .regular.tint(Color.accentColor.opacity(GlassStyle.updateCardTintOpacity)),
-            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
-        )
-        .foregroundStyle(availableTextColor)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .combine)
-    }
-
-    /// ツール更新のインストール中の補足文言。進捗率はダウンロード段階だけ表示する。
-    private func toolsInstallingDetail(for progress: ToolsUpdateProgress) -> String {
-        guard let fraction = progress.fraction else {
-            // 進捗が無い段階（検証・展開）では対象ツール名だけを示す。
-            return progress.label.isEmpty
-                ? L10n.string("nav.installing", language: settings.language)
-                : progress.label
-        }
-        return String(
-            format: L10n.string("nav.downloadingPercent", language: settings.language),
-            Int((fraction * 100).rounded(.down))
-        )
-    }
-
-    /// ツール更新の失敗カード。赤背景で失敗を示し、カード内の `再実行` から
-    /// 最初からやり直せる。失敗の詳細理由はエラーダイアログに出す。
-    private func toolsInstallFailedCard() -> some View {
-        VStack(spacing: 6) {
-            Label {
-                Text(L10n.string("nav.installFailed", language: settings.language))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            } icon: {
-                Image(systemName: "exclamationmark.triangle.fill")
-            }
-            .bold()
-            Button {
-                toolsUpdate.retryInstall()
-            } label: {
-                Text(L10n.string("nav.retry", language: settings.language))
-                    .font(AppTheme.font(.caption, scale: fontScale))
-                    .bold()
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(availableTextColor.opacity(0.18), in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .onHover { hovering in
-                if hovering {
-                    NSCursor.pointingHand.push()
-                } else {
-                    NSCursor.pop()
-                }
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .glassEffect(
-            .regular.tint(Color.red.opacity(GlassStyle.updateCardTintOpacity)),
-            in: RoundedRectangle(cornerRadius: GlassStyle.updateCardCornerRadius)
-        )
-        .foregroundStyle(availableTextColor)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .contain)
     }
 
     /// ツール更新の確認ダイアログ本文。差分のあるツール名だけを列挙して提示する。
@@ -808,57 +458,6 @@ struct RootView: View {
         let g = Double((v >> 8) & 0xFF) / 255
         let b = Double(v & 0xFF) / 255
         return Color(red: r, green: g, blue: b, opacity: a)
-    }
-}
-
-/// 更新カード内のアクションボタン。カードの差し替えや無効化でカーソル状態が残らないよう管理する。
-private struct UpdateCardActionButton: View {
-    let title: String
-    let tint: Color
-    let enabled: Bool
-    let fontScale: CGFloat
-    let resetCursorOnClick: Bool
-    let action: () -> Void
-    @State private var isHovering = false
-
-    var body: some View {
-        Button {
-            if resetCursorOnClick {
-                // クリックでカードが差し替わると onHover(false) が来ないため、先に戻す。
-                NSCursor.arrow.set()
-            }
-            action()
-        } label: {
-            Text(title)
-                .font(AppTheme.font(.body, scale: fontScale))
-                .bold()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .background(tint.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.5)
-        .onHover { hovering in
-            isHovering = hovering
-            updateCursor()
-        }
-        .onChange(of: enabled) { _, _ in
-            updateCursor()
-        }
-        .onDisappear {
-            // クリック以外でカードが消えた場合もカーソルを戻す。
-            NSCursor.arrow.set()
-        }
-    }
-
-    private func updateCursor() {
-        // push/pop はカード消滅時に不均衡になり得るため、現在のカーソルを直接設定する。
-        if isHovering && enabled {
-            NSCursor.pointingHand.set()
-        } else {
-            NSCursor.arrow.set()
-        }
     }
 }
 

@@ -2,9 +2,9 @@ import AppKit
 import Foundation
 
 /// アップデート確認の共通コントローラ。
-/// About画面のボタン・OSメニューバーの「更新を確認」・サイドナビ通知から共用する。
+/// About画面のボタン・OSメニューバーの「更新を確認」・ヘッダー通知から共用する。
 /// 文言は設定言語に従う。
-/// サイドナビ下部の更新カードの状態。ネットワーク確認の有無をUIと切り離すため独立させる。
+/// ヘッダーの更新カードの状態。ネットワーク確認の有無をUIと切り離すため独立させる。
 @MainActor
 enum UpdateCard: Equatable {
     /// 更新あり。カード内の Download ボタンからインストールを始める。
@@ -33,7 +33,7 @@ final class UpdateCheckController {
     var latestDialog = false
     var errorDialog: String?
     var restartErrorDialog: String?
-    /// サイドナビ下部の更新カード。起動時のサイレント確認と手動確認の結果を反映する。
+    /// ヘッダーの更新カード。起動時のサイレント確認と手動確認の結果を反映する。
     var card: UpdateCard?
 
     /// 再起動待ちの間は、更新確認で緑色の完了カードを上書きしない。
@@ -63,7 +63,7 @@ final class UpdateCheckController {
         return (version, build)
     }
 
-    /// 起動時などにダイアログなしで有無だけ確認し、サイドナビの更新カードに反映する。
+    /// 起動時などにダイアログなしで有無だけ確認し、ヘッダーの更新カードに反映する。
     func refreshAvailability() {
         // カードが残っている間に掃除すると、Download と削除が競合し得るため初期状態だけを対象にする。
         guard canCheckForUpdates, card == nil else { return }
@@ -138,7 +138,7 @@ final class UpdateCheckController {
     }
 
     /// About画面のボタンとメニューバーの手動確認。
-    /// 更新なし・失敗時はダイアログとメッセージに出し、更新ありはサイドナビのカードで知らせる。
+    /// 更新なし・失敗時はダイアログとメッセージに出し、更新ありはヘッダーのカードで知らせる。
     func checkForUpdate(language: String? = nil) {
         guard canCheckForUpdates else { return }
         isChecking = true
@@ -167,7 +167,7 @@ final class UpdateCheckController {
                 message = "\(L10n.string("a.checkFailed", language: lang)): \(reason)"
                 errorDialog = reason
             }
-            // 手動確認の結果をサイドナビ下部の更新カードにも反映する。
+            // 手動確認の結果をヘッダーの更新カードにも反映する。
             // 失敗時はnilのためカードを触らず、直前の確認結果を表示したままにする。
             if let card = Self.resolveManualCard(for: result) {
                 setCard(card)
