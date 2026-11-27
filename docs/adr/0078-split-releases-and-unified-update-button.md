@@ -3,6 +3,7 @@
 ## ステータス
 
 - 承認済み (Accepted)
+- 更新通知の見た目と操作配置は [ADR 0079](./0079-rex-style-update-pill.md) で置換
 
 ## 背景・課題
 

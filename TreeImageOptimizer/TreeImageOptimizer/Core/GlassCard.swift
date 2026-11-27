@@ -12,9 +12,9 @@ enum GlassStyle {
     static let ctaCornerRadius: CGFloat = 14
     /// ヘッダー更新カードの濃さ。更新ありは青、再起動待ちは緑で目立たせ、
     /// 更新なしは透明に近い目立たない色にする。仕様は docs/design/feature/update-application.md。
-    static let updateCardTintOpacity: Double = 0.5
-    static let updateCardBlueTintOpacity: Double = 0.8
-    static let updateCardGreenTintOpacity: Double = 0.65
+    static let updateCardTintOpacity: Double = 0.3
+    static let updateCardBlueTintOpacity: Double = 0.35
+    static let updateCardGreenTintOpacity: Double = 0.3
     static let updateCardNoneTintOpacity: Double = 0.05
 }
 
