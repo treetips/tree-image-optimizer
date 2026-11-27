@@ -3,6 +3,7 @@
 ## ステータス
 
 - 承認済み (Accepted)
+- ツール更新の確認ダイアログは [ADR 0078](./0078-split-releases-and-unified-update-button.md) で廃止
 
 ## 背景・課題
 

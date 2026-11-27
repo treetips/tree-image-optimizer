@@ -26,6 +26,8 @@ final class UpdateCheckController {
     static let noUpdateCardHideSeconds: Int64 = 10
 
     var isChecking = false
+    /// 起動時の更新確認に失敗したか。失敗時はツールの更新有無とまとめて表示しない。
+    var availabilityCheckFailed = false
     var isInstalling = false
     var isRestarting = false
     var isCleaningStagedUpdate = false
@@ -76,7 +78,10 @@ final class UpdateCheckController {
                 service.cleanupStagedUpdate()
             }.value
             isCleaningStagedUpdate = false
-            guard canCheckForUpdates else { return }
+            guard !isInstalling, !isRestarting, !isReadyToRestart else { return }
+            isChecking = true
+            availabilityCheckFailed = false
+            defer { isChecking = false }
             let current = currentVersion()
             let result = await service.checkForUpdate(
                 url: AppInfo.updateInfoURL,
@@ -85,7 +90,11 @@ final class UpdateCheckController {
             )
             // 確認中にインストールが始まった場合は、古い確認結果で進捗・完了カードを上書きしない。
             guard !isInstalling, !isRestarting, !isReadyToRestart else { return }
-            setCard(Self.resolveCard(for: result))
+            if case .failed = result {
+                availabilityCheckFailed = true
+            } else if let card = Self.resolveManualCard(for: result) {
+                setCard(card)
+            }
         }
     }
 
@@ -159,11 +168,14 @@ final class UpdateCheckController {
             }
             switch result {
             case .latest:
+                availabilityCheckFailed = false
                 message = L10n.string("a.latest", language: lang)
                 latestDialog = true
             case .available(let info):
+                availabilityCheckFailed = false
                 message = String(format: L10n.string("a.availableMsg", language: lang), info.version)
             case .failed(let reason):
+                availabilityCheckFailed = true
                 message = "\(L10n.string("a.checkFailed", language: lang)): \(reason)"
                 errorDialog = reason
             }

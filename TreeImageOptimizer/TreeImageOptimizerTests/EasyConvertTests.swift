@@ -83,6 +83,10 @@ struct EasyConvertTests {
         viewModel.outputFolderPath = NSTemporaryDirectory()
         #expect(viewModel.outputFolderHasError == false)
         #expect(viewModel.canRun == true)
+        viewModel.toolsReady = false
+        #expect(viewModel.canRun == false)
+        viewModel.toolsReady = true
+        #expect(viewModel.canRun == true)
     }
 
     @Test("Real-CUGANモデルのプルダウン選択をsettings.jsonへ保存する")

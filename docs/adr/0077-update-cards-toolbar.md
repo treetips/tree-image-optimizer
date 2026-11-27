@@ -2,7 +2,7 @@
 
 ## ステータス
 
-- 承認済み (Accepted)
+- 代替済み (Superseded) — [ADR 0078](./0078-split-releases-and-unified-update-button.md) で更新ボタンを1つに統合
 
 ## 背景・課題
 

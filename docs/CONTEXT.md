@@ -112,15 +112,14 @@ UseCase / Repository 層は設けず、オーケストレーションは Service
 | AV1 圧縮               | `avifenc`               | `tools/libavif/bin/macos/`                             |
 | WebP 圧縮              | `cwebp`                 | `tools/libwebp/bin/macos/`                             |
 
-- アプリ本体の配布ZIPは tools を同梱しません（ADR 0064）。tools はツール単位のZIPと
-  `tools-info.json` として GitHub Releases で別配布し、起動時の差分判定で更新します。
+- アプリ本体の配布ZIPは tools を同梱しません。tools はツール単位のZIPと
+  `tools-info.json` を事前リリースの `tools-latest` で別配布し、起動時の差分判定で更新します（ADR 0078）。
 - 初回起動時はツール準備処理が存在チェックを行い、揃っていなければ修復します。完了まで
   操作はブロックされます。
-- 修復は**開発用ローカルの `tools/` コピーを優先**し、無ければネットワーク取得します。
-  取得元があるのは `libwebp`（Google Storage）と `Real-CUGAN`（GitHub Releases）のみです。
-- 起動時に `tools-info.json` を取得し、`tools/.installed.json` とバージョンが異なるツールだけを
-  ヘッダー右端の `ツール更新が有ります` カードで通知します。更新処理はダウンロード・
-  SHA-256検証・展開・配置まで行います。
+- 修復は**開発用ローカルの `tools/` コピーを優先**し、使えない場合は `tools-latest` から
+  不足ツールをSHA-256検証付きで取得します。
+- ツール準備の完了後に `tools-info.json` を取得し、`tools/.installed.json` とバージョンが
+  異なるツールだけをヘッダー右端の統合更新ボタンで通知します。
 - libjxl は依存 dylib ごと `@loader_path` で解決する形で同梱します（ADR 0017、ADR 0056）。
 - Real-CUGAN は必須ツールです。実行前に `.param` と `.bin` のペアを確認するのは、
   欠けていてもバイナリが終了コード0で黒画像を出すためです。
@@ -145,15 +144,14 @@ UseCase / Repository 層は設けず、オーケストレーションは Service
 
 ## アップデート
 
-- **アプリ本体**は GitHub Releases の `update-info.json` を比較し、ZIPを
-  ダウンロード・SHA-256検証・展開して再起動用にステージングします。起動時はダイアログなしで
-  確認し、About画面とメニューバーから手動確認もできます。更新ありは青いカードの `ダウンロード`
-  ボタンから開始し、進捗も青いカードに表示します。ステージング後は緑の `アプリ再起動する` ボタンから
-  `/Applications` への配置と再起動を行います（ADR 0076）。
-- **ツール**は `tools-info.json` と `tools/.installed.json` の差分だけをツール単位ZIPで
-  更新します。アプリ本体の更新とは独立し、本体ZIPに tools を帯同しません（ADR 0064）。
-- どちらもヘッダー右端の更新カードで通知し、失敗時は赤いカードから再実行できます
-  （ADR 0050、ADR 0051）。
+- **アプリ本体**は GitHub Releases の「Latest」にある `update-info.json` を比較し、ZIPを
+  ダウンロード・SHA-256検証・展開して再起動用にステージングします。ステージング後は緑の
+  `アプリ再起動する` ボタンから配置と再起動を行います（ADR 0076）。
+- **ツール**は `tools-latest/tools-info.json` と `tools/.installed.json` の差分だけを
+  ツール単位ZIPで更新します。アプリ本体のReleaseとは別に配布し、ツールだけの更新では
+  再起動しません（ADR 0078）。
+- ヘッダー右端の更新ボタンは1個に統合します。両方に更新がある場合はツール→アプリの順に
+  実行し、失敗時は赤いカードから未完了の更新を再実行できます（ADR 0078）。
 
 ## 対応フォーマット
 

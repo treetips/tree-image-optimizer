@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 env:
   REPO_URL: https://github.com/treetips/tree-image-optimizer
 
@@ -25,6 +29,15 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      - name: Require main branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::Release は main ブランチからのみ実行できます。"
+            exit 1
+          fi
+
       # ------------------------------------------------------------
       # Checkout
       # ------------------------------------------------------------
@@ -32,24 +45,14 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          lfs: true
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      # tools は Git LFS 管理のため、実体を取得する。
-      - name: Pull Git LFS objects
-        run: |
-          set -euo pipefail
-          git lfs install --local
-          git lfs pull
-          echo "tools size after LFS pull:"
-          du -sh tools 2>/dev/null || true
 
       # ------------------------------------------------------------
       # Bump version in Info.plist
       # セマンティックバージョンは「最新のリリースタグ」＋実行時の bump
       # 指定（major/minor/patch）から算出する。
       # ビルド番号は「最新のリリースの update-info.json の build」＋1
-      # から算出する（初回などで取得できない場合のみ Info.plist＋1）。
+      # から算出する（Releaseが存在しない初回だけ Info.plist＋1）。
       # ローカルの手動更新は不要。Info.plist だけを書き換え、
       # main への push / PR 作成は行わない。
       # アプリが表示・比較するバージョンは静的な Info.plist の
@@ -60,11 +63,16 @@ jobs:
       # ------------------------------------------------------------
       - name: Bump version in Info.plist
         id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           PLIST="TreeImageOptimizer/TreeImageOptimizer/Info.plist"
-          LATEST_TAG="$(git tag -l 'v*' | sort -V | tail -n1 || true)"
+          # Draft タグは次回計算に含めず、公開済みの通常Releaseだけを基準にする。
+          LATEST_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --paginate \
+            --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name | select(startswith("v"))' \
+            | sort -V | tail -n1)"
           if [[ -n "$LATEST_TAG" ]]; then
             CURRENT="${LATEST_TAG#v}"
           else
@@ -77,9 +85,11 @@ jobs:
             patch) PATCH=$((PATCH + 1)) ;;
           esac
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          PREV_BUILD="$(curl -sL "${{ env.REPO_URL }}/releases/latest/download/update-info.json" \
-            | python3 -c 'import json,sys; print(json.load(sys.stdin).get("build", 0))' 2>/dev/null || echo 0)"
-          if [[ "$PREV_BUILD" =~ ^[0-9]+$ ]] && [[ "$PREV_BUILD" -gt 0 ]]; then
+          if [[ -n "$LATEST_TAG" ]]; then
+            # Why not 取得失敗時に Info.plist へ戻すか: 既存Releaseがある場合だけ
+            # フォールバックすると、通信障害でビルド番号が非単調になるため。
+            PREV_BUILD="$(curl -fsSL --retry 3 "${{ env.REPO_URL }}/releases/latest/download/update-info.json" \
+              | python3 -c 'import json,sys; value=json.load(sys.stdin).get("build"); assert type(value) is int and value > 0; print(value)')"
             NEW_BUILD=$((PREV_BUILD + 1))
           else
             REPO_BUILD="$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$PLIST")"
@@ -100,23 +110,96 @@ jobs:
           echo "Build number:     $NEW_BUILD"
           echo "Tag name:         $TAG_NAME"
 
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "build_number=$NEW_BUILD" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$NEW_VERSION"
+            echo "build_number=$NEW_BUILD"
+            echo "tag=$TAG_NAME"
+          } >> "$GITHUB_OUTPUT"
 
       # ------------------------------------------------------------
       # Check existing tag
       # ------------------------------------------------------------
-      - name: Check if tag already exists
+      - name: Check existing tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           TAG="${{ steps.version.outputs.tag }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $TAG already exists in repository."
-            echo "::error::Please choose another bump type before running release workflow."
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            TAG_COMMIT="$(git rev-list -n1 "$TAG")"
+            if [[ "$TAG_COMMIT" != "$GITHUB_SHA" ]]; then
+              echo "::error::Tag $TAG は今回の main コミットではありません。"
+              exit 1
+            fi
+            if RELEASE_STATE="$(gh release view "$TAG" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
+              if [[ "$RELEASE_STATE" != true ]]; then
+                echo "::error::Tag $TAG の通常Releaseは既に公開されています。"
+                exit 1
+              fi
+              echo "未公開Draft $TAG を再開します。"
+            fi
+          elif gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release $TAG は存在しますがタグが取得できません。"
             exit 1
           fi
+
+      # ツール配布が無いままアプリを公開すると初回起動できないため、先に Release Tools を実行する。
+      - name: Verify tools release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/tools-latest" > tools-release.json
+          curl -fsSL --retry 3 --connect-timeout 10 \
+            "$REPO_URL/releases/download/tools-latest/tools-info.json" -o tools-info.json
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import re
+          from urllib.parse import unquote, urlparse
+
+          repository = os.environ["GITHUB_REPOSITORY"]
+          release = json.loads(pathlib.Path("tools-release.json").read_text(encoding="utf-8"))
+          manifest = json.loads(pathlib.Path("tools-info.json").read_text(encoding="utf-8"))
+          if release.get("draft") is not False or release.get("prerelease") is not True:
+              raise SystemExit("tools-latest は公開済みの事前リリースである必要があります")
+          if type(manifest.get("schemaVersion")) is not int or manifest["schemaVersion"] != 1:
+              raise SystemExit("tools-info.json の schemaVersion が不正です")
+          expected = {"upscal", "jpegoptim", "pngoptim", "libjxl", "libavif", "libwebp", "realcugan"}
+          entries = manifest.get("tools")
+          if not isinstance(entries, list):
+              raise SystemExit("tools-info.json の tools が不正です")
+          assets = {asset.get("name") for asset in release.get("assets", []) if isinstance(asset, dict)}
+          seen = set()
+          referenced = set()
+          prefix = f"/{repository}/releases/download/tools-latest/"
+          for entry in entries:
+              if not isinstance(entry, dict):
+                  raise SystemExit("tools-info.json の entry が不正です")
+              name, version = entry.get("name"), entry.get("version")
+              if name not in expected or name in seen:
+                  raise SystemExit(f"tools-info.json のツール名が不正です: {name}")
+              if entry.get("required") is not True:
+                  raise SystemExit(f"{name} は必須ツールである必要があります")
+              checksum = entry.get("sha256")
+              if not isinstance(checksum, str) or re.fullmatch(r"[0-9a-fA-F]{64}", checksum) is None:
+                  raise SystemExit(f"{name} の SHA-256 が不正です")
+              parsed = urlparse(entry.get("url", ""))
+              filename = f"tools-{name}-{version}.zip"
+              if parsed.scheme != "https" or parsed.netloc != "github.com" or not parsed.path.startswith(prefix):
+                  raise SystemExit(f"{name} の配布URLが不正です")
+              if unquote(parsed.path.rsplit("/", 1)[-1]) != filename:
+                  raise SystemExit(f"{name} の配布ファイル名が不正です")
+              seen.add(name)
+              referenced.add(filename)
+          if seen != expected:
+              raise SystemExit("tools-info.json の必須7ツールが不足しています")
+          if not {"tools-info.json", "SHA256SUMS.txt"} <= assets or not referenced <= assets:
+              raise SystemExit("tools-latest に必須assetが不足しています")
+          PY
 
       # ------------------------------------------------------------
       # Select Xcode version
@@ -175,9 +258,7 @@ jobs:
       # ------------------------------------------------------------
       # Package release assets
       # 自前アップデート（UpdateService）が読むのは .app の zip と
-      # update-info.json。加えて、tools をツール単位の ZIP として
-      # 配布し、全ツールのメタデータを tools-info.json にまとめる
-      # （ADR 0064: separate-tools-distribution）。
+      # update-info.json。tools は別の tools-latest Release で配布する。
       # ------------------------------------------------------------
       - name: Package release assets
         id: package
@@ -185,8 +266,7 @@ jobs:
         run: |
           set -euo pipefail
           # Why not AppleDouble（._*）を残すか: macOSの ditto は拡張属性を
-          # `._*` としてアーカイブへ含める。tools ZIP に混入すると展開先の
-          # tools ディレクトリへゴミが残るため、生成を無効化する。
+          # `._*` としてアーカイブへ含めるため、生成を無効化する。
           export COPYFILE_DISABLE=1
           VERSION="${{ steps.version.outputs.version }}"
           BUILD="${{ steps.version.outputs.build_number }}"
@@ -221,84 +301,13 @@ jobs:
           echo "Created: dist-release/update-info.json"
           cat dist-release/update-info.json
 
-          # ----------------------------------------------------------
-          # tools のツール単位 ZIP 生成と tools-info.json の生成。
-          # 各ツールのバージョンは .version ファイルを正本とし、
-          # 無いツール（jpegoptim / pngoptim / libwebp）は AppInfo.swift
-          # の定数から grep で取得する。全ツールを必須（required=true）扱い。
-          # ----------------------------------------------------------
-          APPINFO="TreeImageOptimizer/TreeImageOptimizer/Core/AppInfo.swift"
-
-          # name|version のペアを標準出力する関数。引数はツール名。
-          # ・.version があればそれを採用（1行目・前後空白/CRを除去）
-          # ・無ければ AppInfo.swift の対応定数から取得
-          tool_version() {
-            local name="$1"
-            local vfile="tools/${name}/.version"
-            if [[ -f "$vfile" ]]; then
-              tr -d '\r' < "$vfile" | head -n1 | tr -d '[:space:]'
-              return
-            fi
-            local key
-            case "$name" in
-              jpegoptim) key='jpegVersion' ;;
-              pngoptim)  key='pngVersion' ;;
-              libwebp)   key='webpVersion' ;;
-              *) echo "::error::No version source for tool: $name" >&2; exit 1 ;;
-            esac
-            # Why not マッチ失敗をそのまま落とすか: pipefail では grep の非0が
-            # 代入を失敗させ、直後の `-z` 分岐の説明文が出ず原因が分かりにくい。
-            grep -E "static let ${key} = \"" "$APPINFO" \
-              | sed -E "s/.*\"([^\"]+)\".*/\1/" \
-              | head -n1 || true
-          }
-
-          TOOLS=(upscal jpegoptim pngoptim libjxl libavif libwebp realcugan)
-
-          TOOLS_JSON='{"schemaVersion":1,"tools":['
-          FIRST=1
-          for NAME in "${TOOLS[@]}"; do
-            TOOL_VERSION="$(tool_version "$NAME")"
-            if [[ -z "$TOOL_VERSION" ]]; then
-              echo "::error::Could not determine version for tool: $NAME"
-              exit 1
-            fi
-
-            # Why not ディレクトリ存在だけで済ませるか: Git LFS の実体が
-            # 取得できずポインタや空のまま残ると、壊れた ZIP を配布して
-            # ユーザー側の正常なツールを破壊するため、空でないことも確認する。
-            if [[ ! -d "tools/${NAME}" ]] || [[ -z "$(ls -A "tools/${NAME}")" ]]; then
-              echo "::error::Tool directory is empty or missing: tools/${NAME}"
-              exit 1
-            fi
-
-            TOOL_ZIP_NAME="tools-${NAME}-${TOOL_VERSION}.zip"
-            # tools/<name> ディレクトリ自体を ZIP のルートとして含める。
-            # --norsrc / --noextattr で AppleDouble（._*）の混入を防ぐ。
-            ditto -c -k --norsrc --noextattr --keepParent "tools/${NAME}" "dist-release/${TOOL_ZIP_NAME}"
-            TOOL_SHA256="$(cd dist-release && shasum -a 256 "${TOOL_ZIP_NAME}" | awk '{print $1}')"
-            # アプリ ZIP の SHA256SUMS.txt へツール ZIP も追記し、検証経路を一本化する。
-            echo "${TOOL_SHA256}  ${TOOL_ZIP_NAME}" >> dist-release/SHA256SUMS.txt
-            TOOL_URL="${{ env.REPO_URL }}/releases/download/v${VERSION}/${TOOL_ZIP_NAME}"
-            echo "Created: dist-release/${TOOL_ZIP_NAME} (sha256=${TOOL_SHA256})"
-
-            [[ "$FIRST" -eq 1 ]] || TOOLS_JSON+=','
-            FIRST=0
-            TOOLS_JSON+="{\"name\":\"${NAME}\",\"version\":\"${TOOL_VERSION}\",\"url\":\"${TOOL_URL}\",\"sha256\":\"${TOOL_SHA256}\",\"required\":true}"
-          done
-          TOOLS_JSON+=']}'
-
-          TOOLS_INFO="dist-release/tools-info.json"
-          printf '%s\n' "$TOOLS_JSON" > "$TOOLS_INFO"
-          echo "Created: $TOOLS_INFO"
-          cat "$TOOLS_INFO"
-
-          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
-          echo "zip_path=dist-release/$ZIP_NAME" >> "$GITHUB_OUTPUT"
-          echo "checksum_path=dist-release/SHA256SUMS.txt" >> "$GITHUB_OUTPUT"
-          echo "update_info_path=dist-release/update-info.json" >> "$GITHUB_OUTPUT"
-          echo "tools_info_path=$TOOLS_INFO" >> "$GITHUB_OUTPUT"
-          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          {
+            echo "zip_name=$ZIP_NAME"
+            echo "zip_path=dist-release/$ZIP_NAME"
+            echo "checksum_path=dist-release/SHA256SUMS.txt"
+            echo "update_info_path=dist-release/update-info.json"
+            echo "sha256=$SHA256"
+          } >> "$GITHUB_OUTPUT"
 
       # ------------------------------------------------------------
       # Create and push Git tag
@@ -308,28 +317,63 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ steps.version.outputs.tag }}"
-          git fetch origin main --tags
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
+          if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            git tag -a "$TAG" -m "Release $TAG" "$GITHUB_SHA"
+            git push origin "$TAG"
+          fi
 
       # ------------------------------------------------------------
-      # Create GitHub Release
+      # Create, verify, and publish GitHub Release
       # ------------------------------------------------------------
       - name: Create GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           TAG="${{ steps.version.outputs.tag }}"
           VERSION="${{ steps.version.outputs.version }}"
+          BUILD="${{ steps.version.outputs.build_number }}"
           TITLE="Tree Image Optimizer v${VERSION}"
+          ZIP_NAME="${{ steps.package.outputs.zip_name }}"
 
-          gh release create "$TAG" \
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            # Why not 通常公開で先に作るか: assetアップロード失敗時に latest を
+            # 壊れたReleaseへ切り替えないため。失敗時はDraftのまま再実行できる。
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "$TITLE" \
+              --generate-notes \
+              --draft
+          fi
+
+          gh release upload "$TAG" \
             "${{ steps.package.outputs.zip_path }}" \
             "${{ steps.package.outputs.checksum_path }}" \
             "${{ steps.package.outputs.update_info_path }}" \
-            "${{ steps.package.outputs.tools_info_path }}" \
-            dist-release/tools-*.zip \
-            --title "$TITLE" \
-            --generate-notes
+            --clobber
+
+          VERIFY_DIR="$RUNNER_TEMP/verify-release"
+          rm -rf "$VERIFY_DIR"
+          mkdir -p "$VERIFY_DIR"
+          gh release download "$TAG" \
+            --pattern "$ZIP_NAME" \
+            --pattern "SHA256SUMS.txt" \
+            --pattern "update-info.json" \
+            --dir "$VERIFY_DIR"
+          (cd "$VERIFY_DIR" && shasum -a 256 -c SHA256SUMS.txt)
+          python3 - "$VERIFY_DIR/update-info.json" "$VERSION" "$BUILD" "$TAG" "$ZIP_NAME" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          path, version, build, tag, zip_name = sys.argv[1:]
+          info = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+          expected_url = f"https://github.com/treetips/tree-image-optimizer/releases/download/{tag}/{zip_name}"
+          if info.get("version") != version or info.get("build") != int(build) or info.get("url") != expected_url:
+              raise SystemExit("公開した update-info.json の内容が一致しません")
+          if not isinstance(info.get("sha256"), str) or len(info["sha256"]) != 64:
+              raise SystemExit("公開した update-info.json の SHA-256 が不正です")
+          PY
+
+          gh release edit "$TAG" --draft=false --prerelease=false --latest

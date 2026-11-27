@@ -1,0 +1,31 @@
+name: Tools Release Check
+
+on:
+  push:
+    paths:
+      - 'tools/*release*.sh'
+      - 'TreeImageOptimizer/TreeImageOptimizer/Core/AppInfo.swift'
+      - 'tools/**/.version'
+      - '.github/workflows/tools-release.yml'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/tools-release-check.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tools-release-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test Tools Release Scripts
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run tools release tests
+        run: bash tools/test-tools-release.sh

@@ -13,7 +13,9 @@ struct ConvertView: View {
     init(jobStore: ConvertJobStore, toolsReady: Bool = true) {
         self.jobStore = jobStore
         self.toolsReady = toolsReady
-        _viewModel = State(initialValue: ConvertViewModel(jobStore: jobStore))
+        let viewModel = ConvertViewModel(jobStore: jobStore)
+        viewModel.toolsReady = toolsReady
+        _viewModel = State(initialValue: viewModel)
     }
 
     private var lang: String { locale.language.languageCode?.identifier ?? "" }
@@ -233,6 +235,7 @@ struct ConvertView: View {
         .onChange(of: toolsReady) { _, ready in
             // Why not: ViewModelの初期化はツール展開の完了前に走るため、
             // 完了後の再読込を欠かすと配置済みでも未配置表示のままになる。
+            viewModel.toolsReady = ready
             if ready { viewModel.reloadTools() }
         }
     }

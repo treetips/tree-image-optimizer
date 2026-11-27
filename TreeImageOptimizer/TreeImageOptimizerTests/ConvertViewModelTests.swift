@@ -153,6 +153,26 @@ struct ConvertViewModelRealCUGANTests {
         #expect(reloaded.batch.realCuganModel == "models-se/up2x-denoise1x")
     }
 
+    @Test("ツール更新中は変換を開始できない")
+    @MainActor
+    func cannotRunWhileToolsAreUpdating() throws {
+        let base = try makeBase()
+        let input = base.appendingPathComponent("input", isDirectory: true)
+        let output = base.appendingPathComponent("output", isDirectory: true)
+        try FileManager.default.createDirectory(at: input, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let viewModel = try makeViewModel(base: base)
+        viewModel.engine = .upscayl
+        viewModel.inputFolderPath = input.path
+        viewModel.outputFolderPath = output.path
+        #expect(viewModel.canRun)
+
+        viewModel.toolsReady = false
+        #expect(!viewModel.canRun)
+        viewModel.toolsReady = true
+        #expect(viewModel.canRun)
+    }
+
     @Test("ツール展開完了後の再読込で利用可否とモデル一覧が反映される")
     @MainActor
     func reloadToolsReflectsInstalledTools() throws {

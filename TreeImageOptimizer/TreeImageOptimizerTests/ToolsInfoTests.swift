@@ -13,6 +13,13 @@ struct ToolsInfoTests {
         return (store, base)
     }
 
+    @Test("ツール配布物はアプリ本体とは別のtools-latestを参照する")
+    func toolsInfoURLUsesDedicatedRelease() {
+        #expect(
+            ToolsInfoStore.toolsInfoURL.absoluteString
+                == "https://github.com/treetips/tree-image-optimizer/releases/download/tools-latest/tools-info.json")
+    }
+
     @Test("tools-info.jsonをデコードできる")
     func decodesToolsInfo() throws {
         let json = Data(
@@ -73,6 +80,65 @@ struct ToolsInfoTests {
         )
         let needed = store.updatesNeeded(info: info, installed: installed)
         #expect(needed.map(\.name) == ["upscal", "realcugan"])
+    }
+
+    @Test("初回復元では実体が無いツールだけを対象にする")
+    func missingToolsChecksBinaries() throws {
+        let (_, base) = try makeStore()
+        let paths = AppPaths(baseURL: base)
+        let existing = paths.toolsURL.appendingPathComponent("upscal/bin/upscayl-bin")
+        try FileManager.default.createDirectory(
+            at: existing.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("binary".utf8).write(to: existing)
+        let model = paths.upscalModelsURL.appendingPathComponent("model.bin")
+        try FileManager.default.createDirectory(
+            at: model.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("model".utf8).write(to: model)
+
+        let info = ToolsInfo(
+            schemaVersion: 1,
+            tools: [
+                ToolMetadata(name: "upscal", version: "v1", url: "u", sha256: "s", required: true),
+                ToolMetadata(name: "libjxl", version: "v1", url: "u", sha256: "s", required: true)
+            ]
+        )
+        #expect(ToolsUpdateService.missingTools(info: info, paths: paths).map(\.name) == ["libjxl"])
+    }
+
+    @Test("upscal のモデルが欠けていればフォルダ単位で再取得する")
+    func missingToolsIncludesMissingUpscalModels() throws {
+        let (_, base) = try makeStore()
+        let paths = AppPaths(baseURL: base)
+        let binary = paths.toolsURL.appendingPathComponent("upscal/bin/upscayl-bin")
+        try FileManager.default.createDirectory(
+            at: binary.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("binary".utf8).write(to: binary)
+        let info = ToolsInfo(
+            schemaVersion: 1,
+            tools: [
+                ToolMetadata(
+                    name: "upscal", version: "v1", url: "u",
+                    sha256: String(repeating: "a", count: 64), required: true)
+            ]
+        )
+        #expect(ToolsUpdateService.missingTools(info: info, paths: paths).map(\.name) == ["upscal"])
+    }
+
+    @Test("空・不正な SHA-256 のツール配布情報を拒否する")
+    func rejectsInvalidChecksum() {
+        let valid = ToolMetadata(
+            name: "upscal", version: "v1", url: "u",
+            sha256: String(repeating: "a", count: 64), required: true)
+        #expect(throws: Never.self) {
+            try ToolsUpdateService.validateChecksum(for: valid)
+        }
+        for checksum in ["", "abc", String(repeating: "g", count: 64)] {
+            var invalid = valid
+            invalid.sha256 = checksum
+            #expect(throws: AppError.self) {
+                try ToolsUpdateService.validateChecksum(for: invalid)
+            }
+        }
     }
 
     @Test("差分が無ければ空配列")

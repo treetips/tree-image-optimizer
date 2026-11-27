@@ -15,10 +15,16 @@ final class ToolBootstrapModel {
     var phase: ToolBootstrapPhase = .checking
 
     private let toolInstaller: ToolInstaller
+    private let toolsUpdateService: ToolsUpdateService
     private var started = false
 
-    init(toolInstaller: ToolInstaller? = nil) {
-        self.toolInstaller = toolInstaller ?? ToolInstaller(paths: AppPaths())
+    init(
+        toolInstaller: ToolInstaller? = nil,
+        toolsUpdateService: ToolsUpdateService? = nil
+    ) {
+        let installer = toolInstaller ?? ToolInstaller(paths: AppPaths())
+        self.toolInstaller = installer
+        self.toolsUpdateService = toolsUpdateService ?? ToolsUpdateService(paths: installer.paths)
     }
 
     var isReady: Bool {
@@ -42,10 +48,24 @@ final class ToolBootstrapModel {
                 phase = .ready
                 return
             }
+            let onProgress: @Sendable (Double, String) -> Void = { [weak self] fraction, name in
+                Task { @MainActor [weak self] in
+                    self?.phase = .installing(fraction, name)
+                }
+            }
             do {
-                try await toolInstaller.ensureInstalled { [weak self] fraction, name in
-                    Task { @MainActor [weak self] in
-                        self?.phase = .installing(fraction, name)
+                do {
+                    try await toolInstaller.ensureInstalled(progress: onProgress)
+                } catch {
+                    // Why not ローカル修復の失敗で終了するか: 配布アプリには
+                    // 開発用ツールが無いため、tools-latest から不足分を取得する必要がある。
+                    AppLogger.shared.info(
+                        "bootstrap: local repair failed, falling back to release: \(error.localizedDescription)")
+                    let info = try await toolsUpdateService.fetchToolsInfo()
+                    _ = try await toolsUpdateService.installMissingTools(
+                        info: info, onProgress: onProgress)
+                    guard toolInstaller.isInstalled() else {
+                        throw AppError.toolMissing("tools release install did not complete")
                     }
                 }
                 AppLogger.shared.info("bootstrap: ready")

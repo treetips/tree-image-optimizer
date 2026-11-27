@@ -21,7 +21,7 @@ struct RootView: View {
     @State private var toolsUpdate: ToolsUpdateController
     @State private var convertJobStore: ConvertJobStore
     @State private var easyConvertJobStore: EasyConvertJobStore
-    @State private var bootstrap = ToolBootstrapModel()
+    @State private var bootstrap: ToolBootstrapModel
     // クロスフェード中に前面の下へ置いておく直前の壁紙。フェード完了後に解放する。
     @State private var outgoingWallpaper: OutgoingWallpaper?
     // 直前に背景画像の切替が起きた時刻。フェードの中断判定に使う。
@@ -32,6 +32,7 @@ struct RootView: View {
         settings: SettingsViewModel = SettingsViewModel(),
         updateCheck: UpdateCheckController = UpdateCheckController(),
         toolsUpdate: ToolsUpdateController = ToolsUpdateController(),
+        bootstrap: ToolBootstrapModel = ToolBootstrapModel(),
         convertJobStore: ConvertJobStore = ConvertJobStore(),
         easyConvertJobStore: EasyConvertJobStore = EasyConvertJobStore()
     ) {
@@ -39,6 +40,7 @@ struct RootView: View {
         _settings = State(initialValue: settings)
         _updateCheck = State(initialValue: updateCheck)
         _toolsUpdate = State(initialValue: toolsUpdate)
+        _bootstrap = State(initialValue: bootstrap)
         _convertJobStore = State(initialValue: convertJobStore)
         _easyConvertJobStore = State(initialValue: easyConvertJobStore)
     }
@@ -107,7 +109,7 @@ struct RootView: View {
                     case .settings:
                         SettingsView(viewModel: settings)
                     case .about:
-                        AboutView(controller: updateCheck)
+                        AboutView(controller: updateCheck, toolsUpdate: toolsUpdate)
                     }
                 }
                 .toolbar {
@@ -115,6 +117,8 @@ struct RootView: View {
                         UpdateCardsToolbar(
                             updateCheck: updateCheck,
                             toolsUpdate: toolsUpdate,
+                            toolsReady: bootstrap.isReady,
+                            updatesEnabled: !convertJobStore.isRunning && !easyConvertJobStore.isRunning,
                             language: settings.language,
                             fontScale: fontScale,
                             colorScheme: appearanceScheme
@@ -130,10 +134,16 @@ struct RootView: View {
                 logAppearance(context: "appear")
                 // 起動時にサイレント確認し、ヘッダーの更新カードに反映する。
                 updateCheck.refreshAvailability()
-                // ツール更新も起動時に差分を確認し、ヘッダー通知に反映する。
-                toolsUpdate.refreshAvailability()
                 // 初回はtools展開が必要なため、揃うまで操作をブロックする。
                 bootstrap.start()
+                // 共有Modelが別ウィンドウですでに準備を済ませている場合も確認する。
+                if bootstrap.isReady { toolsUpdate.refreshAvailability() }
+            }
+            .onChange(of: bootstrap.isReady) { _, isReady in
+                // 不足準備と日常の更新確認が同時に動かないよう、準備完了後に確認する。
+                if isReady {
+                    toolsUpdate.refreshAvailability()
+                }
             }
             .disabled(!bootstrap.isReady)
             if !bootstrap.isReady {
@@ -201,34 +211,6 @@ struct RootView: View {
         } message: {
             Text(updateCheck.restartErrorDialog ?? "")
                 .font(AppTheme.font(.body, scale: fontScale))
-        }
-        // ツール更新の確認ダイアログ。クリックで表示し、更新対象ツールを提示する。
-        .alert(
-            Text(L10n.string("a.toolsConfirmInstall", language: settings.language))
-                .font(AppTheme.font(.headline, scale: fontScale)),
-            isPresented: Binding(
-                get: { toolsUpdate.availableInfo != nil },
-                set: { if !$0 { toolsUpdate.dismissInstallDialog() } }
-            )
-        ) {
-            Button(role: .cancel) {
-            } label: {
-                Text(L10n.string("a.cancel", language: settings.language))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            }
-            if let info = toolsUpdate.availableInfo {
-                Button {
-                    toolsUpdate.install(info)
-                } label: {
-                    Text(L10n.string("a.install", language: settings.language))
-                        .font(AppTheme.font(.body, scale: fontScale))
-                }
-            }
-        } message: {
-            if toolsUpdate.availableInfo != nil {
-                Text(toolsUpdateMessage(language: settings.language))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            }
         }
         // ツール更新の失敗ダイアログ。失敗理由を提示する。
         .alert(
@@ -331,13 +313,6 @@ struct RootView: View {
         "\(Int(convertJobStore.progressPercent))%"
     }
 
-    /// ツール更新の確認ダイアログ本文。差分のあるツール名だけを列挙して提示する。
-    /// 現状はツール名の一覧のみで、合計サイズは提示しない（サイズ情報はメタデータに無いため）。
-    private func toolsUpdateMessage(language: String) -> String {
-        let names = toolsUpdate.pendingToolNames.joined(separator: ", ")
-        return String(format: L10n.string("a.toolsConfirmInstallMsg", language: language), names)
-    }
-
     /// 実行中のメニューはアイコンをローディング表示に切り替える。
     private func isItemRunning(_ item: SidebarSelection) -> Bool {
         switch item {
@@ -435,7 +410,7 @@ struct RootView: View {
             let aspect = image.size.width / max(image.size.height, 1)
             Image(nsImage: image)
                 .resizable()
-                .aspectRatio(contentMode: .fill)
+                .scaledToFill()
                 .frame(
                     width: geometry.size.height * aspect,
                     height: geometry.size.height
@@ -448,16 +423,19 @@ struct RootView: View {
         }
     }
 
-    private func parseHex(_ hex: String) -> Color? {
-        var h = hex.trimmingCharacters(in: .whitespaces)
-        if h.hasPrefix("#") { h.removeFirst() }
-        if h.count == 6 { h = "FF" + h }
-        guard h.count == 8, let v = UInt64(h, radix: 16) else { return nil }
-        let a = Double((v >> 24) & 0xFF) / 255
-        let r = Double((v >> 16) & 0xFF) / 255
-        let g = Double((v >> 8) & 0xFF) / 255
-        let b = Double(v & 0xFF) / 255
-        return Color(red: r, green: g, blue: b, opacity: a)
+}
+
+extension RootView {
+    fileprivate func parseHex(_ hex: String) -> Color? {
+        var normalizedHex = hex.trimmingCharacters(in: .whitespaces)
+        if normalizedHex.hasPrefix("#") { normalizedHex.removeFirst() }
+        if normalizedHex.count == 6 { normalizedHex = "FF" + normalizedHex }
+        guard normalizedHex.count == 8, let value = UInt64(normalizedHex, radix: 16) else { return nil }
+        let alpha = Double((value >> 24) & 0xFF) / 255
+        let red = Double((value >> 16) & 0xFF) / 255
+        let green = Double((value >> 8) & 0xFF) / 255
+        let blue = Double(value & 0xFF) / 255
+        return Color(red: red, green: green, blue: blue, opacity: alpha)
     }
 }
 
