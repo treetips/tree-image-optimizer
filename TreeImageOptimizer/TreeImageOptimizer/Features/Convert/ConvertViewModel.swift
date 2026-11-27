@@ -54,6 +54,8 @@ final class ConvertViewModel {
     let settings: ConversionSettings
     /// 共有の実行状態。アプリ層で生成し、`ConvertView` 経由で注入する。
     let jobStore: ConvertJobStore
+    /// ツールの準備・更新が完了しているか。置換中の実行を防ぐ。
+    var toolsReady = true
 
     // MARK: - ConversionSettings へのプロキシ
     //
@@ -142,7 +144,8 @@ final class ConvertViewModel {
     /// 実行ボタンの活性条件。ジョブ実行中は非活性になる。
     /// Real-CUGAN選択時はツールが揃っていることも条件にする。
     var canRun: Bool {
-        !jobStore.isRunning
+        toolsReady
+            && !jobStore.isRunning
             && !inputFolderPath.isEmpty
             && !outputFolderPath.isEmpty
             && !inputFolderHasError

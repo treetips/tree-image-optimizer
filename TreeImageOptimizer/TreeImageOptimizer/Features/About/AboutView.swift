@@ -4,13 +4,15 @@ import SwiftUI
 /// アラートは常時表示のRootView側で出すため、ここではメッセージ表示のみ行う。
 struct AboutView: View {
     @Bindable var controller: UpdateCheckController
+    let toolsUpdate: ToolsUpdateController?
 
     @Environment(\.locale) private var locale
     private var lang: String { locale.language.languageCode?.identifier ?? "" }
     private func t(_ key: String) -> String { L10n.string(key, language: lang) }
 
-    init(controller: UpdateCheckController = UpdateCheckController()) {
+    init(controller: UpdateCheckController = UpdateCheckController(), toolsUpdate: ToolsUpdateController? = nil) {
         self.controller = controller
+        self.toolsUpdate = toolsUpdate
     }
 
     /// 確認中・インストール中の状態に応じたボタン文言。
@@ -72,7 +74,7 @@ struct AboutView: View {
                         .padding(.vertical, 4)
                         GlassCTAButton(
                             title: installButtonTitle,
-                            disabled: !controller.canCheckForUpdates
+                            disabled: !controller.canCheckForUpdates || toolsUpdate?.isInstalling == true
                         ) {
                             controller.checkForUpdate(language: lang)
                         }

@@ -24,6 +24,8 @@ final class EasyConvertViewModel {
     let settings: ConversionSettings
     /// 共有の実行状態。アプリ層で生成し、`EasyConvertView` 経由で注入する。
     let jobStore: EasyConvertJobStore
+    /// ツールの準備・更新が完了しているか。置換中の実行を防ぐ。
+    var toolsReady = true
 
     // MARK: - ConversionSettings へのプロキシ
     //
@@ -85,7 +87,8 @@ final class EasyConvertViewModel {
     /// 実行条件。出力フォルダが確定済みで、実行中でないこと。
     /// Real-CUGAN選択時はツールが揃っていることも条件にする。
     var canRun: Bool {
-        !jobStore.isRunning
+        toolsReady
+            && !jobStore.isRunning
             && !outputFolderPath.isEmpty
             && !outputFolderHasError
             && (settings.engine != .realCUGAN || settings.realCuganAvailable)

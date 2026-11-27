@@ -1892,6 +1892,57 @@
         }
       }
     },
+    "nav.appAndToolsUpdateAvailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App and tool updates available"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリとツールの更新があります"
+          }
+        }
+      }
+    },
+    "nav.appUpdateAvailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App update available"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリの更新があります"
+          }
+        }
+      }
+    },
+    "nav.checkingUpdates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking for updates..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新を確認中..."
+          }
+        }
+      }
+    },
     "nav.convert" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2108,7 +2159,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ツール更新が有ります"
+            "value" : "ツールの更新があります"
           }
         }
       }

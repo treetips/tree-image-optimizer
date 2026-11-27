@@ -93,20 +93,30 @@ struct ToolInstaller: Sendable {
         return candidates
     }
 
-    /// 全バイナリが揃っているか。
+    /// 全ツールの実行に必要なバイナリとモデルが揃っているか。
     func isInstalled() -> Bool {
-        let fm = FileManager.default
-        for relative in Self.requiredRelativePaths {
-            let url = paths.toolsURL.appendingPathComponent(relative, isDirectory: false)
-            if !fm.fileExists(atPath: url.path) { return false }
+        Self.toolBinaryChecks.allSatisfy { Self.isToolInstalled(folder: $0.folder, paths: paths) }
+    }
+
+    /// ツール単位の整合性。upscal はモデルが空の場合だけ false にする。
+    static func isToolInstalled(folder: String, paths: AppPaths) -> Bool {
+        let fileManager = FileManager.default
+        guard let check = toolBinaryChecks.first(where: { $0.folder == folder }),
+            fileManager.fileExists(
+                atPath: paths.toolsURL.appendingPathComponent(check.binary).path)
+        else {
+            return false
         }
-        // upscal/models が空でないことも確認する。
-        guard let enumerator = fm.enumerator(at: paths.upscalModelsURL, includingPropertiesForKeys: nil) else {
+        guard folder == "upscal" else { return true }
+        guard
+            let enumerator = fileManager.enumerator(
+                at: paths.upscalModelsURL, includingPropertiesForKeys: nil)
+        else {
             return false
         }
         for case let url as URL in enumerator {
             var isDir: ObjCBool = false
-            if fm.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue {
+            if fileManager.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue {
                 return true
             }
         }
@@ -155,9 +165,10 @@ struct ToolInstaller: Sendable {
         try fm.createDirectory(at: paths.toolsURL, withIntermediateDirectories: true)
         // 欠損しているフォルダを確定し、中途半端に残ったフォルダは消してから修復する。
         let missingFolders: [String] = Self.toolBinaryChecks.compactMap { tool in
-            let bin = paths.toolsURL.appendingPathComponent(tool.binary, isDirectory: false)
-            guard fm.fileExists(atPath: bin.path) else { return tool.folder }
-            return nil
+            if Self.isToolInstalled(folder: tool.folder, paths: paths) {
+                return nil
+            }
+            return tool.folder
         }
         AppLogger.shared.info("tools repair: missing folders=\(missingFolders.joined(separator: ","))")
         for folder in missingFolders {

@@ -14,7 +14,9 @@ struct EasyConvertView: View {
     init(jobStore: EasyConvertJobStore, toolsReady: Bool = true) {
         self.jobStore = jobStore
         self.toolsReady = toolsReady
-        _viewModel = State(initialValue: EasyConvertViewModel(jobStore: jobStore))
+        let viewModel = EasyConvertViewModel(jobStore: jobStore)
+        viewModel.toolsReady = toolsReady
+        _viewModel = State(initialValue: viewModel)
     }
 
     private var lang: String { locale.language.languageCode?.identifier ?? "" }
@@ -54,7 +56,7 @@ struct EasyConvertView: View {
     /// 入力エリアの有効条件。実行中と出力フォルダの検証エラー時は受け付けない。
     /// 終了すれば `isRunning` が戻り自動的に有効になる。
     private var inputEnabled: Bool {
-        !jobStore.isRunning && !viewModel.outputFolderHasError
+        toolsReady && !jobStore.isRunning && !viewModel.outputFolderHasError
     }
 
     var body: some View {
@@ -214,7 +216,7 @@ struct EasyConvertView: View {
                                             .appFont(.body)
                                             .multilineTextAlignment(.center)
                                             .foregroundStyle(.secondary)
-                                        if !viewModel.canRun {
+                                        if toolsReady, !viewModel.canRun {
                                             Text(t("e.needOutputFolder"))
                                                 .appFont(.body)
                                                 .multilineTextAlignment(.center)
@@ -265,6 +267,7 @@ struct EasyConvertView: View {
         .onChange(of: toolsReady) { _, ready in
             // Why not: ViewModelの初期化はツール展開の完了前に走るため、
             // 完了後の再読込を欠かすと配置済みでも未配置表示のままになる。
+            viewModel.toolsReady = ready
             if ready { viewModel.reloadTools() }
         }
     }

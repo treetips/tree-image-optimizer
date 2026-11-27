@@ -1,59 +1,87 @@
 import AppKit
 import SwiftUI
 
-/// ヘッダー右端に表示するアプリ本体・ツール更新のコンパクトな更新カード。
+/// ヘッダー右端に表示するアプリ本体・ツール更新の統合カード。
 struct UpdateCardsToolbar: View {
     let updateCheck: UpdateCheckController
     let toolsUpdate: ToolsUpdateController
+    let toolsReady: Bool
+    let updatesEnabled: Bool
     let language: String
     let fontScale: CGFloat
     let colorScheme: ColorScheme
 
+    private var state: UpdateToolbarState {
+        let resolved = UpdateToolbarResolver.resolve(
+            appCard: updateCheck.card,
+            toolsCard: toolsUpdate.card,
+            isChecking: updateCheck.isChecking || updateCheck.isCleaningStagedUpdate || toolsUpdate.isChecking,
+            toolsCheckCompleted: toolsUpdate.hasCheckedAvailability,
+            checkFailures: (
+                app: updateCheck.availabilityCheckFailed,
+                tools: toolsUpdate.availabilityCheckFailed
+            )
+        )
+        // ツール準備が失敗した場合は、確認中スピナーを出さずオーバーレイへ任せる。
+        if case .checking = resolved, !toolsReady { return .hidden }
+        return resolved
+    }
+
     @ViewBuilder
     var body: some View {
-        if updateCheck.card != nil || toolsUpdate.card != nil {
-            HStack(spacing: 8) {
-                if let card = updateCheck.card {
-                    appUpdateCard(card)
-                }
-                if let card = toolsUpdate.card {
-                    toolsUpdateCard(card)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func appUpdateCard(_ card: UpdateCard) -> some View {
-        switch card {
-        case .available(let info):
-            availableAppCard(info)
-        case .installing(let progress):
+        switch state {
+        case .hidden:
+            EmptyView()
+        case .checking:
+            checkingCard()
+        case .available(let availability):
+            availableCard(availability)
+        case .appInstalling(let progress):
             installingAppCard(progress)
+        case .toolsInstalling(let progress):
+            installingToolsCard(progress)
         case .readyToRestart:
             restartReadyAppCard()
-        case .installFailed:
-            failedAppCard()
+        case .appInstallFailed, .toolsInstallFailed:
+            failedCard()
         case .noUpdate:
-            noUpdateAppCard()
+            noUpdateCard()
         }
     }
+}
 
-    private func availableAppCard(_ info: UpdateInfo) -> some View {
+extension UpdateCardsToolbar {
+    private func availableCard(_ availability: UpdateAvailability) -> some View {
         toolbarPill(
             tint: .blue,
             opacity: GlassStyle.updateCardBlueTintOpacity,
             textColor: statusTextColor
         ) {
+            actionButton(
+                title: t(availability.labelKey),
+                systemImage: availability.systemImage,
+                tint: statusTextColor,
+                enabled: updatesEnabled,
+                resetCursorOnClick: true,
+                showsBackground: false
+            ) {
+                start(UpdateToolbarResolver.plan(for: availability))
+            }
+        }
+    }
+
+    private func checkingCard() -> some View {
+        toolbarPill(
+            tint: .accentColor,
+            opacity: GlassStyle.updateCardNoneTintOpacity,
+            textColor: .primary,
+            combineAccessibility: true
+        ) {
             HStack(spacing: 6) {
-                statusLabel(t("nav.updateAvailable"), icon: "arrow.down.circle.fill")
-                actionButton(
-                    title: t("nav.download"),
-                    tint: statusTextColor,
-                    resetCursorOnClick: true
-                ) {
-                    updateCheck.startDownload(info, language: language)
-                }
+                statusLabel(t("nav.checkingUpdates"), icon: "arrow.triangle.2.circlepath")
+                ProgressView()
+                    .tint(.primary)
+                    .frame(width: 14, height: 14)
             }
         }
     }
@@ -68,6 +96,22 @@ struct UpdateCardsToolbar: View {
             HStack(spacing: 6) {
                 statusLabel(installingDetail(progress), icon: "arrow.down.circle")
                 progressIndicator(progress.fraction, tint: statusTextColor)
+            }
+        }
+    }
+
+    private func installingToolsCard(_ progress: ToolsUpdateProgress) -> some View {
+        toolbarPill(
+            tint: .accentColor,
+            opacity: GlassStyle.updateCardTintOpacity,
+            textColor: accentTextColor,
+            combineAccessibility: true
+        ) {
+            HStack(spacing: 6) {
+                statusLabel(
+                    "\(t("nav.installing")) \(toolsInstallingDetail(progress))",
+                    icon: "shippingbox.and.arrow.backward")
+                progressIndicator(progress.fraction, tint: accentTextColor)
             }
         }
     }
@@ -91,7 +135,7 @@ struct UpdateCardsToolbar: View {
         }
     }
 
-    private func failedAppCard() -> some View {
+    private func failedCard() -> some View {
         toolbarPill(
             tint: .red,
             opacity: GlassStyle.updateCardTintOpacity,
@@ -99,14 +143,18 @@ struct UpdateCardsToolbar: View {
         ) {
             HStack(spacing: 6) {
                 statusLabel(t("nav.installFailed"), icon: "exclamationmark.triangle.fill")
-                actionButton(title: t("nav.retry"), tint: accentTextColor) {
-                    updateCheck.retryInstall(language: language)
+                actionButton(title: t("nav.retry"), tint: accentTextColor, enabled: updatesEnabled) {
+                    start(
+                        UpdateToolbarResolver.retryPlan(
+                            appCard: updateCheck.card,
+                            toolsCard: toolsUpdate.card
+                        ))
                 }
             }
         }
     }
 
-    private func noUpdateAppCard() -> some View {
+    private func noUpdateCard() -> some View {
         toolbarPill(
             tint: .accentColor,
             opacity: GlassStyle.updateCardNoneTintOpacity,
@@ -122,48 +170,28 @@ struct UpdateCardsToolbar: View {
         }
     }
 
-    @ViewBuilder
-    private func toolsUpdateCard(_ card: ToolsUpdateCard) -> some View {
-        switch card {
-        case .available:
-            toolbarPill(
-                tint: .accentColor,
-                opacity: GlassStyle.updateCardTintOpacity,
-                textColor: accentTextColor
-            ) {
-                HStack(spacing: 6) {
-                    statusLabel(
-                        t("nav.toolsUpdateAvailable"), icon: "shippingbox.and.arrow.backward.fill")
-                    actionButton(title: t("a.install"), tint: accentTextColor) {
-                        toolsUpdate.showInstallDialog()
-                    }
-                }
-            }
-        case .installing(let progress):
-            toolbarPill(
-                tint: .accentColor,
-                opacity: GlassStyle.updateCardTintOpacity,
-                textColor: accentTextColor,
-                combineAccessibility: true
-            ) {
-                HStack(spacing: 6) {
-                    statusLabel(
-                        "\(t("nav.installing")) \(toolsInstallingDetail(progress))",
-                        icon: "shippingbox.and.arrow.backward")
-                    progressIndicator(progress.fraction, tint: accentTextColor)
-                }
-            }
-        case .installFailed:
-            toolbarPill(
-                tint: .red,
-                opacity: GlassStyle.updateCardTintOpacity,
-                textColor: accentTextColor
-            ) {
-                HStack(spacing: 6) {
-                    statusLabel(t("nav.installFailed"), icon: "exclamationmark.triangle.fill")
-                    actionButton(title: t("nav.retry"), tint: accentTextColor) {
-                        toolsUpdate.retryInstall()
-                    }
+    /// 更新計画を実行する。両方ある場合はツールの成功を待ってアプリを開始する。
+    private func start(_ plan: UpdateInstallPlan) {
+        guard updatesEnabled else { return }
+        switch plan {
+        case .none:
+            return
+        case .app(let info):
+            updateCheck.startDownload(info, language: language)
+        case .tools(let info):
+            toolsUpdate.install(info)
+        case .toolsThenApp(let expectedAppInfo, let toolsInfo):
+            toolsUpdate.install(toolsInfo) { success in
+                guard success else { return }
+                // Why not 開始時点の情報をそのまま使うか: ツール更新中に手動確認が
+                // 完了している場合、新しい更新を優先し、最新へ戻った場合は開始しない。
+                switch updateCheck.card {
+                case .available(let currentInfo):
+                    updateCheck.startDownload(currentInfo, language: language)
+                case .installFailed:
+                    updateCheck.startDownload(expectedAppInfo, language: language)
+                default:
+                    return
                 }
             }
         }
@@ -203,6 +231,7 @@ struct UpdateCardsToolbar: View {
         tint: Color,
         enabled: Bool = true,
         resetCursorOnClick: Bool = false,
+        showsBackground: Bool = true,
         action: @escaping () -> Void
     ) -> some View {
         UpdateCardActionButton(
@@ -212,6 +241,7 @@ struct UpdateCardsToolbar: View {
             enabled: enabled,
             fontScale: fontScale,
             resetCursorOnClick: resetCursorOnClick,
+            showsBackground: showsBackground,
             action: action
         )
     }
@@ -250,8 +280,18 @@ struct UpdateCardsToolbar: View {
     }
 
     private func toolsInstallingDetail(_ progress: ToolsUpdateProgress) -> String {
+        if !progress.label.isEmpty {
+            guard let fraction = progress.fraction else {
+                return progress.label
+            }
+            let percent = String(
+                format: t("nav.downloadingPercent"),
+                Int((fraction * 100).rounded(.down))
+            )
+            return "\(progress.label) \(percent)"
+        }
         guard let fraction = progress.fraction else {
-            return progress.label.isEmpty ? t("nav.installing") : progress.label
+            return t("nav.installing")
         }
         return String(
             format: t("nav.downloadingPercent"),
@@ -281,6 +321,7 @@ private struct UpdateCardActionButton: View {
     let enabled: Bool
     let fontScale: CGFloat
     let resetCursorOnClick: Bool
+    let showsBackground: Bool
     let action: () -> Void
     @State private var isHovering = false
 
@@ -298,7 +339,7 @@ private struct UpdateCardActionButton: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(tint.opacity(0.16), in: Capsule())
+                .background(showsBackground ? tint.opacity(0.16) : Color.clear, in: Capsule())
         }
         .buttonStyle(.plain)
         .disabled(!enabled)

@@ -3,6 +3,7 @@
 ## ステータス
 
 - 承認済み (Accepted)
+- 配布先Releaseとツール更新UIは [ADR 0078](../0078-split-releases-and-unified-update-button.md) で置換
 
 ## 背景・課題
 

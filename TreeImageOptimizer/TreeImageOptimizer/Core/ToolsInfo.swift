@@ -27,8 +27,8 @@ struct ToolMetadata: Codable, Equatable, Sendable {
     var version: String
     /// ツール単位 ZIP のダウンロード URL。
     var url: String
-    /// ツール単位 ZIP の期待 SHA-256（小文字 hex）。
-    /// 空文字は「未設定」を意味し、検証をスキップする（ADR 0057 と同じ方針）。
+    /// ツール単位 ZIP の期待 SHA-256（64桁の16進数）。
+    /// 配布メタデータでは空・不正な値を許さず、取得前に検証する。
     var sha256: String
     /// 必須ツールか。`true` なら起動時ブートストラップで欠損を修復し、
     /// `false` なら任意ツールとして扱う。
@@ -65,11 +65,10 @@ struct ToolsInfoStore: Sendable {
         self.paths = paths
     }
 
-    /// `tools-info.json` の取得先 URL。アプリ本体の `update-info.json` と同様に
-    /// GitHub Releases の latest を参照する。`AppInfo.githubURL` から導出して
-    /// 配布元の二重管理を避ける。
+    /// `tools-info.json` の取得先 URL。ツールはアプリ本体とは別の
+    /// `tools-latest` を参照する。`AppInfo.githubURL` から導出して配布元の二重管理を避ける。
     static var toolsInfoURL: URL {
-        AppInfo.githubURL.appending(path: "releases/latest/download/tools-info.json")
+        AppInfo.githubURL.appending(path: "releases/download/tools-latest/tools-info.json")
     }
 
     /// 同梱ツールのバージョン。`.installed.json` が無い環境（既存ユーザー）を

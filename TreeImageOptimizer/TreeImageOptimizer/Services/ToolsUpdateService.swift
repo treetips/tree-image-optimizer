@@ -43,6 +43,9 @@ struct ToolsUpdateService: Sendable {
             throw AppError.networkError(
                 "未対応の tools-info.json スキーマです: \(info.schemaVersion)")
         }
+        for tool in info.tools {
+            try Self.validateChecksum(for: tool)
+        }
         AppLogger.shared.info("tools update: fetch info ok tools=\(info.tools.count)")
         return info
     }
@@ -86,8 +89,56 @@ struct ToolsUpdateService: Sendable {
         return updated
     }
 
+    /// 初回起動など、バイナリが欠けているツールだけを配布物から復元する。
+    /// バージョン記録ではなく実体の存在を見るため、`.installed.json` が無い
+    /// クリーンインストールでも全ツールを取得できる。
+    func installMissingTools(
+        info: ToolsInfo,
+        onProgress: @escaping @Sendable (Double, String) -> Void = { _, _ in }
+    ) async throws -> InstalledTools {
+        let targets = Self.missingTools(info: info, paths: paths)
+        AppLogger.shared.info(
+            "tools bootstrap: missing targets=\(targets.map(\.name).joined(separator: ","))")
+        guard !targets.isEmpty else {
+            onProgress(1.0, "")
+            return store.loadInstalled()
+        }
+
+        let total = Double(targets.count)
+        var updated = store.loadInstalled()
+        for (index, tool) in targets.enumerated() {
+            onProgress(Double(index) / total, tool.name)
+            try await install(tool: tool)
+            updated.tools[tool.name] = tool.version
+            try store.saveInstalled(updated)
+            onProgress(Double(index + 1) / total, tool.name)
+        }
+        return updated
+    }
+
+    /// 配布メタデータのチェックサムが SHA-256 として有効か確認する。
+    static func validateChecksum(for tool: ToolMetadata) throws {
+        guard
+            tool.sha256.range(
+                of: "^[0-9a-fA-F]{64}$", options: .regularExpression
+            ) != nil
+        else {
+            throw AppError.networkError(
+                "tools-info.json の \(tool.name) に有効な SHA-256 がありません")
+        }
+    }
+
+    /// 配布メタデータのうち、対応バイナリと必須モデルが実体として存在しないツールを返す。
+    static func missingTools(info: ToolsInfo, paths: AppPaths) -> [ToolMetadata] {
+        info.tools.filter { tool in
+            ToolInstaller.toolBinaryChecks.contains(where: { $0.folder == tool.name })
+                && !ToolInstaller.isToolInstalled(folder: tool.name, paths: paths)
+        }
+    }
+
     /// 単一ツールの ZIP を download → 検証 → 展開 → 配置する。
     private func install(tool: ToolMetadata) async throws {
+        try Self.validateChecksum(for: tool)
         // Why not リモート由来の name をそのまま配置先へ使うか: パストラバーサルや
         // 想定外フォルダへの書き込みを防ぐため、既知のツール名だけを許可する。
         let allowedNames = Set(ToolInstaller.toolBinaryChecks.map(\.folder))
@@ -106,7 +157,7 @@ struct ToolsUpdateService: Sendable {
         try installer.verifyArchive(data: data, expected: tool.sha256, name: tool.name)
 
         // ZIP は `<name>/`（ツール名のディレクトリ）をルートに含むため、
-        // 展開後のルート一つだけを配置する（release.yml の ditto --keepParent と対応）。
+        // 展開後のルート一つだけを配置する（tools/build-tools-release.sh と対応）。
         let tmpDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(
                 "tree-image-optimizer-tools-\(UUID().uuidString)", isDirectory: true)
@@ -124,11 +175,8 @@ struct ToolsUpdateService: Sendable {
         try place(extractedRoot: root, name: tool.name, installer: installer)
         // Why not 配置後の検証を省くか: バイナリを含まない不正な ZIP だと
         // 記録だけが新バージョンになり、次回起動の差分判定で更新が検出されない。
-        guard let check = ToolInstaller.toolBinaryChecks.first(where: { $0.folder == tool.name }),
-            FileManager.default.fileExists(
-                atPath: paths.toolsURL.appendingPathComponent(check.binary).path)
-        else {
-            throw AppError.toolMissing("\(tool.name) binary not found after install")
+        guard ToolInstaller.isToolInstalled(folder: tool.name, paths: paths) else {
+            throw AppError.toolMissing("\(tool.name) required payload not found after install")
         }
         AppLogger.shared.info("tools update: install ok name=\(tool.name) version=\(tool.version)")
     }

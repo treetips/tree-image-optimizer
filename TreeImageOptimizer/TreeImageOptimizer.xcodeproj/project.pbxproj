@@ -91,7 +91,9 @@
 		E3000000000000000000002E /* ToolsUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002E /* ToolsUpdateService.swift */; };
 		E3000000000000000000002F /* ToolsUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000002F /* ToolsUpdateController.swift */; };
 		E60000000000000000000001 /* UpdateCardsToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000001 /* UpdateCardsToolbar.swift */; };
+		E60000000000000000000002 /* UpdateToolbarState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* UpdateToolbarState.swift */; };
 		E4000000000000000000001A /* ToolsInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4000000000000000000001A /* ToolsInfoTests.swift */; };
+		E4000000000000000000001C /* UpdateToolbarStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4000000000000000000001C /* UpdateToolbarStateTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -99,6 +101,8 @@
 		F10000000000000000000001 /* TreeImageOptimizerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeImageOptimizerApp.swift; sourceTree = "<group>"; };
 		F10000000000000000000002 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		F60000000000000000000001 /* UpdateCardsToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCardsToolbar.swift; sourceTree = "<group>"; };
+		F60000000000000000000002 /* UpdateToolbarState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateToolbarState.swift; sourceTree = "<group>"; };
+		F4000000000000000000001C /* UpdateToolbarStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateToolbarStateTests.swift; sourceTree = "<group>"; };
 		F10000000000000000000010 /* ToolBootstrapModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolBootstrapModel.swift; sourceTree = "<group>"; };
 		F10000000000000000000011 /* SidebarNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarNavigation.swift; sourceTree = "<group>"; };
 		F10000000000000000000012 /* EasyConvertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyConvertView.swift; sourceTree = "<group>"; };
@@ -249,6 +253,7 @@
 				F4000000000000000000001B /* ComparisonWindowControllerTests.swift */,
 				F40000000000000000000018 /* ConversionPlannerTests.swift */,
 				F4000000000000000000001A /* ToolsInfoTests.swift */,
+				F4000000000000000000001C /* UpdateToolbarStateTests.swift */,
 			);
 			path = TreeImageOptimizerTests;
 			sourceTree = "<group>";
@@ -374,6 +379,7 @@
 			isa = PBXGroup;
 			children = (
 				F60000000000000000000001 /* UpdateCardsToolbar.swift */,
+				F60000000000000000000002 /* UpdateToolbarState.swift */,
 			);
 			path = Updates;
 			sourceTree = "<group>";
@@ -503,6 +509,7 @@
 				E4000000000000000000001B /* ComparisonWindowControllerTests.swift in Sources */,
 				E40000000000000000000018 /* ConversionPlannerTests.swift in Sources */,
 				E4000000000000000000001A /* ToolsInfoTests.swift in Sources */,
+				E4000000000000000000001C /* UpdateToolbarStateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -513,6 +520,7 @@
 				E10000000000000000000001 /* TreeImageOptimizerApp.swift in Sources */,
 				E10000000000000000000002 /* RootView.swift in Sources */,
 				E60000000000000000000001 /* UpdateCardsToolbar.swift in Sources */,
+				E60000000000000000000002 /* UpdateToolbarState.swift in Sources */,
 				E10000000000000000000010 /* ToolBootstrapModel.swift in Sources */,
 				E10000000000000000000011 /* SidebarNavigation.swift in Sources */,
 				E10000000000000000000012 /* EasyConvertView.swift in Sources */,

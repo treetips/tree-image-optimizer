@@ -4,6 +4,8 @@ import SwiftUI
 @main
 struct TreeImageOptimizerApp: App {
     @State private var updateCheck = UpdateCheckController()
+    @State private var toolsUpdate = ToolsUpdateController()
+    @State private var bootstrap = ToolBootstrapModel()
     @State private var settings = SettingsViewModel()
     @State private var navigation = SidebarNavigation()
     @State private var convertJobStore = ConvertJobStore()
@@ -24,6 +26,7 @@ struct TreeImageOptimizerApp: App {
         WindowGroup {
             RootView(
                 navigation: navigation, settings: settings, updateCheck: updateCheck,
+                toolsUpdate: toolsUpdate, bootstrap: bootstrap,
                 convertJobStore: convertJobStore, easyConvertJobStore: easyConvertJobStore
             )
             .frame(minWidth: 800, minHeight: 600)
@@ -35,7 +38,7 @@ struct TreeImageOptimizerApp: App {
                 Button(L10n.string("menu.checkForUpdates", language: settings.language)) {
                     updateCheck.checkForUpdate(language: settings.language)
                 }
-                .disabled(!updateCheck.canCheckForUpdates)
+                .disabled(!updateCheck.canCheckForUpdates || toolsUpdate.isInstalling)
                 Button(L10n.string("menu.settings", language: settings.language)) {
                     navigation.selection = .settings
                 }
