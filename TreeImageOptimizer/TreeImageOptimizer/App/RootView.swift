@@ -95,35 +95,21 @@ struct RootView: View {
                 ZStack {
                     backgroundColor
                     backgroundImage
-                    switch navigation.selection {
-                    case .convert:
-                        // ツール更新中は tools/<name> が一時的に置換されるため、
-                        // 変換を抑止する（toolsReady を false にする）。
-                        ConvertView(
-                            jobStore: convertJobStore,
-                            toolsReady: bootstrap.isReady && !toolsUpdate.isInstalling)
-                    case .easyConvert:
-                        EasyConvertView(
-                            jobStore: easyConvertJobStore,
-                            toolsReady: bootstrap.isReady && !toolsUpdate.isInstalling)
-                    case .settings:
-                        SettingsView(viewModel: settings)
-                    case .about:
-                        AboutView(controller: updateCheck, toolsUpdate: toolsUpdate)
-                    }
+                    detailContent
+                        .padding(.top, 12)
                 }
-                .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        UpdateCardsToolbar(
-                            updateCheck: updateCheck,
-                            toolsUpdate: toolsUpdate,
-                            toolsReady: bootstrap.isReady,
-                            updatesEnabled: !convertJobStore.isRunning && !easyConvertJobStore.isRunning,
-                            language: settings.language,
-                            fontScale: fontScale,
-                            colorScheme: appearanceScheme
-                        )
-                    }
+                .overlay(alignment: .topTrailing) {
+                    UpdateCardsToolbar(
+                        updateCheck: updateCheck,
+                        toolsUpdate: toolsUpdate,
+                        toolsReady: bootstrap.isReady,
+                        updatesEnabled: !convertJobStore.isRunning && !easyConvertJobStore.isRunning,
+                        language: settings.language,
+                        fontScale: fontScale,
+                        colorScheme: appearanceScheme
+                    )
+                    .padding(.top, 4)
+                    .padding(.trailing, 12)
                 }
             }
             .environment(\.locale, settings.effectiveLocale)
@@ -426,6 +412,26 @@ struct RootView: View {
 }
 
 extension RootView {
+    @ViewBuilder
+    private var detailContent: some View {
+        switch navigation.selection {
+        case .convert:
+            // ツール更新中は tools/<name> が一時的に置換されるため、
+            // 変換を抑止する（toolsReady を false にする）。
+            ConvertView(
+                jobStore: convertJobStore,
+                toolsReady: bootstrap.isReady && !toolsUpdate.isInstalling)
+        case .easyConvert:
+            EasyConvertView(
+                jobStore: easyConvertJobStore,
+                toolsReady: bootstrap.isReady && !toolsUpdate.isInstalling)
+        case .settings:
+            SettingsView(viewModel: settings)
+        case .about:
+            AboutView(controller: updateCheck, toolsUpdate: toolsUpdate)
+        }
+    }
+
     fileprivate func parseHex(_ hex: String) -> Color? {
         var normalizedHex = hex.trimmingCharacters(in: .whitespaces)
         if normalizedHex.hasPrefix("#") { normalizedHex.removeFirst() }

@@ -84,6 +84,12 @@ final class ToolsUpdateController {
         }
     }
 
+    /// 通知を閉じる。実行中は進捗を失わないよう無視する。
+    func dismissCard() {
+        guard !isInstalling else { return }
+        card = nil
+    }
+
     /// 差分のあるツールだけを更新する。進捗をカードへ反映し、
     /// 完了でカードを消す。失敗で `.installFailed` へ切り替える。
     /// - Parameter completion: 成否の通知。アプリとツールの順序実行に使う。

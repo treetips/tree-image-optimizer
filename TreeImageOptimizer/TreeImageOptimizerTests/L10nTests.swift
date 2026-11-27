@@ -9,6 +9,7 @@ struct L10nTests {
     func japanese() {
         #expect(L10n.string("nav.convert", language: "ja") == "一括画像変換")
         #expect(L10n.string("menu.checkForUpdates", language: "ja-JP") == "更新を確認")
+        #expect(L10n.string("a.close", language: "ja") == "閉じる")
         #expect(L10n.string("nav.updateAvailable", language: "ja") == "アップデートがあります")
         #expect(L10n.string("nav.appAndToolsUpdateAvailable", language: "ja") == "アプリとツールの更新があります")
         #expect(L10n.string("nav.appUpdateAvailable", language: "ja") == "アプリの更新があります")
@@ -31,6 +32,7 @@ struct L10nTests {
     func english() {
         #expect(L10n.string("nav.convert", language: "en") == "Convert")
         #expect(L10n.string("menu.checkForUpdates", language: "en-US") == "Check for Update")
+        #expect(L10n.string("a.close", language: "en") == "Close")
         #expect(L10n.string("nav.appAndToolsUpdateAvailable", language: "en") == "App and tool updates available")
         #expect(L10n.string("nav.appUpdateAvailable", language: "en") == "App update available")
         #expect(L10n.string("nav.toolsUpdateAvailable", language: "en") == "Tool update available")

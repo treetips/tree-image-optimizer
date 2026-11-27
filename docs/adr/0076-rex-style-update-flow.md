@@ -4,6 +4,7 @@
 
 - 承認済み (Accepted)
 - ツール更新の確認ダイアログは [ADR 0078](./0078-split-releases-and-unified-update-button.md) で廃止
+- 更新通知の見た目と操作配置は [ADR 0079](./0079-rex-style-update-pill.md) で置換
 
 ## 背景・課題
 

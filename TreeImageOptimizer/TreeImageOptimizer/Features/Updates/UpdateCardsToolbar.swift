@@ -57,15 +57,18 @@ extension UpdateCardsToolbar {
             opacity: GlassStyle.updateCardBlueTintOpacity,
             textColor: statusTextColor
         ) {
-            actionButton(
-                title: t(availability.labelKey),
-                systemImage: availability.systemImage,
-                tint: statusTextColor,
-                enabled: updatesEnabled,
-                resetCursorOnClick: true,
-                showsBackground: false
-            ) {
-                start(UpdateToolbarResolver.plan(for: availability))
+            HStack(spacing: 8) {
+                statusIcon(availability.systemImage, color: .blue)
+                statusText(t(availability.labelKey))
+                actionButton(
+                    title: availableActionTitle(availability),
+                    tint: .blue,
+                    foregroundColor: .blue,
+                    enabled: updatesEnabled
+                ) {
+                    start(UpdateToolbarResolver.plan(for: availability))
+                }
+                closeButton()
             }
         }
     }
@@ -77,11 +80,9 @@ extension UpdateCardsToolbar {
             textColor: .primary,
             combineAccessibility: true
         ) {
-            HStack(spacing: 6) {
-                statusLabel(t("nav.checkingUpdates"), icon: "arrow.triangle.2.circlepath")
-                ProgressView()
-                    .tint(.primary)
-                    .frame(width: 14, height: 14)
+            HStack(spacing: 8) {
+                circularProgress(fraction: nil, tint: .primary)
+                statusText(t("nav.checkingUpdates"))
             }
         }
     }
@@ -93,9 +94,12 @@ extension UpdateCardsToolbar {
             textColor: statusTextColor,
             combineAccessibility: true
         ) {
-            HStack(spacing: 6) {
-                statusLabel(installingDetail(progress), icon: "arrow.down.circle")
-                progressIndicator(progress.fraction, tint: statusTextColor)
+            HStack(spacing: 8) {
+                circularProgress(fraction: progress.fraction, tint: .blue)
+                statusText(installingDetail(progress))
+                if let fraction = progress.fraction {
+                    percentLabel(fraction)
+                }
             }
         }
     }
@@ -107,11 +111,12 @@ extension UpdateCardsToolbar {
             textColor: accentTextColor,
             combineAccessibility: true
         ) {
-            HStack(spacing: 6) {
-                statusLabel(
-                    "\(t("nav.installing")) \(toolsInstallingDetail(progress))",
-                    icon: "shippingbox.and.arrow.backward")
-                progressIndicator(progress.fraction, tint: accentTextColor)
+            HStack(spacing: 8) {
+                circularProgress(fraction: progress.fraction, tint: .accentColor)
+                statusText(toolsInstallingText(progress))
+                if let fraction = progress.fraction {
+                    percentLabel(fraction)
+                }
             }
         }
     }
@@ -122,11 +127,13 @@ extension UpdateCardsToolbar {
             opacity: GlassStyle.updateCardGreenTintOpacity,
             textColor: statusTextColor
         ) {
-            HStack(spacing: 6) {
-                statusLabel(t("nav.updateReady"), icon: "checkmark.circle.fill")
+            HStack(spacing: 8) {
+                statusIcon("checkmark.circle.fill", color: .green)
+                statusText(t("nav.updateReady"))
                 actionButton(
                     title: updateCheck.isRestarting ? t("a.restarting") : t("nav.restart"),
-                    tint: statusTextColor,
+                    tint: .green,
+                    foregroundColor: .green,
                     enabled: !updateCheck.isRestarting
                 ) {
                     updateCheck.restart(language: language)
@@ -141,15 +148,22 @@ extension UpdateCardsToolbar {
             opacity: GlassStyle.updateCardTintOpacity,
             textColor: accentTextColor
         ) {
-            HStack(spacing: 6) {
-                statusLabel(t("nav.installFailed"), icon: "exclamationmark.triangle.fill")
-                actionButton(title: t("nav.retry"), tint: accentTextColor, enabled: updatesEnabled) {
+            HStack(spacing: 8) {
+                statusIcon("exclamationmark.triangle.fill", color: .red)
+                statusText(t("nav.installFailed"))
+                actionButton(
+                    title: t("nav.retry"),
+                    tint: .red,
+                    foregroundColor: .red,
+                    enabled: updatesEnabled
+                ) {
                     start(
                         UpdateToolbarResolver.retryPlan(
                             appCard: updateCheck.card,
                             toolsCard: toolsUpdate.card
                         ))
                 }
+                closeButton()
             }
         }
     }
@@ -160,12 +174,10 @@ extension UpdateCardsToolbar {
             opacity: GlassStyle.updateCardNoneTintOpacity,
             textColor: .primary
         ) {
-            actionButton(
-                title: t("nav.updateNone"),
-                systemImage: "checkmark.circle",
-                tint: .primary
-            ) {
-                updateCheck.dismissCard()
+            HStack(spacing: 8) {
+                statusIcon("checkmark.circle.fill", color: .green)
+                statusText(t("nav.updateNone"))
+                closeButton()
             }
         }
     }
@@ -197,6 +209,29 @@ extension UpdateCardsToolbar {
         }
     }
 
+    private func dismissNotification() {
+        switch state {
+        case .available:
+            updateCheck.dismissCard()
+            toolsUpdate.dismissCard()
+        case .noUpdate:
+            updateCheck.dismissCard()
+        case .appInstallFailed:
+            updateCheck.dismissCard()
+        case .toolsInstallFailed:
+            toolsUpdate.dismissCard()
+            switch updateCheck.card {
+            case .noUpdate, .available:
+                updateCheck.dismissCard()
+            default:
+                break
+            }
+        default:
+            // 実行中・再起動待ちは閉じず、進捗と再起動操作を失わないようにする。
+            return
+        }
+    }
+
     private func toolbarPill<Content: View>(
         tint: Color,
         opacity: Double,
@@ -205,71 +240,93 @@ extension UpdateCardsToolbar {
         @ViewBuilder content: () -> Content
     ) -> some View {
         content()
+            .fixedSize(horizontal: true, vertical: true)
             .foregroundStyle(textColor)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
+            .frame(minHeight: 36)
             .glassEffect(
                 .regular.tint(tint.opacity(opacity)),
                 in: Capsule()
             )
+            // Why not 圧縮に任せるか: 本文と操作部を失わず、Rex風の固有サイズを保つため。
+            .fixedSize(horizontal: true, vertical: true)
             .accessibilityElement(children: combineAccessibility ? .combine : .contain)
     }
 
-    private func statusLabel(_ text: String, icon: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-            Text(text)
-                .lineLimit(1)
-        }
-        .font(AppTheme.font(.body, scale: fontScale))
-        .bold()
+    private func statusIcon(_ systemName: String, color: Color) -> some View {
+        Image(systemName: systemName)
+            .font(AppTheme.font(.caption, scale: fontScale).bold())
+            .foregroundStyle(color)
+            .frame(width: 22, height: 22)
+            .background(color.opacity(0.18), in: Circle())
     }
-
+    private func statusText(_ text: String) -> some View {
+        Text(text)
+            .font(AppTheme.font(.body, scale: fontScale).bold())
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
     private func actionButton(
         title: String,
-        systemImage: String? = nil,
         tint: Color,
+        foregroundColor: Color? = nil,
         enabled: Bool = true,
-        resetCursorOnClick: Bool = false,
-        showsBackground: Bool = true,
         action: @escaping () -> Void
     ) -> some View {
         UpdateCardActionButton(
             title: title,
-            systemImage: systemImage,
             tint: tint,
+            foregroundColor: foregroundColor,
             enabled: enabled,
             fontScale: fontScale,
-            resetCursorOnClick: resetCursorOnClick,
-            showsBackground: showsBackground,
             action: action
         )
     }
 
-    @ViewBuilder
-    private func progressIndicator(_ fraction: Double?, tint: Color) -> some View {
-        if let fraction {
-            ProgressView(value: fraction, total: 1)
-                .progressViewStyle(.linear)
-                .tint(tint)
-                .frame(width: 44)
-        } else {
-            ProgressView()
-                .tint(tint)
-                .frame(width: 14, height: 14)
+    private func closeButton() -> some View {
+        Button {
+            dismissNotification()
+        } label: {
+            Image(systemName: "xmark")
+                .font(AppTheme.font(.caption, scale: fontScale).bold())
+                .foregroundStyle(Color.primary.opacity(0.65))
+                .frame(width: 24, height: 24)
+                .background(Color.primary.opacity(0.08), in: Circle())
+                .contentShape(Circle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(t("a.close")))
     }
 
+    private func circularProgress(fraction: Double?, tint: Color) -> some View {
+        Group {
+            if let fraction {
+                ProgressView(value: fraction, total: 1)
+                    .progressViewStyle(.circular)
+            } else {
+                ProgressView()
+            }
+        }
+        .tint(tint)
+        .frame(width: 22, height: 22)
+    }
+    private func percentLabel(_ fraction: Double) -> some View {
+        Text(fraction, format: .percent.precision(.fractionLength(0)))
+            .font(AppTheme.font(.body, scale: fontScale))
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+    }
+    private func availableActionTitle(_ availability: UpdateAvailability) -> String {
+        if case .tools = availability {
+            return t("a.install")
+        }
+        return t("nav.download")
+    }
     private func installingDetail(_ progress: UpdateInstallProgress) -> String {
         switch progress.phase {
         case .downloading:
-            guard let fraction = progress.fraction else {
-                return t("nav.downloading")
-            }
-            return String(
-                format: t("nav.downloadingPercent"),
-                Int((fraction * 100).rounded(.down))
-            )
+            return t("nav.downloading")
         case .verifying:
             return t("nav.verifying")
         case .extracting:
@@ -279,24 +336,9 @@ extension UpdateCardsToolbar {
         }
     }
 
-    private func toolsInstallingDetail(_ progress: ToolsUpdateProgress) -> String {
-        if !progress.label.isEmpty {
-            guard let fraction = progress.fraction else {
-                return progress.label
-            }
-            let percent = String(
-                format: t("nav.downloadingPercent"),
-                Int((fraction * 100).rounded(.down))
-            )
-            return "\(progress.label) \(percent)"
-        }
-        guard let fraction = progress.fraction else {
-            return t("nav.installing")
-        }
-        return String(
-            format: t("nav.downloadingPercent"),
-            Int((fraction * 100).rounded(.down))
-        )
+    private func toolsInstallingText(_ progress: ToolsUpdateProgress) -> String {
+        guard !progress.label.isEmpty else { return t("nav.installing") }
+        return "\(t("nav.installing")) \(progress.label)"
     }
 
     private func t(_ key: String) -> String {
@@ -313,33 +355,28 @@ extension UpdateCardsToolbar {
     }
 }
 
-/// ヘッダー内のコンパクトなアクションボタン。カード消滅・無効化時にカーソル状態を戻す。
 private struct UpdateCardActionButton: View {
     let title: String
-    let systemImage: String?
     let tint: Color
+    let foregroundColor: Color?
     let enabled: Bool
     let fontScale: CGFloat
-    let resetCursorOnClick: Bool
-    let showsBackground: Bool
     let action: () -> Void
     @State private var isHovering = false
 
     var body: some View {
         Button {
-            if resetCursorOnClick {
-                NSCursor.arrow.set()
-            }
             action()
         } label: {
-            titleLabel
-                .font(AppTheme.font(.body, scale: fontScale))
-                .bold()
+            Text(title)
+                .font(AppTheme.font(.body, scale: fontScale).bold())
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(showsBackground ? tint.opacity(0.16) : Color.clear, in: Capsule())
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .foregroundStyle(foregroundColor ?? tint)
+                .background(tint.opacity(0.28), in: Capsule())
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
@@ -353,15 +390,6 @@ private struct UpdateCardActionButton: View {
         }
         .onDisappear {
             NSCursor.arrow.set()
-        }
-    }
-
-    @ViewBuilder
-    private var titleLabel: some View {
-        if let systemImage {
-            Label(title, systemImage: systemImage)
-        } else {
-            Text(title)
         }
     }
 
