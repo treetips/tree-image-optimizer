@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
-# 現在のツールバージョンと既存の tools-latest を比較し、再公開の要否を決める。
+# 上流ツールのバージョンを解決し、既存の tools-latest と比較する。
 #
 # 使い方:
 #   tools/preflight-tools-release.sh
 #
 # 環境変数:
-#   REPOSITORY  GitHub リポジトリ（owner/name）
-#   TAG         配布先のリリースタグ（既定: tools-latest）
-#   FORCE       true なら既存配布情報に関係なく更新ありとして扱う
-#   GH_TOKEN    GitHub API の認証トークン（任意）
-#   GITHUB_OUTPUT changed の出力先
+#   REPOSITORY       GitHub リポジトリ（owner/name）
+#   TAG              配布先のリリースタグ（既定: tools-latest）
+#   UPSCAL_VERSION   上流の代わりに使う upscal の版（空なら最新を解決）
+#   REALCUGAN_VERSION 同様
+#   JPEGOPTIM_VERSION 同様
+#   PNGOPTIM_VERSION  同様
+#   LIBJXL_VERSION    同様
+#   LIBAVIF_VERSION   同様
+#   LIBWEBP_VERSION   同様
+#   FORCE             true なら既存配布情報に関係なく更新ありとして扱う
+#   GH_TOKEN          GitHub API の認証トークン（任意）
+#   GITHUB_OUTPUT     changed / <tool>_version の出力先
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,10 +44,6 @@ parts = sys.argv[1].split("/")
 if len(parts) != 2 or not all(parts) or any(char.isspace() for part in parts for char in part):
     raise SystemExit("REPOSITORY は owner/name 形式で指定してください")
 PY
-validate_tool_versions
-for name in "${TOOL_NAMES[@]}"; do
-  verify_tool_payload "$name"
-done
 
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -61,8 +64,132 @@ api_curl() {
   curl "${args[@]}" "$@"
 }
 
+resolve_latest_tag() {
+  local repository="$1"
+  local response="$2"
+  local url="https://api.github.com/repos/${repository}/releases/latest"
+
+  api_curl -fsSL "$url" -o "$response" || return 1
+  python3 - "$response" "$repository" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    data = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, UnicodeError, json.JSONDecodeError) as error:
+    raise SystemExit(f"{sys.argv[2]} の最新リリース情報を読み込めません: {error}")
+if not isinstance(data, dict):
+    raise SystemExit(f"{sys.argv[2]} の最新リリース情報の形式が不正です")
+version = data.get("tag_name")
+if not isinstance(version, str) or not version or any(char.isspace() for char in version):
+    raise SystemExit(f"{sys.argv[2]} の最新リリースに tag_name がありません")
+print(version)
+PY
+}
+
+resolve_libwebp_version() {
+  local response="$1"
+  # Why not api_curl を使わないか: GitHub token を Google Storage へ送らないため。
+  curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 30 \
+    'https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html' \
+    -o "$response" || return 1
+  python3 - "$response" <<'PY'
+import pathlib
+import re
+import sys
+
+text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+versions = set(re.findall(r"libwebp-(\d+\.\d+\.\d+)-mac-arm64\.tar\.gz", text))
+if not versions:
+    raise SystemExit("libwebp の macOS arm64 配布物が見つかりません")
+print(max(versions, key=lambda value: tuple(map(int, value.split(".")))))
+PY
+}
+
+explicit_version() {
+  case "$1" in
+    upscal) printf '%s' "${UPSCAL_VERSION:-}" ;;
+    realcugan) printf '%s' "${REALCUGAN_VERSION:-}" ;;
+    jpegoptim) printf '%s' "${JPEGOPTIM_VERSION:-}" ;;
+    pngoptim) printf '%s' "${PNGOPTIM_VERSION:-}" ;;
+    libjxl) printf '%s' "${LIBJXL_VERSION:-}" ;;
+    libavif) printf '%s' "${LIBAVIF_VERSION:-}" ;;
+    libwebp) printf '%s' "${LIBWEBP_VERSION:-}" ;;
+  esac
+}
+
+resolve_upstream_versions() {
+  local name version repository tag
+  for name in "${TOOL_NAMES[@]}"; do
+    version="$(explicit_version "$name")"
+    if [[ -z "$version" ]]; then
+      case "$name" in
+        upscal)
+          repository='upscayl/upscayl-ncnn'
+          if ! tag="$(resolve_latest_tag "$repository" "$WORK_DIR/upscal-latest.json")"; then
+            fail "upscal の最新バージョンを解決できませんでした。"
+          fi
+          version="upscayl-bin-$tag"
+          ;;
+        realcugan)
+          repository='nihui/realcugan-ncnn-vulkan'
+          if ! tag="$(resolve_latest_tag "$repository" "$WORK_DIR/realcugan-latest.json")"; then
+            fail "Real-CUGAN の最新バージョンを解決できませんでした。"
+          fi
+          version="realcugan-ncnn-vulkan-$tag"
+          ;;
+        jpegoptim)
+          if ! version="$(resolve_latest_tag 'tjko/jpegoptim' "$WORK_DIR/jpegoptim-latest.json")"; then
+            fail "jpegoptim の最新バージョンを解決できませんでした。"
+          fi
+          ;;
+        pngoptim)
+          if ! version="$(resolve_latest_tag 'okooo5km/pngoptim' "$WORK_DIR/pngoptim-latest.json")"; then
+            fail "pngoptim の最新バージョンを解決できませんでした。"
+          fi
+          ;;
+        libjxl)
+          if ! version="$(resolve_latest_tag 'libjxl/libjxl' "$WORK_DIR/libjxl-latest.json")"; then
+            fail "libjxl の最新バージョンを解決できませんでした。"
+          fi
+          ;;
+        libavif)
+          if ! version="$(resolve_latest_tag 'AOMediaCodec/libavif' "$WORK_DIR/libavif-latest.json")"; then
+            fail "libavif の最新バージョンを解決できませんでした。"
+          fi
+          ;;
+        libwebp)
+          if ! version="$(resolve_libwebp_version "$WORK_DIR/libwebp-index.html")"; then
+            fail "libwebp の最新バージョンを解決できませんでした。"
+          fi
+          ;;
+      esac
+    fi
+    printf '%s\t%s\n' "$name" "$version" >> "$versions_file"
+  done
+
+  python3 - "$versions_file" <<'PY'
+import pathlib
+import re
+import sys
+
+for line in pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines():
+    name, version = line.split("\t", 1)
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", version) is None:
+        raise SystemExit(f"{name} のバージョンに不正な文字が含まれています: {version}")
+PY
+}
+
+versions_file="$WORK_DIR/versions.txt"
+resolve_upstream_versions
+
 changed=true
+changed_tools=""
+all_tools="$(IFS=,; echo "${TOOL_NAMES[*]}")"
 if [[ "$FORCE" == true ]]; then
+  changed_tools="$all_tools"
   echo "FORCE が指定されたため、既存配布情報に関係なく再作成します。"
 else
   encoded_tag="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$TAG")"
@@ -106,17 +233,15 @@ PY
       if [[ -z "$manifest_url" ]]; then
         echo "tools-info.json が無いため、配布物を再作成します。"
         changed=true
+        changed_tools="$all_tools"
       else
-      manifest="$WORK_DIR/tools-info.json"
-      api_curl -fsSL "$manifest_url" -o "$manifest" \
-        || fail "配布先リリース $TAG の tools-info.json を取得できませんでした。"
+        manifest="$WORK_DIR/tools-info.json"
+        # Why not api_curl を使わないか: Release asset の CDN へ GitHub token を転送しないため。
+        curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 30 \
+          "$manifest_url" -o "$manifest" \
+          || fail "配布先リリース $TAG の tools-info.json を取得できませんでした。"
 
-      versions_file="$WORK_DIR/versions.txt"
-      for name in "${TOOL_NAMES[@]}"; do
-        printf '%s\t%s\n' "$name" "$(tool_version "$name")" >> "$versions_file"
-      done
-
-      changed="$(python3 - "$manifest" "$release_response" "$versions_file" "$TAG" "$REPOSITORY" <<'PY'
+        comparison="$(python3 - "$manifest" "$release_response" "$versions_file" "$TAG" "$REPOSITORY" <<'PY'
 import json
 import pathlib
 import posixpath
@@ -175,34 +300,63 @@ for entry in entries:
 
 if seen != set(resolved):
     raise SystemExit("tools-info.json の必須 entry が不足しています")
-asset_names = {
-    asset.get("name")
+asset_digests = {
+    asset.get("name"): asset.get("digest")
     for asset in release.get("assets", [])
     if isinstance(asset, dict) and isinstance(asset.get("name"), str)
 }
-missing_assets = (entry_files | {"SHA256SUMS.txt"}) - asset_names
-version_changed = any(current[name] != resolved[name] for name in resolved)
+missing_assets = (entry_files | {"SHA256SUMS.txt"}) - set(asset_digests)
+for entry in entries:
+    filename = unquote(posixpath.basename(urlparse(entry["url"]).path))
+    digest = asset_digests.get(filename)
+    if not isinstance(digest, str) or re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest) is None:
+        raise SystemExit(f"Release asset の digest が不正です: {filename}")
+    if digest.removeprefix("sha256:").lower() != entry["sha256"].lower():
+        raise SystemExit(f"Release asset と manifest の SHA-256 が一致しません: {filename}")
+version_changed_names = [name for name in resolved if current[name] != resolved[name]]
+version_changed = bool(version_changed_names)
 release_visibility_changed = release.get("prerelease") is not True or release.get("draft") is True
+repair_all = bool(missing_assets) or release_visibility_changed
+changed_names = list(resolved) if repair_all else version_changed_names
 print("true" if version_changed or missing_assets or release_visibility_changed else "false")
+print(",".join(changed_names))
 PY
-      )" || fail "配布先リリース $TAG の tools-info.json が不正です。"
+        )" || fail "配布先リリース $TAG の tools-info.json が不正です。"
+        changed="${comparison%%$'\n'*}"
+        if [[ "$comparison" == *$'\n'* ]]; then
+          changed_tools="${comparison#*$'\n'}"
+        else
+          changed_tools=""
+        fi
       fi
       ;;
     404)
       echo "配布先リリース $TAG はまだ存在しません。"
+      changed_tools="$all_tools"
       ;;
     *)
-      fail "配布先リリース $TAG の API 問い合わせが HTTP $status で失敗しました。"
+      fail "配布先リリース $TAG の API 問い合わせに HTTP $status で失敗しました。"
       ;;
   esac
 fi
 
 {
   printf 'changed=%s\n' "$changed"
+  printf 'changed_tools=%s\n' "$changed_tools"
+  while IFS=$'\t' read -r name version; do
+    printf '%s_version=%s\n' "$name" "$version"
+  done < "$versions_file"
 } >> "$OUTPUT_FILE"
 
 if [[ "$changed" == true ]]; then
   echo "ツール配布物の更新あり"
+  echo "  更新対象: $changed_tools"
+  while IFS=$'\t' read -r name version; do
+    echo "  $name: $version"
+  done < "$versions_file"
 else
   echo "ツール配布物は最新です"
+  while IFS=$'\t' read -r name version; do
+    echo "  $name: $version"
+  done < "$versions_file"
 fi
