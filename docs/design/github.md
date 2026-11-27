@@ -19,7 +19,7 @@ Git の操作に関するルールは [Git運用ルール](./git.md) を参照�
 
 - アプリ本体のタグは `vMajor.Minor.Patch` 形式（例: `v0.1.0`）とし、通常リリースとして公開する。
 - ツールは `tools-latest` の事前リリースとして公開する。アプリの「Latest」を隠さないため、必ず事前リリースを維持する。
-- アプリのタグはReleaseワークフロー、ツールのAssetsはRelease Toolsワークフロー（いずれも `workflow_dispatch`）で公開する。
+- アプリのタグはReleaseワークフロー（`workflow_dispatch`）、ツールのAssetsはRelease Toolsワークフロー（`schedule`と`workflow_dispatch`）で公開する。
   リリース手順の全体は [リリースフロー](./release-flow.md) を参照する。
 
 ## スタックプルリクエスト

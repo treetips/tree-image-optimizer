@@ -6,8 +6,9 @@
 
 - アプリ本体はセマンティックバージョンとGitHubタグを一致させる。
 - ツールはアプリのバージョンを変更せずに公開できる。
-- 手動作業はPRマージとGitHub Actionsの実行ボタン押下に限定する。
+- 通常運用の手動作業はPRマージ、初回のツール配布、アプリ公開時のGitHub Actions実行に限定する。
 - ツールの上流更新はRelease Toolsが検出し、更新なしならGitHub Releaseを変更せず正常終了する。
+- Release Toolsは月・水・金の日本時間00:00に定期実行し、初回や修正時には手動実行もできる。
 - 失敗した配布物を利用者へ公開しない。
 
 ## Release構成
@@ -24,7 +25,7 @@
 ```text
 1. 機能開発・PRレビュー・CI
 2. mainへマージ
-3. Release Tools を実行し、ツールに更新がある場合だけ配布物を更新する。
+3. Release Tools を定期実行（必要時は手動実行）し、ツールに更新がある場合だけ配布物を更新する。
    ├─ 上流の最新バージョンを解決
    ├─ 既存tools-latestのmanifestと比較
    ├─ 更新がある場合だけツールを取得・ビルド
@@ -52,9 +53,10 @@
 
 ### 実行
 
-1. GitHubの **Actions** → **Release Tools** → **Run workflow** を開く。
-2. 配布先は `tools-latest` に固定される。
-3. 上流の更新を確認し、同一バージョンでも配布物を作り直す場合だけ `force` を有効にする。定期実行時は `false` として扱う。
+1. 月・水・金の日本時間00:00に自動実行する。GitHubのスケジュールはデフォルトブランチの最新コミットを使う。
+2. 初回や手動での再配布は、GitHubの **Actions** → **Release Tools** → **Run workflow** から実行する。
+3. 配布先は `tools-latest` に固定される。
+4. 上流の更新を確認し、同一バージョンでも配布物を作り直す場合だけ `force` を有効にする。定期実行時は `false` として扱う。
 
 ### 処理内容
 
@@ -93,7 +95,7 @@ macOS用assetがあるツールはそのassetを使う。libjxlとlibavifはソ�
 
 ### 実行
 
-1. 事前にRelease Toolsを実行し、`tools-latest/tools-info.json` を取得できるようにする。
+1. 初回、または直近の定期実行より上流更新を反映したい場合は、事前にRelease Toolsを手動実行し、`tools-latest/tools-info.json` を取得できるようにする。
 2. GitHubの **Actions** → **Release** → **Run workflow** を開く。
 3. bumpとして `major` / `minor` / `patch` を選ぶ。
 
@@ -123,7 +125,7 @@ macOS用assetがあるツールはそのassetを使う。libjxlとlibavifはソ�
 
 ## 初回リリースと移行
 
-- 初回は先にRelease Toolsを実行する。ツール配布が無い状態でアプリを公開しない。
+- 初回は手動でRelease Toolsを実行する。ツール配布が無い状態でアプリを公開しない。
 - 既存クライアントはアプリ本体の更新を継続できる。
 - 新しいアプリへ更新するまでは、旧クライアントのツール更新確認だけ失敗し、既存ツールを使い続ける。
 - クリーンインストールの初回起動は、開発用ローカルコピーを試した後、`tools-latest` から不足ツールを取得する。
