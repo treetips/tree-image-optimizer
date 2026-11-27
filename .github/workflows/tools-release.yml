@@ -23,8 +23,8 @@ env:
 jobs:
   publish:
     name: Build & Publish Tools
-    runs-on: macos-latest
-    timeout-minutes: 60
+    runs-on: macos-26
+    timeout-minutes: 90
 
     steps:
       - name: Require main branch
@@ -38,8 +38,6 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v7
-        with:
-          lfs: true
 
       - name: Test tools release scripts
         run: bash tools/test-tools-release.sh
@@ -56,13 +54,49 @@ jobs:
           chmod +x tools/preflight-tools-release.sh
           tools/preflight-tools-release.sh
 
+      - name: Record no-op result
+        if: steps.preflight.outputs.changed == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ツール配布物は最新です。GitHub Release への変更はありません。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fetch upstream tool assets
+        if: steps.preflight.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPSCAL_VERSION: ${{ steps.preflight.outputs.upscal_version }}
+          REALCUGAN_VERSION: ${{ steps.preflight.outputs.realcugan_version }}
+          JPEGOPTIM_VERSION: ${{ steps.preflight.outputs.jpegoptim_version }}
+          PNGOPTIM_VERSION: ${{ steps.preflight.outputs.pngoptim_version }}
+          LIBJXL_VERSION: ${{ steps.preflight.outputs.libjxl_version }}
+          LIBAVIF_VERSION: ${{ steps.preflight.outputs.libavif_version }}
+          LIBWEBP_VERSION: ${{ steps.preflight.outputs.libwebp_version }}
+          CHANGED_TOOLS: ${{ steps.preflight.outputs.changed_tools }}
+          TOOLS_STAGE: ${{ runner.temp }}/tools-release-source
+        run: |
+          set -euo pipefail
+          XCODE_VERSION="$(cat .xcode-version)"
+          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+          git lfs pull
+          chmod +x tools/fetch-tools-release.sh
+          tools/fetch-tools-release.sh "$TOOLS_STAGE"
+
       - name: Build tool assets
         if: steps.preflight.outputs.changed == 'true'
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ env.TAG }}
           REPO_URL: ${{ env.REPO_URL }}
+          TOOLS_ROOT: ${{ runner.temp }}/tools-release-source
+          CHANGED_TOOLS: ${{ steps.preflight.outputs.changed_tools }}
+          REMOTE_MANIFEST: ${{ runner.temp }}/tools-release-metadata/tools-info.json
         run: |
           set -euo pipefail
+          mkdir -p "$(dirname "$REMOTE_MANIFEST")"
+          if ! gh release download "$TAG" --pattern 'tools-info.json' --dir "$(dirname "$REMOTE_MANIFEST")" >/dev/null 2>&1; then
+            rm -f "$REMOTE_MANIFEST"
+          fi
           chmod +x tools/build-tools-release.sh
           tools/build-tools-release.sh dist-tools
 
@@ -71,6 +105,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ env.TAG }}
+          FORCE: ${{ inputs.force || 'false' }}
         run: |
           set -euo pipefail
           chmod +x tools/publish-tools-release.sh
