@@ -42,6 +42,10 @@ final class ToolsUpdateController {
     var hasCheckedAvailability = false
     /// 更新確認に失敗したか。失敗時はツールの有無を「なし」と誤認しない。
     var availabilityCheckFailed = false
+    /// 最後に確認できた更新。ヘッダーカードを閉じてもAboutから再インストールできるよう保持する。
+    private(set) var knownAvailableUpdate: ToolsInfo?
+    /// 手動確認の失敗理由。Aboutの詳細表示に使う。
+    private(set) var checkFailureReason: String?
     /// 更新失敗の詳細理由。エラーダイアログ表示に使う。
     var errorDialog: String?
 
@@ -61,8 +65,19 @@ final class ToolsUpdateController {
     /// ネットワーク到達不能などの失敗時はカードを出さず、既存 tools でフォールバックする。
     func refreshAvailability() {
         guard card == nil, !isInstalling, !isChecking else { return }
+        checkAvailability()
+    }
+
+    /// About画面から手動で確認する。成功時は前回の更新あり・失敗表示を新しい結果で置き換える。
+    func checkForUpdates() {
+        checkAvailability()
+    }
+
+    private func checkAvailability() {
+        guard !isInstalling, !isChecking else { return }
         isChecking = true
         availabilityCheckFailed = false
+        checkFailureReason = nil
         Task {
             defer {
                 isChecking = false
@@ -70,15 +85,22 @@ final class ToolsUpdateController {
             }
             do {
                 let info = try await service.fetchToolsInfo()
+                // 確認中にインストールが始まった場合は、古い結果で進捗・失敗カードを上書きしない。
+                guard !isInstalling else { return }
                 let installed = store.loadInstalled()
                 let updates = store.updatesNeeded(info: info, installed: installed)
-                // 差分が無ければカードを出さない。既存の tools をそのまま使う。
-                guard !updates.isEmpty else { return }
-                card = .available(info)
+                errorDialog = nil
+                if updates.isEmpty {
+                    knownAvailableUpdate = nil
+                    card = nil
+                } else {
+                    knownAvailableUpdate = info
+                    card = .available(info)
+                }
             } catch {
-                // 取得失敗時はカードを出さず、既存 tools でフォールバックする。
-                // 差分の有無が分からないため、「更新が無い」と誤解させるカードも出さない。
+                // 取得失敗時は既存 tools と直前の確認結果を残し、「更新が無い」と誤解させない。
                 availabilityCheckFailed = true
+                checkFailureReason = error.localizedDescription
                 AppLogger.shared.info("tools update check failed: \(error.localizedDescription)")
             }
         }
@@ -118,6 +140,9 @@ final class ToolsUpdateController {
                 // コントローラ側では状態の切り替えだけを担う。
                 _ = try await service.updateTools(
                     info: info, installed: installed, onProgress: onProgress)
+                knownAvailableUpdate = nil
+                availabilityCheckFailed = false
+                checkFailureReason = nil
                 card = nil
                 succeeded = true
             } catch {

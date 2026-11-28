@@ -22,6 +22,7 @@
 		E10000000000000000000006 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000006 /* SettingsView.swift */; };
 		E10000000000000000000007 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000007 /* SettingsViewModel.swift */; };
 		E10000000000000000000008 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000008 /* AboutView.swift */; };
+		E10000000000000000000019 /* AboutUpdatePresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000019 /* AboutUpdatePresentation.swift */; };
 		E10000000000000000000009 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* Localizable.xcstrings */; };
 		E30000000000000000000001 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* AppError.swift */; };
 		E30000000000000000000015 /* GlassCTAButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000015 /* GlassCTAButton.swift */; };
@@ -116,6 +117,7 @@
 		F10000000000000000000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		F10000000000000000000007 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		F10000000000000000000008 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		F10000000000000000000019 /* AboutUpdatePresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutUpdatePresentation.swift; sourceTree = "<group>"; };
 		F10000000000000000000016 /* ConvertSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertSettingsView.swift; sourceTree = "<group>"; };
 		F10000000000000000000017 /* BeforeAfterPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeforeAfterPreviewView.swift; sourceTree = "<group>"; };
 		F10000000000000000000018 /* ConvertRowCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertRowCells.swift; sourceTree = "<group>"; };
@@ -371,6 +373,7 @@
 			isa = PBXGroup;
 			children = (
 				F10000000000000000000008 /* AboutView.swift */,
+				F10000000000000000000019 /* AboutUpdatePresentation.swift */,
 			);
 			path = About;
 			sourceTree = "<group>";
@@ -536,6 +539,7 @@
 				E10000000000000000000006 /* SettingsView.swift in Sources */,
 				E10000000000000000000007 /* SettingsViewModel.swift in Sources */,
 				E10000000000000000000008 /* AboutView.swift in Sources */,
+				E10000000000000000000019 /* AboutUpdatePresentation.swift in Sources */,
 				E30000000000000000000001 /* AppError.swift in Sources */,
 				E30000000000000000000002 /* AppInfo.swift in Sources */,
 				E30000000000000000000003 /* AppPaths.swift in Sources */,

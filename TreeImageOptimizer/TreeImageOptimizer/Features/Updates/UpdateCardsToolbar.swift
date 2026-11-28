@@ -185,28 +185,7 @@ extension UpdateCardsToolbar {
     /// 更新計画を実行する。両方ある場合はツールの成功を待ってアプリを開始する。
     private func start(_ plan: UpdateInstallPlan) {
         guard updatesEnabled else { return }
-        switch plan {
-        case .none:
-            return
-        case .app(let info):
-            updateCheck.startDownload(info, language: language)
-        case .tools(let info):
-            toolsUpdate.install(info)
-        case .toolsThenApp(let expectedAppInfo, let toolsInfo):
-            toolsUpdate.install(toolsInfo) { success in
-                guard success else { return }
-                // Why not 開始時点の情報をそのまま使うか: ツール更新中に手動確認が
-                // 完了している場合、新しい更新を優先し、最新へ戻った場合は開始しない。
-                switch updateCheck.card {
-                case .available(let currentInfo):
-                    updateCheck.startDownload(currentInfo, language: language)
-                case .installFailed:
-                    updateCheck.startDownload(expectedAppInfo, language: language)
-                default:
-                    return
-                }
-            }
-        }
+        plan.perform(updateCheck: updateCheck, toolsUpdate: toolsUpdate, language: language)
     }
 
     private func dismissNotification() {

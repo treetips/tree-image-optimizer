@@ -125,3 +125,35 @@ enum UpdateInstallPlan: Equatable {
     case tools(ToolsInfo)
     case toolsThenApp(UpdateInfo, ToolsInfo)
 }
+
+extension UpdateInstallPlan {
+    /// 更新計画を実行する。ヘッダーとAboutで実行順序を共有し、ツール更新後にアプリを開始する。
+    func perform(updateCheck: UpdateCheckController, toolsUpdate: ToolsUpdateController, language: String) {
+        switch self {
+        case .none:
+            return
+        case .app(let info):
+            updateCheck.startDownload(info, language: language)
+        case .tools(let info):
+            toolsUpdate.install(info)
+        case .toolsThenApp(let expectedAppInfo, let toolsInfo):
+            toolsUpdate.install(toolsInfo) { success in
+                guard success else { return }
+                // Why not 開始時点の情報をそのまま使うか: ツール更新中に手動確認が
+                // 完了している場合、新しい更新を優先し、最新へ戻った場合は開始しない。
+                switch updateCheck.card {
+                case .available(let currentInfo):
+                    updateCheck.startDownload(currentInfo, language: language)
+                case .installFailed:
+                    updateCheck.startDownload(expectedAppInfo, language: language)
+                default:
+                    // Why not ヘッダーカードだけを参照しないか: 閉じた更新をAboutから
+                    // 再実行する場合も、確認結果に残る更新を開始する必要がある。
+                    if let currentInfo = updateCheck.knownAvailableUpdate {
+                        updateCheck.startDownload(currentInfo, language: language)
+                    }
+                }
+            }
+        }
+    }
+}
