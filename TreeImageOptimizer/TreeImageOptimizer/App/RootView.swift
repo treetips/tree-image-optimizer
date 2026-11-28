@@ -428,7 +428,11 @@ extension RootView {
         case .settings:
             SettingsView(viewModel: settings)
         case .about:
-            AboutView(controller: updateCheck, toolsUpdate: toolsUpdate)
+            AboutView(
+                controller: updateCheck,
+                toolsUpdate: toolsUpdate,
+                updatesEnabled: !convertJobStore.isRunning && !easyConvertJobStore.isRunning
+            )
         }
     }
 

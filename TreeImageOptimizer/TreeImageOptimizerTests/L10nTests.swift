@@ -52,6 +52,24 @@ struct L10nTests {
         #expect(L10n.string("nav.retry", language: "en") == "Retry")
     }
 
+    @Test("Aboutのアップデート表示")
+    func aboutUpdateLabels() {
+        #expect(L10n.string("a.group.updates", language: "ja") == "アップデート")
+        #expect(L10n.string("a.update.app", language: "ja") == "アプリ更新")
+        #expect(L10n.string("a.update.libraries", language: "ja") == "ライブラリ更新")
+        #expect(
+            String(format: L10n.string("a.update.appAvailable", language: "ja"), "0.3.5")
+                == "アプリを v0.3.5 にアップデートできます。")
+        #expect(L10n.string("a.update.appLatest", language: "ja") == "アプリは最新です。")
+        #expect(L10n.string("a.update.librariesLatest", language: "ja") == "ライブラリは最新です。")
+        #expect(L10n.string("a.group.updates", language: "en") == "Updates")
+        #expect(L10n.string("a.update.app", language: "en") == "App update")
+        #expect(L10n.string("a.update.libraries", language: "en") == "Library updates")
+        #expect(
+            String(format: L10n.string("a.update.appAvailable", language: "en"), "0.3.5")
+                == "The app can be updated to v0.3.5.")
+    }
+
     @Test("自動最適化のラベル")
     func autoOptimizationLabels() {
         #expect(L10n.string("c.mode.fixed", language: "ja") == "固定最適化")

@@ -28,6 +28,10 @@ final class UpdateCheckController {
     var isChecking = false
     /// 起動時の更新確認に失敗したか。失敗時はツールの更新有無とまとめて表示しない。
     var availabilityCheckFailed = false
+    /// 更新確認が1回でも完了したか。ヘッダーの一時カードとは別にAboutへ状態を残すため。
+    var hasCheckedAvailability = false
+    /// 最後に確認できた更新。ヘッダーカードを閉じてもAboutから再インストールできるよう保持する。
+    private(set) var knownAvailableUpdate: UpdateInfo?
     var isInstalling = false
     var isRestarting = false
     var isCleaningStagedUpdate = false
@@ -65,6 +69,19 @@ final class UpdateCheckController {
         return (version, build)
     }
 
+    /// 確認結果を保持する。失敗時は直前の成功結果を消さず、確認済みかどうかだけを更新する。
+    private func recordAvailability(_ result: UpdateCheckResult) {
+        hasCheckedAvailability = true
+        switch result {
+        case .available(let info):
+            knownAvailableUpdate = info
+        case .latest:
+            knownAvailableUpdate = nil
+        case .failed:
+            break
+        }
+    }
+
     /// 起動時などにダイアログなしで有無だけ確認し、ヘッダーの更新カードに反映する。
     func refreshAvailability() {
         // カードが残っている間に掃除すると、Download と削除が競合し得るため初期状態だけを対象にする。
@@ -90,6 +107,7 @@ final class UpdateCheckController {
             )
             // 確認中にインストールが始まった場合は、古い確認結果で進捗・完了カードを上書きしない。
             guard !isInstalling, !isRestarting, !isReadyToRestart else { return }
+            recordAvailability(result)
             if case .failed = result {
                 availabilityCheckFailed = true
             } else if let card = Self.resolveManualCard(for: result) {
@@ -166,6 +184,7 @@ final class UpdateCheckController {
                 isChecking = false
                 return
             }
+            recordAvailability(result)
             switch result {
             case .latest:
                 availabilityCheckFailed = false
@@ -214,6 +233,8 @@ final class UpdateCheckController {
                 }.value
                 // 自動再起動すると完了状態を確認できないため、ここで一旦停止する。
                 // 以後はカードの「アプリ再起動する」から配置と起動を切り替える。
+                knownAvailableUpdate = nil
+                availabilityCheckFailed = false
                 card = .readyToRestart(staged, info)
                 message = L10n.string("a.restartReadyMsg", language: lang)
             } catch {
